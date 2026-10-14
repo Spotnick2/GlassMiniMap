@@ -25,8 +25,209 @@ GMM.Ring = Ring
 Ring.RING_WIDTH = 10          -- glass between the map's edge and the ring's outer edge
 Ring.MAP_SIZE = 198           -- Blizzard's Minimap (Minimap.xml); the art is drawn for this ratio
 Ring.DISC_SIZE = 30           -- the discs on the ring (sun, launcher)
+Ring.FOG_PADDING = 18        -- exterior vapor; matches Tools/make_art.py
 
 local host, glass, notch, container
+local runes, runeAnimation
+local runeLayers = {}
+local runeStyle, runeMotion = "etched", "sway"
+local fog, fogAnimation
+local runeBloom
+local runeLight, runeMist
+local etchedBase
+local fogEnabled = false
+local previewEnabled = false
+
+-- Runic mode. The map can hide independently of its
+-- container (Blizzard's ToggleMinimap), so watch both effective visibilities.
+local function syncRunes()
+    if not runes then return end
+    runes:SetShown(previewEnabled and Minimap:IsVisible())
+    for _, layer in ipairs(runeLayers) do
+        if runes:IsVisible() then
+            if not layer.animation:IsPlaying() then layer.animation:Play() end
+        else
+            layer.animation:Stop()
+        end
+    end
+    fog:SetShown(fogEnabled)
+    if runes:IsVisible() and fogEnabled then
+        if not fogAnimation:IsPlaying() then fogAnimation:Play() end
+    else fogAnimation:Stop() end
+end
+
+local function paintRunes()
+    -- Effects share the theme's hue, but light needs a brighter colour than
+    -- the shaded glass body. Missing class colour falls back to neutral white.
+    local r, g, b = 1, 1, 1
+    local tint = Theme.Current()
+    if GMM.db.theme == "class" and tint then
+        local shade = Theme.PRESETS.class.classShade
+        r, g, b = tint[1] / shade, tint[2] / shade, tint[3] / shade
+    end
+    local brightness = GMM.db.theme == "smoked" and 0.65 or 1
+    local intensity = GMM.db.runeIntensity / 100
+    -- The engraving stays fixed and readable beneath the moving light.
+    etchedBase:SetVertexColor(0.35 + 0.65 * r, 0.35 + 0.65 * g, 0.35 + 0.65 * b, 0.65 * brightness)
+    runeBloom:SetShown(runeStyle == "glowing")
+    runeLight:SetVertexColor(r, g, b, 0.7 * brightness * intensity)
+    runeMist:SetVertexColor(0.5 + 0.5 * r, 0.5 + 0.5 * g, 0.5 + 0.5 * b, 0.5 * brightness)
+    for _, layer in ipairs(runeLayers) do
+        local strength = brightness
+        local glowing = runeStyle == "glowing"
+        layer.core:SetBlendMode(glowing and "ADD" or "BLEND")
+        layer.core:SetVertexColor(0.35 + 0.65 * r, 0.35 + 0.65 * g, 0.35 + 0.65 * b,
+            (glowing and 0.5 * intensity or 0.65) * strength)
+        layer.glow:SetShown(glowing)
+        -- Additive core, glyph halo and rim bloom accumulate. Full-strength
+        -- layers washed the glyphs and their bounding lines into a white band.
+        layer.glow:SetVertexColor(r, g, b, 0.4 * strength * intensity)
+    end
+end
+
+local function configureRuneMotion()
+    for _, layer in ipairs(runeLayers) do
+        layer.animation:Stop()
+        local orbit = runeMotion == "orbit"
+        -- Explicit return leg: the live client's bounce looked like a reset.
+        -- Each cycle ends at its starting orientation, including full orbits.
+        layer.animation:SetLooping("REPEAT")
+        layer.rotation:SetDegrees(orbit and 360 or 4)
+        layer.rotation:SetDuration(orbit and 30 * 100 / GMM.db.runeSpeed or 2)
+        layer.rotation:SetSmoothing(orbit and "NONE" or "IN_OUT")
+        layer.returnRotation:SetDegrees(orbit and 0 or -4)
+        layer.returnRotation:SetDuration(orbit and 0 or 2)
+        layer.returnRotation:SetSmoothing(orbit and "NONE" or "IN_OUT")
+    end
+end
+
+function Ring.RefreshRuneTuning(key)
+    if not runes then return end
+    if key == "runeIntensity" then paintRunes()
+    elseif key == "runeSpeed" and runeMotion == "orbit" then configureRuneMotion() end
+    syncRunes()
+end
+
+function Ring.SetRunePreviewOption(kind, value)
+    if not runes then return false end
+    if kind == "style" and (value == "etched" or value == "glowing") then
+        runeStyle = value
+        paintRunes()
+    elseif kind == "motion" and (value == "sway" or value == "orbit") then
+        if runeMotion ~= value then
+            runeMotion = value
+            configureRuneMotion()
+        end
+    elseif kind == "fog" and (value == "on" or value == "off") then
+        fogEnabled = value == "on"
+    else return false end
+    syncRunes()
+    return true
+end
+
+function Ring.PreviewRunes(on)
+    if on and not runes then return false end
+    previewEnabled = on == true
+    syncRunes()
+    return true
+end
+
+function Ring.RuneStatus()
+    if not runes then return "rune preview unavailable" end
+    return string.format("runes: enabled=%s, visible=%s, playing=%s, progress=%.3f, style=%s, motion=%s, fog=%s, intensity=%g%%, speed=%g%%",
+        tostring(previewEnabled), tostring(runes:IsVisible()),
+        tostring(runeAnimation:IsPlaying()), runeAnimation:GetProgress(), runeStyle, runeMotion,
+        fogEnabled and "on" or "off", GMM.db.runeIntensity, GMM.db.runeSpeed)
+end
+
+function Ring.RunePreviewState()
+    return { enabled = previewEnabled, style = runeStyle, motion = runeMotion,
+        fog = fogEnabled and "on" or "off", theme = GMM.db.theme }
+end
+
+local function buildRunes()
+    runeStyle, runeMotion = GMM.db.runeStyle, GMM.db.runeMotion
+    fogEnabled, previewEnabled = GMM.db.runeFog, GMM.db.runicMode
+    runes = CreateFrame("Frame", nil, container)
+    runes:Hide()
+    runes:SetAllPoints(host)
+    -- Below the north tab (+4) and discs (+6), above the map. g.top (+9)
+    -- would put the moving strokes over those controls.
+    runes:SetFrameLevel(Ring.AboveMap(3))
+    runes:EnableMouse(false)
+    etchedBase = runes:CreateTexture(nil, "BACKGROUND")
+    etchedBase:SetAllPoints(runes)
+    etchedBase:SetTexture(GMM.MEDIA .. "ring_runes")
+    etchedBase:SetBlendMode("BLEND")
+    do
+        local f = CreateFrame("Frame", nil, runes)
+        f:SetAllPoints(runes)
+        f:SetFrameLevel(runes:GetFrameLevel())
+        f:EnableMouse(false)
+        local core = f:CreateTexture(nil, "ARTWORK")
+        core:SetAllPoints(f)
+        core:SetTexture(GMM.MEDIA .. "ring_runes_moving")
+        local glow = f:CreateTexture(nil, "BACKGROUND")
+        glow:SetAllPoints(f)
+        glow:SetTexture(GMM.MEDIA .. "ring_runes_glow")
+        glow:SetBlendMode("ADD")
+        -- Rotate the frame so sharp strokes and their halo share one clock.
+        local animation = f:CreateAnimationGroup()
+        local rotation = animation:CreateAnimation("Rotation")
+        rotation:SetOrder(1)
+        rotation:SetOrigin("CENTER", 0, 0)
+        local returnRotation = animation:CreateAnimation("Rotation")
+        returnRotation:SetOrder(2)
+        returnRotation:SetOrigin("CENTER", 0, 0)
+        runeLayers[1] = { frame = f, core = core, glow = glow,
+            animation = animation, rotation = rotation, returnRotation = returnRotation }
+    end
+    runeAnimation = runeLayers[1].animation
+    -- Uneven bloom travels with the primary rune layer's animation. Parenting
+    -- and anchoring to that layer keeps glyphs and light on the same clock.
+    local lightParent = runeLayers[1].frame
+    runeBloom = CreateFrame("Frame", nil, lightParent)
+    runeBloom:SetPoint("TOPLEFT", lightParent, "TOPLEFT", -18, 18)
+    runeBloom:SetPoint("BOTTOMRIGHT", lightParent, "BOTTOMRIGHT", 18, -18)
+    runeBloom:SetFrameLevel(Ring.AboveMap(1))
+    runeBloom:EnableMouse(false)
+    local light = runeBloom:CreateTexture(nil, "ARTWORK")
+    runeLight = light
+    light:SetAllPoints(runeBloom)
+    light:SetTexture(GMM.MEDIA .. "ring_bloom")
+    light:SetBlendMode("ADD")
+    fog = CreateFrame("Frame", nil, runes)
+    fog:SetPoint("TOPLEFT", runes, "TOPLEFT", -Ring.FOG_PADDING, Ring.FOG_PADDING)
+    fog:SetPoint("BOTTOMRIGHT", runes, "BOTTOMRIGHT", Ring.FOG_PADDING, -Ring.FOG_PADDING)
+    fog:SetFrameLevel(Ring.AboveMap(2))
+    fog:EnableMouse(false)
+    local mist = fog:CreateTexture(nil, "ARTWORK")
+    runeMist = mist
+    mist:SetAllPoints(fog)
+    mist:SetTexture(GMM.MEDIA .. "ring_fog")
+    mist:SetBlendMode("ADD")
+    fogAnimation = mist:CreateAnimationGroup()
+    fogAnimation:SetLooping("REPEAT")
+    local drift = fogAnimation:CreateAnimation("Rotation")
+    drift:SetOrder(1)
+    drift:SetOrigin("CENTER", 0, 0)
+    drift:SetDegrees(-360)
+    drift:SetDuration(80)
+    drift:SetSmoothing("NONE")
+    paintRunes()
+    configureRuneMotion()
+    runes:SetScript("OnShow", syncRunes)
+    runes:SetScript("OnHide", function()
+        for _, layer in ipairs(runeLayers) do layer.animation:Stop() end
+        fogAnimation:Stop()
+    end)
+    Minimap:HookScript("OnShow", syncRunes)
+    Minimap:HookScript("OnHide", syncRunes)
+    Theme.OnChange(function()
+        paintRunes()
+        syncRunes()
+    end)
+end
 
 -- The ring's host frame (other pieces anchor to it), its glass, and the
 -- distance from the map's centre to the middle of the ring.
@@ -250,6 +451,8 @@ function Ring.Build()
     glass.dark:SetTexture(GMM.MEDIA .. "ring_dark")
     Theme.Register(glass)
 
+    buildRunes()
+
     notch = buildNotch()
     local ev = CreateFrame("Frame")
     ev:SetScript("OnEvent", function(_, _, name)
@@ -262,4 +465,8 @@ function Ring.Build()
     return true
 end
 
-Ring._test = { notch = function() return notch end }
+Ring._test = { notch = function() return notch end,
+    runes = function() return runes, runeAnimation, runeLayers end,
+    fog = function() return fog, fogAnimation end,
+    bloom = function() return runeBloom end,
+    etchedBase = function() return etchedBase end }

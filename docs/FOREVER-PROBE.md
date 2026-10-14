@@ -33,6 +33,56 @@ Record the build each result was measured on.
       minimap button stays hidden, the disc shows the last button used, the bar follows each theme;
       `/reload` and Edit Mode keep it so. Without it: no disc, Blizzard's AddOns button untouched.
 
+## Issue #8: runic mode
+
+Owner-approved defaults: **off**, with **Glowing / Sway / Vapor On / 100% glow
+intensity / 100% orbit speed** when first enabled. The existing glass theme
+remains independent (clear by default). Mode and all choices now persist.
+
+Open `/gmm options` (or `/gmm runes`). Enable **Runic mode** to reveal style,
+motion, vapor, intensity, and speed controls. Disabling hides these controls,
+stops all rune/vapor animation, and retains the saved choices for next time.
+Theme selection uses the existing Clear/Smoked/Class controls on the same page.
+The development preview window has been replaced by these shipping settings.
+
+- Stationary base: 28 etched glyphs, always visible while runic mode is on.
+- Moving overlay: 16 sparse glyphs, without dots or bounding circles.
+- Glowing style adds a glyph halo and irregular rim bloom that travels with
+  the moving overlay. Etched style retains crisp strokes without additive light.
+- Sway: +4 degrees over two seconds, then -4 over two seconds, eased at both
+  ends. Explicit return replaced BOUNCE after the owner reported a visible reset.
+- Orbit: one turn in 30 seconds at 100% speed. Range 25-200%; 50% takes 60
+  seconds and 200% takes 15. Changing speed restarts the orbit cycle.
+- Glow intensity: 0-100%, independent of the stationary engraving and vapor.
+- Vapor: independent, soft wisps outside the ring, up to 18 UI pixels out,
+  drifting once every 80 seconds.
+- Effects are neutral white on clear, softer white on smoked, and class-tinted
+  on class glass. A temporarily unreadable class colour falls back to white.
+- All animation is native; rune effects add no per-frame Lua or ticker.
+
+Textures changed during development: restart the client after deployment.
+Subsequent Lua-only updates need `/reload`. Commands remain available through
+`/gmm help`, including `/gmm runes status` for playback diagnostics.
+
+### Visual evidence and remaining live checks
+
+Owner confirmed motion and changing animation progress. The reference video
+(2026-10-14 18-12-52) showed travelling bright patches rather than uniform rim
+light; bloom now uses uneven sectors. Owner requested a stationary etched base
+and fewer bright moving glyphs, then selected the defaults above from the preview.
+The square pattern previously seen inside the map persisted with the addon off.
+
+- [ ] Fresh settings: runic mode off; enabling gives the approved defaults.
+- [ ] Settings controls appear/disappear with mode; all choices survive reload.
+- [ ] Disable/re-enable retains choices; off/hidden state stops all animations.
+- [ ] Both styles and motions work with all themes, with vapor on and off.
+- [ ] Zero glow leaves stationary engraving; orbit speed leaves sway/vapor alone.
+- [ ] Moving glyphs and bloom remain aligned; sway returns without a jump.
+- [ ] No light or vapor leaks onto the map centre or obscures control interactions.
+- [ ] Edit Mode 80%, 100%, 120% and rotating minimap keep layout and motion correct.
+- [ ] Settings layout fits at the owner's UI scale; sliders and buttons update live.
+- [ ] `/gmm failures` empty, no blocked actions after Edit Mode and during combat.
+
 ## Measured
 
 1.60.1.70374 (owner's run, 2026-10-13), Glass MiniMap's first deploy:

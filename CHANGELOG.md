@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- **Optional runic mode**, off by default: stationary etched runes beneath a
+  sparse moving layer, with glowing/etched styles, sway/orbit motion, exterior
+  vapor, glow intensity, and orbit speed. Enable it in the settings dialog to
+  reveal its controls. Defaults are Glowing, Sway, Vapor On, and 100% intensity
+  and speed. All choices persist and follow clear, smoked, or class-colour glass.
+
 ## v0.1.1
 
 Released 2026-10-14.

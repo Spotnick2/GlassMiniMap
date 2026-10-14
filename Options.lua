@@ -61,6 +61,7 @@ local function checkbox(anchor, text, get, set)
     cb:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -4)
     local fs = label(panel, text)
     fs:SetPoint("LEFT", cb, "RIGHT", 4, 0)
+    fs:SetWidth(275)
     local function sync() cb:SetChecked(get() == true) end
     cb:SetScript("OnClick", function() set(cb:GetChecked() == true); sync() end)
     refreshers[#refreshers + 1] = sync
@@ -93,6 +94,86 @@ local function heading(text, anchor, y)
     return fs
 end
 
+local function runeSlider(title, key, lo, hi, y, parent, x, callbacks)
+    parent, x, callbacks = parent or panel, x or 335, callbacks or refreshers
+    local text = label(parent, "", "GameFontHighlight")
+    text:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y)
+    local slider = CreateFrame("Slider", nil, parent)
+    slider:SetPoint("TOPLEFT", text, "BOTTOMLEFT", 0, -8)
+    slider:SetSize(220, 16)
+    slider:SetOrientation("HORIZONTAL")
+    slider:SetMinMaxValues(lo, hi)
+    slider:SetValueStep(5)
+    slider:SetObeyStepOnDrag(true)
+    local track = slider:CreateTexture(nil, "BACKGROUND")
+    track:SetPoint("LEFT", slider, "LEFT", 0, 0)
+    track:SetPoint("RIGHT", slider, "RIGHT", 0, 0)
+    track:SetHeight(4)
+    track:SetColorTexture(0.4, 0.4, 0.4, 0.8)
+    slider:SetThumbTexture("Interface\\Buttons\\UI-SliderBar-Button-Horizontal")
+    local updating = false
+    local function refresh()
+        updating = true
+        slider:SetValue(GMM.db[key])
+        text:SetText(string.format("%s: %g%%", title, GMM.db[key]))
+        updating = false
+    end
+    slider:SetScript("OnValueChanged", function(_, value)
+        if not updating then GMM.Settings.SetRuneTuning(key, value); refresh() end
+    end)
+    callbacks[#callbacks + 1] = refresh
+    return slider
+end
+
+function Options.RefreshRunicControls()
+    if Options.built and panel:IsShown() then
+        for _, refresh in ipairs(refreshers) do refresh() end
+    end
+end
+
+local function buildRunicSettings()
+    local enable = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
+    enable:SetSize(24, 24)
+    enable:SetPoint("TOPLEFT", panel, "TOPLEFT", 335, -65)
+    local title = label(panel, "Runic mode", "GameFontNormal")
+    title:SetPoint("LEFT", enable, "RIGHT", 4, 0)
+    enable:SetScript("OnClick", function(self) GMM.Settings.Set("runicMode", self:GetChecked() == true) end)
+    local controls = CreateFrame("Frame", nil, panel)
+    controls:SetPoint("TOPLEFT", panel, "TOPLEFT", 335, -105)
+    controls:SetSize(260, 280)
+    local buttons = {}
+    local function choices(caption, kind, values, y)
+        local text = label(controls, caption)
+        text:SetPoint("TOPLEFT", controls, "TOPLEFT", 0, y - 5)
+        buttons[kind] = {}
+        for i, entry in ipairs(values) do
+            local value, name = entry[1], entry[2]
+            local b = CreateFrame("Button", nil, controls, "UIPanelButtonTemplate")
+            b:SetSize(82, 24)
+            b:SetPoint("TOPLEFT", controls, "TOPLEFT", 70 + (i - 1) * 86, y)
+            b:SetScript("OnClick", function() GMM.Settings.SetRunePreviewOption(kind, value) end)
+            refreshers[#refreshers + 1] = function()
+                local selected = GMM.Ring.RunePreviewState()[kind] == value
+                b:SetText(selected and ("[" .. name .. "]") or name)
+            end
+            buttons[kind][i] = b
+        end
+    end
+    choices("Style", "style", {{"etched", "Etched"}, {"glowing", "Glowing"}}, 0)
+    choices("Motion", "motion", {{"sway", "Sway"}, {"orbit", "Orbit"}}, -34)
+    choices("Vapor", "fog", {{"on", "On"}, {"off", "Off"}}, -68)
+    Options._test.intensity = runeSlider("Glow intensity", "runeIntensity", 0, 100, -114, controls, 0)
+    Options._test.speed = runeSlider("Orbit speed", "runeSpeed", 25, 200, -174, controls, 0)
+    local note = label(controls, "Uses the selected glass theme.\n100% orbit speed: one turn in 30 seconds.", "GameFontHighlightSmall")
+    note:SetPoint("TOPLEFT", controls, "TOPLEFT", 0, -232)
+    note:SetWidth(250)
+    refreshers[#refreshers + 1] = function()
+        enable:SetChecked(GMM.db.runicMode)
+        controls:SetShown(GMM.db.runicMode)
+    end
+    Options._test.runic = { enable = enable, controls = controls, buttons = buttons }
+end
+
 local function build()
     local title = label(panel, "|cff7fd4ffGlass|r MiniMap", "GameFontNormalHuge")
     title:SetPoint("TOPLEFT", panel, "TOPLEFT", 16, -16)
@@ -107,6 +188,7 @@ local function build()
     for _, name in ipairs(GMM.Theme.NAMES) do opts[#opts + 1] = { name, GMM.Theme.LABELS[name] } end
     local last, group = radios(look, opts, function() return GMM.db.theme end, GMM.Settings.SetTheme)
     Options._test.themeRadios = group
+    buildRunicSettings()
 
     local map = heading("Around the map", last)
     local c3 = checkbox(map, "Show the day and night disc",
@@ -117,12 +199,13 @@ local function build()
     local cnote = label(panel, "Coordinates: Options > Interface, \"Player Minimap Coordinates\" and "
         .. "\"Coordinates by Tenths\".", "GameFontHighlightSmall")
     cnote:SetPoint("TOPLEFT", c4, "BOTTOMLEFT", 0, -8)
+    cnote:SetWidth(295)
 
     -- The drawer: Glass MiniMap Bar's, when it's installed.
     local drawer = heading("Addon drawer", cnote)
     local note = label(panel, "", "GameFontHighlightSmall")
     note:SetPoint("TOPLEFT", drawer, "BOTTOMLEFT", 0, -6)
-    note:SetWidth(560)
+    note:SetWidth(295)
     local button = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
     button:SetSize(160, 22)
     button:SetText("Drawer options")
@@ -141,6 +224,7 @@ local function build()
     local hint = label(panel, "The minimap moves and scales with Edit Mode. Type /gmm help for every command.",
         "GameFontDisableSmall")
     hint:SetPoint("TOPLEFT", button, "BOTTOMLEFT", 0, -16)
+    hint:SetWidth(295)
 end
 
 panel:SetScript("OnShow", function()

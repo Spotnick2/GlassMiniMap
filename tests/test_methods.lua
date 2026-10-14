@@ -24,7 +24,17 @@ end
 f:close()
 
 WoW.methodsCalled = {}
+WoW.version = "dev"
 local GMM = loadAddon({ gmb = true })
+GMM._test.slash("runes on")
+GMM._test.slash("runes status")
+GMM._test.slash("runes style glowing")
+GMM._test.slash("runes motion orbit")
+GMM._test.slash("runes fog on")
+GMM._test.slash("runes")
+Minimap:Hide(); Minimap:Show()
+MinimapCluster:Hide(); MinimapCluster:Show()
+GMM._test.slash("runes off")
 
 -- The drawer disc (Glass MiniMap Bar's launcher).
 local D = disc()
@@ -61,6 +71,11 @@ QueueStatusButton:Show(); QueueStatusButton:SetScale(1.2); QueueStatusButton:Hid
 -- The options page: every control's OnClick.
 local panel = GMM.Options._test.panel
 panel:Show()
+for _, group in pairs(GMM.Options._test.runic.buttons) do
+    for _, button in ipairs(group) do button:Click("LeftButton") end
+end
+GMM.Options._test.intensity:SetValue(50)
+GMM.Options._test.speed:SetValue(150)
 for _, w in ipairs(WoW.frames) do
     if w._parent == panel and w._scripts.OnClick then w._scripts.OnClick(w, "LeftButton") end
 end
