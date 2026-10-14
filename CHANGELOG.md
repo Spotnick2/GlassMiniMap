@@ -4,11 +4,10 @@
 
 Not released yet.
 
-- **The addon drawer's disc moved up the left of the ring.** The bottom left is where Blizzard's
-  LFG eye shows while you're queued, and it covered the disc. The drawer still opens to the
-  left, now clear of the map and the eye.
-- **The LFG eye gets a glass disc** behind it, in the minimap's glass. The eye itself is
-  Blizzard's, untouched, and still moves with Edit Mode.
+- **The LFG eye moves to the top left of the ring**, mirroring the day and night disc, with a
+  glass disc behind it in the minimap's glass. It used to sit on the addon drawer's disc at the
+  bottom left while you were queued. If you've placed the eye yourself in Edit Mode, it stays
+  where you put it.
 - The coordinates pill follows Blizzard's "Player Minimap Coordinates" and "Coordinates by
   Tenths" settings live, and the zone tooltip shows the zone, subzone and territory again.
 

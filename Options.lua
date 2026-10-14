@@ -133,9 +133,9 @@ local function build()
         local active = GMM.Drawer.IsActive()
         button:SetShown(active)
         note:SetText(active
-            and "The disc on the left of the map opens Glass MiniMap Bar's drawer: your addons' "
+            and "The disc at the bottom left of the map opens Glass MiniMap Bar's drawer: your addons' "
                 .. "minimap buttons and Blizzard's AddOns list. Its own options:"
-            or "Install Glass MiniMap Bar for an addon drawer on the disc on the left of the map.")
+            or "Install Glass MiniMap Bar for an addon drawer on the disc at the bottom left of the map.")
     end
 
     local hint = label(panel, "The minimap moves and scales with Edit Mode. Type /gmm help for every command.",

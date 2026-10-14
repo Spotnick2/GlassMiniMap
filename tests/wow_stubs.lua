@@ -319,6 +319,18 @@ local function buildCluster()
     QueueStatusButton._shown = false
     QueueStatusButton._level = 20
     QueueStatusButton:SetPoint("CENTER", Minimap, "CENTER", -68, -68)
+    -- Edit Mode's system methods (EditModeSystemTemplates.lua): the base
+    -- methods skip its anchor pass; the overrides would run it.
+    local q = QueueStatusButton
+    q.inDefault = true
+    q.SetPointBase = function(self, ...) WoW.Methods.SetPoint(self, ...); self._baseMoves = (self._baseMoves or 0) + 1 end
+    q.ClearAllPointsBase = function(self) WoW.Methods.ClearAllPoints(self) end
+    q.IsInDefaultPosition = function(self) return self.inDefault end
+    -- Camelot's UpdateDefaultAnchor: back to Minimap CENTER (-68, -68).
+    q.UpdateDefaultAnchor = function(self)
+        WoW.Methods.ClearAllPoints(self)
+        WoW.Methods.SetPoint(self, "CENTER", Minimap, "CENTER", -68, -68)
+    end
     GameTimeFrame = CreateFrame("Button", "GameTimeFrame", c)
     GameTimeFrame._mouse = true
 
@@ -401,6 +413,7 @@ C_AddOns = {
 function IsShiftKeyDown() return WoW.shift end
 function issecretvalue(v) return false end
 function InCombatLockdown() return WoW.combat end
+EditModeManagerFrame = nil
 -- hooksecurefunc(table, name, fn) or hooksecurefunc(globalName, fn).
 function hooksecurefunc(t, name, fn)
     if type(t) == "string" then

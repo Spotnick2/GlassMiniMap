@@ -13,7 +13,7 @@ check how those handle it before you invent a new idiom.
 
 **The look** is `docs/mockups/glass-minimap.png`: a round map in a glass ring with a north tab, a
 zone pill above (tracking magnifier, zone name, calendar), a day/night disc top right, the drawer's
-launcher disc on the left at 255° (the mockup's bottom left is Blizzard's LFG eye, #4), a coordinates pill with zoom below. The reviewed plan (Codex
+launcher disc bottom left (Blizzard's LFG eye, which defaults there too, is mirrored to the top left: `Queue.lua`, #4), a coordinates pill with zoom below. The reviewed plan (Codex
 `gpt-6-astra`, two rounds, consensus) is [docs/PLAN.md](docs/PLAN.md), revised by
 [docs/PLAN-public-api.md](docs/PLAN-public-api.md) (the drawer stays Glass MiniMap Bar's, also two
 rounds to consensus); measured client facts go in [docs/FOREVER-PROBE.md](docs/FOREVER-PROBE.md).
@@ -38,6 +38,9 @@ and a taint minefield (`..\References\PORTING-TBC-TO-FOREVER.md`, "Edit Mode sys
   `hooksecurefunc` on Show/SetShown/SetAlpha). State in our own weak tables, never a field on
   their frames. The list is `Blizzard.FADED`.
 - `AddonCompartmentFrame` is never ours: Glass MiniMap Bar manages it when installed.
+- The one Blizzard frame we move is `QueueStatusButton`, the porting guide's way: only in its
+  default position, with `ClearAllPointsBase`/`SetPointBase`, from a deferred hook on
+  `UpdateDefaultAnchor`, never with Edit Mode open or (if protected) in combat.
 - Never reassign a Blizzard global or method. `hooksecurefunc` and our own frames only.
 - The map's mask stays Blizzard's (round, re-applied by `Camelot\Skin.lua` on `rotateMinimap`).
 - Our own frames stay **unnamed** (minimap-button collectors grab named square children of
@@ -54,7 +57,7 @@ and a taint minefield (`..\References\PORTING-TBC-TO-FOREVER.md`, "Edit Mode sys
 | `Ring.lua` | the ring (one `Glass.Disc` behind the map), the north tab, `Ring.AddDisc`, the day/night disc |
 | `Header.lua` | zone pill: magnifier, zone name (PvP colours), calendar |
 | `Footer.lua` | coordinates pill (Blizzard's coords CVars), zoom − / + |
-| `Queue.lua` | a glass disc behind Blizzard's LFG eye (`QueueStatusButton`, untouched) |
+| `Queue.lua` | Blizzard's LFG eye (`QueueStatusButton`) mirrored to the top left while in its default position (base methods, deferred, out of Edit Mode and combat), with a glass disc behind it |
 | `Tracking.lua` | the glass tracking menu, a copy of Blizzard's menu logic (`Minimap.lua:636-772`) |
 | `Drawer.lua` | the bottom-left disc as Glass MiniMap Bar's launcher, through its public API |
 | `Options.lua` | Esc > Options > AddOns > Glass MiniMap ("Drawer options" opens Glass MiniMap Bar's page) |
