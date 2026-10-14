@@ -7,8 +7,10 @@ check(toc:find("## Interface: 16001", 1, true), "interface 16001 (1.60.1; 11601 
 check(toc:find("## Version: @project-version@", 1, true), "packager version token kept")
 check(toc:find("## SavedVariables: GlassMiniMapDB", 1, true), "saved variables declared")
 check(toc:find("## X-Curse-Project-ID: 1744024", 1, true), "CurseForge project ID (1744024)")
-check(toc:find("## X-License: GPL-3.0", 1, true), "GPLv3 (the drawer is HidingBar-derived)")
-check(not toc:find("AddonCompartmentFunc", 1, true), "no compartment entry of our own (the drawer replaces the compartment)")
+check(toc:find("## X-License: MIT", 1, true), "MIT, like GlassMail")
+check(toc:find("## OptionalDeps: GlassMiniMapBar", 1, true), "Glass MiniMap Bar loads first when installed (the drawer)")
+check(not toc:find("AddonCompartmentFunc", 1, true), "no compartment entry of our own")
+check(io.open("LICENSE"):read("*a"):find("MIT License", 1, true), "LICENSE is MIT")
 for _, f in ipairs(tocFiles()) do
     check(io.open(f, "r") ~= nil, "TOC file exists: " .. f)
 end
@@ -38,8 +40,7 @@ for size, S in pairs(GMM.Glass.SIZES) do
         check(io.open(f, "rb") ~= nil, size .. " texture exists: " .. f)
     end
 end
-local OURS = { "orb_mask", "orb_rim", "orb_dark", "orb_shadow", "ring_rim", "ring_dark", "notch_mask",
-               "notch_rim", "sun", "moon", "magnifier" }
+local OURS = { "orb_mask", "ring_rim", "ring_dark", "notch_mask", "notch_rim", "sun", "moon", "magnifier" }
 for _, t in ipairs(OURS) do
     check(io.open("Media/" .. t .. ".tga", "rb") ~= nil, "our texture exists: " .. t)
 end
@@ -54,13 +55,13 @@ local known = {}
 for _, t in ipairs(OURS) do known[t] = true end
 for t in pairs(named) do check(known[t], "named texture is shipped: " .. t) end
 check(next(named) ~= nil, "found the textures the code names")
+for _, t in ipairs(OURS) do check(named[t], "shipped texture is used: " .. t) end
 -- Media/ holds our own art only.
 for _, t in ipairs({ "grain", "rim5", "body_mask", "disc_mask" }) do
     check(io.open("Media/" .. t .. ".tga", "rb") == nil, "no copy of the library's " .. t .. " in Media/")
 end
 eq(GMM.Glass.MEDIA, "Interface\\AddOns\\GlassMiniMap\\Libs\\LibGlass-1.0\\Media\\", "Glass.MEDIA is the embedded copy's")
 eq(GMM.MEDIA, "Interface\\AddOns\\GlassMiniMap\\Media\\", "our Media folder")
-eq(GMM.Orb.MEDIA, GMM.MEDIA, "the orb draws from our Media")
 check(GMM.Glass ~= LibStub("LibGlass-1.0"), "Glass is our own instance, not the library")
 
 -- The dev-build notice: a deployed dev copy on another build says so once at login.

@@ -326,19 +326,6 @@ local function buildCluster()
     end
 end
 
--- The bulk TOC registration at PLAYER_ENTERING_WORLD: addon titles -> globals.
-function WoW.RegisterTocAddons(list)
-    for _, t in ipairs(list) do
-        local data = { text = t.title, icon = t.icon }
-        data.func = function(_, menuInputData, menu)
-            WoW.compartmentCalls = WoW.compartmentCalls or {}
-            table.insert(WoW.compartmentCalls, { title = t.title, button = menuInputData.buttonName, menu = menu })
-        end
-        table.insert(AddonCompartmentFrame.registeredAddons, data)
-    end
-    AddonCompartmentFrame:UpdateDisplay()
-end
-
 --------------------------------------------------------------------------------
 -- Globals
 --------------------------------------------------------------------------------
@@ -353,7 +340,6 @@ function WoW.reset()
     WoW.shift = false
     WoW.settingsOpened = nil
     WoW.blizzardMenuOpened = nil
-    WoW.compartmentCalls = nil
     WoW.cvars = { rotateMinimap = false, minimapTrackingShowAll = false }
     WoW.zone, WoW.pvp = "Thendal Village", "sanctuary"
     WoW.position = { 0.432, 0.248 }
@@ -378,7 +364,6 @@ function WoW.reset()
     GameTooltip = newWidget("GameTooltip", UIParent, "GameTooltip")
     UISpecialFrames = {}
     buildCluster()
-    WoW.ldbi = nil
 end
 
 function print(...)
@@ -514,86 +499,26 @@ MinimapUtil = { SetTrackingFilterByFilterIndex = function(i, on)
 end }
 
 --------------------------------------------------------------------------------
--- A minimap button as an addon would make it
+-- A fake Glass MiniMap Bar public API (its docs/PUBLIC-API.md, version 1)
 --------------------------------------------------------------------------------
 
--- opts: name, parent (default Minimap), size (31), protected, noClick,
--- script ("OnClick" | "OnMouseUp"), ring (true: gold border + dark disc).
-function WoW.MinimapButton(opts)
-    local b = CreateFrame(opts.frameType or "Button", opts.name, opts.parent or Minimap)
-    b._width, b._height = opts.size or 31, opts.size or 31
-    b._protected = opts.protected
-    b.clicks = {}
-    if not opts.noClick then
-        local script = opts.script or "OnClick"
-        b._scripts[script] = function(self, mouse) table.insert(self.clicks, mouse) end
+function WoW.FakeGlassMiniMapBar(version)
+    local g = { PUBLIC_API_VERSION = version or 1, calls = {} }
+    function g.UseLauncher(frame, opts)
+        if type(frame) ~= "table" then return false, "UseLauncher takes a frame" end
+        g.launcher, g.opts = frame, opts
+        if opts and opts.setIcon then opts.setIcon("Interface\\Icons\\misc_arrowleft", nil) end
+        return true
     end
-    if opts.ring ~= false then
-        b.border = b:CreateTexture(nil, "OVERLAY"); b.border._file = 136430
-        b.background = b:CreateTexture(nil, "BACKGROUND"); b.background._file = 136467
-        b.icon = b:CreateTexture(nil, "ARTWORK"); b.icon._file = "Interface\\Icons\\" .. (opts.name or "x")
-        b.icon:SetSize(18, 18)
-        b.icon:SetPoint("CENTER", b, "CENTER", 0, 0)
-    end
-    b:SetPoint("CENTER", Minimap, "CENTER", 60, 30)
-    return b
+    function g.ReleaseLauncher() g.launcher = nil end
+    function g.LauncherClick(f, mouse) table.insert(g.calls, { "click", f, mouse }) end
+    function g.LauncherEnter(f) table.insert(g.calls, { "enter", f }) end
+    function g.LauncherLeave(f) table.insert(g.calls, { "leave", f }) end
+    function g.SetGlassTint(...) g.tint = { n = select("#", ...), ... }; return true end
+    function g.OpenOptions() g.optionsOpened = (g.optionsOpened or 0) + 1 end
+    GlassMiniMapBar = g
+    return g
 end
-
---------------------------------------------------------------------------------
--- A fake LibDBIcon-1.0, registered in the session's LibStub
---------------------------------------------------------------------------------
-
-local function newLDBI()
-    local lib = { objects = {}, callbacks = {} }
-    function lib.RegisterCallback(owner, event, fn)
-        lib.callbacks[event] = function(...) fn(...) end
-    end
-    function lib:Register(name, obj, db)
-        local b = WoW.MinimapButton({ name = "LibDBIcon10_" .. name })
-        b._scripts.OnClick = function(self, mouse) if obj.OnClick then obj.OnClick(self, mouse) end end
-        b._scripts.OnEnter = function(self) if obj.OnEnter then obj.OnEnter(self) end end
-        b._scripts.OnLeave = function(self) if obj.OnLeave then obj.OnLeave(self) end end
-        b.dataObject, b.db = obj, db
-        lib.objects[name] = b
-        if db and db.hide then b:Hide() end
-        if lib.callbacks.LibDBIcon_IconCreated then lib.callbacks.LibDBIcon_IconCreated("LibDBIcon_IconCreated", b, name) end
-        return b
-    end
-    -- LibDBIcon-1.0.lua:637, AddButtonToCompartment, as shipped.
-    function lib:AddButtonToCompartment(name)
-        local object = lib.objects[name]
-        if object and not object.compartmentData then
-            object.compartmentData = {
-                text = name, icon = object.dataObject.icon, notCheckable = true, registerForAnyClick = true,
-                func = function(_, menuInputData, menu) object.dataObject.OnClick(menu, menuInputData.buttonName) end,
-            }
-            AddonCompartmentFrame:RegisterAddon(object.compartmentData)
-        end
-    end
-    function lib:RemoveButtonFromCompartment(name)
-        local object = lib.objects[name]
-        if object and object.compartmentData then
-            local list = AddonCompartmentFrame.registeredAddons
-            for i = 1, #list do
-                if list[i] == object.compartmentData then
-                    object.compartmentData = nil
-                    table.remove(list, i)
-                    AddonCompartmentFrame:UpdateDisplay()
-                    return
-                end
-            end
-        end
-    end
-    function lib:GetMinimapButton(name) return lib.objects[name] end
-    return lib
-end
-
-function WoW.installFakeLibs()
-    local ldbi = LibStub:NewLibrary("LibDBIcon-1.0", 1)
-    for k, v in pairs(newLDBI()) do ldbi[k] = v end
-    WoW.ldbi = ldbi
-end
-function WoW.LDBI() return WoW.ldbi end
 
 --------------------------------------------------------------------------------
 -- Driving
@@ -624,7 +549,7 @@ WoW.reset()
 
 -- Strict globals.
 -- LibStub: the embedded library's own loader reads _G.LibStub before creating it.
-local allowNil = { GlassMiniMap = true, GlassMiniMapDB = true, GlassMiniMapBarDB = true,
+local allowNil = { GlassMiniMap = true, GlassMiniMapDB = true, GlassMiniMapBar = true,
                    SLASH_GLASSMINIMAP1 = true, SLASH_GLASSMINIMAP2 = true, LibStub = true }
 setmetatable(_G, { __index = function(_, k)
     if allowNil[k] then return nil end

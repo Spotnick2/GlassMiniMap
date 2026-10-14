@@ -1,12 +1,13 @@
 ## Interface: 16001
 ## Title: |cff7fd4ffGlass|r MiniMap
-## Notes: A liquid-glass minimap: glass ring, zone and coordinate pills, a glass tracking menu and an addon drawer. /gmm help
+## Notes: A liquid-glass minimap: glass ring, zone and coordinate pills, a glass tracking menu. With Glass MiniMap Bar, an addon drawer. /gmm help
 ## Author: Spotnick
 ## Version: @project-version@
-## X-License: GPL-3.0
+## X-License: MIT
 ## X-Curse-Project-ID: 1744024
 ## IconTexture: Interface\Icons\misc_arrowleft
 ## SavedVariables: GlassMiniMapDB
+## OptionalDeps: GlassMiniMapBar
 
 Libs\LibGlass-1.0\LibGlass-1.0.xml
 Compat.lua
@@ -17,9 +18,6 @@ Ring.lua
 Header.lua
 Footer.lua
 Tracking.lua
-Drawer\Orb.lua
-Drawer\Collector.lua
-Drawer\Compartment.lua
-Drawer\Bar.lua
+Drawer.lua
 Options.lua
 GlassMiniMap.lua

@@ -79,15 +79,14 @@ end
 -- with (name, ns), the library's XML expanded in place, then ADDON_LOADED,
 -- PLAYER_LOGIN and PLAYER_ENTERING_WORLD (the compartment's bulk
 -- registration runs there, as Blizzard's does).
--- opts.db: saved variables. opts.barDB: Glass MiniMap Bar's (with
--- opts.barLoaded). opts.before(): runs after the files load and before
--- ADDON_LOADED (buttons and compartment entries that exist "before us").
--- opts.tocAddons: TOC compartment entries registered at PLAYER_ENTERING_WORLD.
+-- opts.db: saved variables. opts.gmb: a fake Glass MiniMap Bar API (true, or
+-- its PUBLIC_API_VERSION), loaded before us as OptionalDeps makes it.
+-- opts.before(): runs after the files load and before ADDON_LOADED.
 function loadAddon(opts)
     opts = opts or {}
-    GlassMiniMap, GlassMiniMapDB, GlassMiniMapBarDB, LibStub = nil, nil, nil, nil
+    GlassMiniMap, GlassMiniMapDB, GlassMiniMapBar, LibStub = nil, nil, nil, nil
     WoW.reset()
-    if opts.barLoaded then WoW.loaded.GlassMiniMapBar = true end
+    if opts.gmb then WoW.FakeGlassMiniMapBar(opts.gmb ~= true and opts.gmb or nil) end
     local ns = {}
     for _, line in ipairs(tocLines()) do
         local files
@@ -103,23 +102,13 @@ function loadAddon(opts)
             chunk("GlassMiniMap", ns)
         end
     end
-    WoW.installFakeLibs()
     if opts.db then GlassMiniMapDB = opts.db end
-    if opts.barDB then GlassMiniMapBarDB = opts.barDB end
     if opts.before then opts.before() end
     WoW.fire("ADDON_LOADED", "GlassMiniMap")
     WoW.fire("PLAYER_LOGIN")
-    if opts.tocAddons then WoW.RegisterTocAddons(opts.tocAddons) end
     WoW.fire("PLAYER_ENTERING_WORLD", true, false)
     WoW.flushTimers(0)
     return GlassMiniMap
 end
 
-function launcher() return GlassMiniMap.Drawer.Launcher() end
-function bar() return GlassMiniMap.Drawer.Frame() end
-function entry(name) return GlassMiniMap.Collector.byName[name] end
-function names()
-    local t = {}
-    for _, e in ipairs(GlassMiniMap.Collector.entries) do t[#t + 1] = e.name end
-    return table.concat(t, ",")
-end
+function disc() return GlassMiniMap.Drawer.Disc() end

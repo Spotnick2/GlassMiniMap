@@ -7,8 +7,7 @@ generator). Only this addon's own art is made here, with the library
 generator's primitives (SDF, bands, TGA writer) from the LibGlass checkout
 ($LIBGLASS, else ../LibGlass), so it is the same material:
 
-  orb_mask / orb_rim / orb_dark / orb_shadow   the drawer's round buttons
-                                               (Glass MiniMap Bar's orb, unchanged)
+  orb_mask               the round hover light on the discs and pill buttons
   ring_rim / ring_dark   the lit lip around the map: the outer edge of the
                          glass ring and a fine line where it meets the map.
                          Perimeter only: the centre is clear, because these
@@ -53,43 +52,14 @@ def grid(size):
 
 
 # ---------------------------------------------------------------------------
-# The orb (Glass MiniMap Bar's Tools/make_orb_textures.py, unchanged)
+# The round hover light (a full antialiased disc)
 # ---------------------------------------------------------------------------
 
 ORB = 64
 
 
-def orb_sdf(inset=0.5):
-    return rounded_rect_sdf(ORB, ORB, inset, ORB / 2.0 - inset)
-
-
-def orb_rim(k, light):
-    d = orb_sdf()
-    nx, ny = normals(d)
-    top, bottom, left = np.maximum(-ny, 0), np.maximum(ny, 0), np.maximum(-nx, 0)
-    xs, ys = grid(ORB)
-    outer = band(d, -1.4 * k, -0.3 * k, 0.5) * (0.28 + 0.72 * top ** 0.5 + 0.35 * left ** 1.5 + 0.30 * bottom ** 2)
-    inner = band(d, -7.6 * k, -6.6 * k, 0.5) * (0.14 + 0.45 * bottom ** 0.7 + 0.18 * top ** 2)
-    vert = 1 - ys / ORB
-    slab = band(d, -7.0 * k, -0.5 * k, 0.6) * (0.05 + 0.13 * vert ** 1.5 + 0.06 * top)
-    glint = np.zeros_like(d)
-    c, gr = ORB / 2.0, ORB / 2.0 - 0.5 - 2.0 * k
-    for sx in (-1, 1):
-        gx, gy = c + sx * gr * 0.7071, c - gr * 0.7071
-        glint += np.exp(-(((xs - gx) ** 2 + (ys - gy) ** 2) / (2 * (2.2 * k) ** 2))) * 0.85
-    glint *= band(d, -3.5 * k, -0.2 * k, 0.6)
-    rim = white(np.clip(np.maximum.reduce([outer, inner, slab, glint]) * light, 0, 1))
-    dark = black(np.clip(band(d, -0.6 * k, 0.3 * k, 0.5) * 0.45 + band(d, -8.8 * k, -7.6 * k, 0.6) * 0.18, 0, 1))
-    return rim, dark
-
-
 def orbs():
-    write_tga("orb_mask", mask(coverage(orb_sdf())))
-    rim, dark = orb_rim(k=1.0, light=0.85)
-    write_tga("orb_rim", rim)
-    write_tga("orb_dark", dark)
-    d = rounded_rect_sdf(ORB, ORB, 12, 20)
-    write_tga("orb_shadow", black(0.5 / (1 + np.exp(d / (4.0 * 0.55)))))
+    write_tga("orb_mask", mask(coverage(rounded_rect_sdf(ORB, ORB, 0.5, ORB / 2.0 - 0.5))))
 
 
 # ---------------------------------------------------------------------------

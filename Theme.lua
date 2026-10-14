@@ -8,10 +8,11 @@
 --         surface then stays clear and PLAYER_ENTERING_WORLD paints it again.
 --
 -- Every glass surface this addon builds registers here: LibGlass surfaces
--- (the ring, the pills, the discs, the tracking menu, the drawer) by their g,
--- and the drawer's orb skins by their tint and wash textures. Only body
+-- (the ring, the pills, the discs, the tracking menu) by their g, and the
+-- north tab (drawn the orb's way) by its tint and wash textures. Only body
 -- regions are touched (tint colour, grain and wash alpha): the rims stay the
--- instance's.
+-- instance's. Theme.OnChange hears every repaint: Drawer.lua passes the look
+-- on to Glass MiniMap Bar's glass.
 
 GlassMiniMap = GlassMiniMap or {}
 local GMM = GlassMiniMap
@@ -29,6 +30,7 @@ Theme.PRESETS = {
 }
 
 local surfaces = {}   -- { g = , kind = "glass" | "orb" }
+local listeners = {}  -- fn(tint|nil, wash): tint = { r, g, b, a|nil }, nil = as built
 Theme.pending = false
 
 function Theme.IsValid(name) return Theme.PRESETS[name] ~= nil end
@@ -62,8 +64,8 @@ local function paintGlass(s, name, tint)
     if s.g.wash then s.g.wash:SetAlpha(p.wash or 1) end
 end
 
--- An orb is the drawer's round button skin: a tint and a wash texture of its
--- own (Drawer/Orb.lua), built at Glass.STYLE.tint with alpha at least 0.35.
+-- An orb is a round piece drawn without LibGlass (the north tab): a tint and a
+-- wash texture of its own, built at Glass.STYLE.tint with alpha at least 0.35.
 local function paintOrb(s, name, tint)
     local p = Theme.PRESETS[name]
     local base = Glass.STYLE.tint
@@ -87,11 +89,27 @@ function Theme.Register(g, kind)
     API.Try("theme:paint", paint, s, name, tint)
 end
 
+-- The current look for someone else's glass: tint (nil = as built) and the
+-- wash as a multiplier of the built one.
+function Theme.Current()
+    local name = current()
+    local tint = tintFor(name)
+    return tint, Theme.PRESETS[name].wash or 1
+end
+
+-- fn(tint, wash) now and on every repaint.
+function Theme.OnChange(fn)
+    listeners[#listeners + 1] = fn
+    API.Try("theme:listener", fn, Theme.Current())
+end
+
 -- Repaint every surface. Returns false while the class colour is unreadable.
 function Theme.Refresh()
     local name = current()
     local tint, known = tintFor(name)
     for _, s in ipairs(surfaces) do API.Try("theme:paint", paint, s, name, tint) end
+    local wash = Theme.PRESETS[name].wash or 1
+    for _, fn in ipairs(listeners) do API.Try("theme:listener", fn, tint, wash) end
     Theme.pending = not known
     return known
 end

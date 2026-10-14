@@ -1,5 +1,9 @@
 # GlassMiniMap — implementation plan
 
+> **Revised:** the drawer is no longer absorbed. Glass MiniMap Bar stays its own addon and Glass
+> MiniMap integrates through its public API: [PLAN-public-api.md](PLAN-public-api.md). Sections 7 and
+> the drawer parts of 1 and 9 below are superseded by it.
+
 ## Context
 A new WoW Forever (Interface 16001) addon that reskins the Blizzard minimap as liquid glass to match the
 mockup (`Downloads\Liquid glass Thendal Village minimap.png`):

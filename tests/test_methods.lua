@@ -24,35 +24,12 @@ end
 f:close()
 
 WoW.methodsCalled = {}
-local GMM = loadAddon({
-    db = { drawer = { lastUsed = true } },
-    before = function()
-        WoW.LDBI():Register("DBM", { icon = "dbm", OnClick = function() end }, {})
-        WoW.MinimapButton({ name = "HandMadeMinimapButton", script = "OnMouseUp" })
-    end,
-    tocAddons = { { title = "Gnomesweeper", icon = "Interface\\Icons\\gnome" } },
-})
+local GMM = loadAddon({ gmb = true })
 
--- The drawer and its launcher.
-local L = launcher()
-L._cx, L._cy = 900, 700
-L._scripts.OnEnter(L); L._scripts.OnLeave(L)
-entry("LibDBIcon10_DBM").btn:Click("LeftButton")
-L:Click("RightButton")
-L:Click("LeftButton")
-WoW.tick(2)
-WoW.fire("GLOBAL_MOUSE_DOWN", "LeftButton")
-WoW.finishAnimations()
-local hand = entry("HandMadeMinimapButton").btn
-hand._scripts.OnMouseUp(hand, "RightButton")
-L:Click("RightButton")
-local gnome = entry("AddOns:Gnomesweeper").btn
-gnome:Click("LeftButton"); gnome._scripts.OnEnter(gnome); gnome._scripts.OnLeave(gnome)
-WoW.LDBI():AddButtonToCompartment("DBM")
-WoW.LDBI():RemoveButtonFromCompartment("DBM")
-WoW.flushTimers()
-for _, k in ipairs({ "skin", "lastUsed" }) do GMM.Drawer.Set(k, false); GMM.Drawer.Set(k, true) end
-for _, d in ipairs({ "left", "right", "up", "down", "auto" }) do GMM.Drawer.Set("direction", d) end
+-- The drawer disc (Glass MiniMap Bar's launcher).
+local D = disc()
+D:Click("LeftButton"); D._scripts.OnEnter(D); D._scripts.OnLeave(D)
+GlassMiniMapBar.opts.setIcon("Interface\\Icons\\DBM", { 0.1, 0.9, 0.1, 0.9 })
 
 -- The pills, the discs, the tracking menu.
 local H, F = GMM.Header._test, GMM.Footer._test
@@ -77,25 +54,13 @@ for _, k in ipairs({ "coords", "coordsTenths", "sun", "glassTracking" }) do
     GMM.Settings.Set(k, false); GMM.Settings.Set(k, true)
 end
 
--- The options pages: every control's OnClick.
-local O = GMM.Options._test
-for _, page in ipairs({ O.main, O.drawer }) do
-    page:Show()
-    for _, w in ipairs(WoW.frames) do
-        if w._parent == page and w._scripts.OnClick then w._scripts.OnClick(w, "LeftButton") end
-    end
+-- The options page: every control's OnClick.
+local panel = GMM.Options._test.panel
+panel:Show()
+for _, w in ipairs(WoW.frames) do
+    if w._parent == panel and w._scripts.OnClick then w._scripts.OnClick(w, "LeftButton") end
 end
-for _, list in pairs(O.lists) do
-    for _, row in ipairs(list.rows) do
-        if row._shown then
-            row._scripts.OnClick(row, "LeftButton")
-            row._scripts.OnDoubleClick(row, "LeftButton")
-        end
-    end
-    list.frame._scripts.OnMouseWheel(list.frame, -1)
-end
-for _, k in ipairs({ "up", "down", "show", "hide" }) do O.arrows[k]._scripts.OnClick(O.arrows[k], "LeftButton") end
-for _, cmd in ipairs({ "scan", "failures", "drawer", "options", "version", "theme smoked", "coords off",
+for _, cmd in ipairs({ "failures", "options", "version", "theme smoked", "coords off",
                        "sun on", "help", "" }) do
     GMM._test.slash(cmd)
 end

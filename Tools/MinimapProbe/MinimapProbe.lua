@@ -93,8 +93,11 @@ local function near(radius)
                 if reg:IsObjectType("FontString") and reg:IsVisible() then
                     local x, y = reg:GetCenter()
                     local t = reg:GetText()
-                    if x and t and not (issecretvalue and issecretvalue(t)) and t ~= "" then
-                        local es = reg:GetEffectiveScale()
+                    local es = reg:GetEffectiveScale()
+                    -- Some frames' positions (and texts) are secret on this client: skip them.
+                    local secret = issecretvalue and (issecretvalue(x) or issecretvalue(y) or issecretvalue(t)
+                        or issecretvalue(es))
+                    if not secret and x and t and t ~= "" then
                         local dx, dy = x * es - tx, y * es - ty
                         if dx * dx + dy * dy <= (radius * s) ^ 2 then
                             found = found + 1
@@ -104,6 +107,17 @@ local function near(radius)
                                 p = p:GetParent()
                             end
                             say(("'%s' on %s"):format(t, table.concat(chain, " < ")))
+                            -- Who made it: the frame's and the text's source location.
+                            local okF, srcF = pcall(f.GetSourceLocation, f)
+                            local okR, srcR = pcall(reg.GetSourceLocation, reg)
+                            say(("  frame from %s, text from %s, frame %sx%s, %d children"):format(
+                                okF and str(srcF) or "?", okR and str(srcR) or "?", str(f:GetWidth()),
+                                str(f:GetHeight()), select("#", f:GetChildren())))
+                            for i = 1, f:GetNumPoints() do
+                                local a, rel, b, px, py = f:GetPoint(i)
+                                say(("  point %s -> %s %s (%s, %s)"):format(str(a),
+                                    str(rel and (rel:GetName() or rel:GetDebugName())), str(b), str(px), str(py)))
+                            end
                         end
                     end
                 end

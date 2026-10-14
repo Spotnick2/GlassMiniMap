@@ -7,18 +7,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Glass MiniMap is a **liquid-glass minimap for World of Warcraft: Forever 1.60.1** (Interface
 `16001`), written in **Lua 5.1**. It has a single owner (Spotnick) and uses the same stack and
 conventions as the sibling Forever addons: `..\GlassMail` (the template for tooling, tests, CI),
-`..\GlassPanel` (the clear/smoked/class glass, SystemHider), `..\GlassMiniMapBar` (the drawer,
-absorbed here) and `..\PortalRoulette` (glass discs). When this file doesn't cover something,
+`..\GlassPanel` (the clear/smoked/class glass), `..\GlassMiniMapBar` (the addon drawer, a separate
+addon used through its public API) and `..\PortalRoulette` (glass discs). When this file doesn't cover something,
 check how those handle it before you invent a new idiom.
 
 **The look** is `docs/mockups/glass-minimap.png`: a round map in a glass ring with a north tab, a
 zone pill above (tracking magnifier, zone name, calendar), a day/night disc top right, the drawer's
 launcher disc bottom left, a coordinates pill with zoom below. The reviewed plan (Codex
-`gpt-6-astra`, two rounds, consensus) is [docs/PLAN.md](docs/PLAN.md); measured client facts go
-in [docs/FOREVER-PROBE.md](docs/FOREVER-PROBE.md).
+`gpt-6-astra`, two rounds, consensus) is [docs/PLAN.md](docs/PLAN.md), revised by
+[docs/PLAN-public-api.md](docs/PLAN-public-api.md) (the drawer stays Glass MiniMap Bar's, also two
+rounds to consensus); measured client facts go in [docs/FOREVER-PROBE.md](docs/FOREVER-PROBE.md).
 
-**Status: v0.1.0 written, not yet run in game.** Offline tests are green; the probe
-(`Tools\MinimapProbe`) and the in-game checklist in docs/FOREVER-PROBE.md come next.
+**The drawer** is Glass MiniMap Bar (`## OptionalDeps`). With its `PUBLIC_API_VERSION == 1`
+(its `docs/PUBLIC-API.md`), `Drawer.lua` hands it the bottom-left disc as its launcher and passes the
+theme on (`SetGlassTint`). Without it there is no disc. Glass MiniMap Bar owns its bar, the button
+collection and Blizzard's AddOns compartment; Glass MiniMap never touches `AddonCompartmentFrame`.
+The same API is how GlassMaps (the next addon, replacing Leatrix Maps) will integrate.
+
+**Status: v0.1.0 written (PR #6), first probe run on 70374.** Offline tests are green; the rest of
+the in-game checklist in docs/FOREVER-PROBE.md is #2.
 
 ## The UI contract (non-negotiable)
 
@@ -30,9 +37,7 @@ and a taint minefield (`..\References\PORTING-TBC-TO-FOREVER.md`, "Edit Mode sys
 - Stock pieces we replace are **faded** (`API.Fade`: alpha 0, mouse off, re-faded from
   `hooksecurefunc` on Show/SetShown/SetAlpha). State in our own weak tables, never a field on
   their frames. The list is `Blizzard.FADED`.
-- The only frame that goes entirely is `AddonCompartmentFrame`, through GlassPanel's
-  `API.SystemHider` (reparent to a hidden frame, deferred, given back while Edit Mode is open,
-  waits for combat), and **only while our drawer is active**.
+- `AddonCompartmentFrame` is never ours: Glass MiniMap Bar manages it when installed.
 - Never reassign a Blizzard global or method. `hooksecurefunc` and our own frames only.
 - The map's mask stays Blizzard's (round, re-applied by `Camelot\Skin.lua` on `rotateMinimap`).
 - Our own frames stay **unnamed** (minimap-button collectors grab named square children of
@@ -42,17 +47,16 @@ and a taint minefield (`..\References\PORTING-TBC-TO-FOREVER.md`, "Edit Mode sys
 
 | File | What |
 |---|---|
-| `Compat.lua` | `API.*`: failures, events, version, `Fade`, `SystemHider`, `W` (widget methods), `MouseOverMenu`, `GameRule`, `ClassColor`, Settings registration |
+| `Compat.lua` | `API.*`: failures, events, version, `Fade`, `GameRule`, `ClassColor`, `SetIcon`, Settings registration |
 | `Glass.lua` | our LibGlass instance (`preset = "clean"`), `GMM.MEDIA` |
-| `Theme.lua` | clear / smoked / class; every surface registers (`Theme.Register(g, kind)`), `Theme.Refresh()` repaints live |
-| `Blizzard.lua` | fades stock art, hides the compartment (gated), opens Blizzard's tracking menu |
+| `Theme.lua` | clear / smoked / class; every surface registers (`Theme.Register(g, kind)`), `Theme.Refresh()` repaints live, `Theme.OnChange` listeners |
+| `Blizzard.lua` | fades stock art, opens Blizzard's tracking menu |
 | `Ring.lua` | the ring (one `Glass.Disc` behind the map), the north tab, `Ring.AddDisc`, the day/night disc |
 | `Header.lua` | zone pill: magnifier, zone name (PvP colours), calendar |
 | `Footer.lua` | coordinates pill, zoom − / + |
 | `Tracking.lua` | the glass tracking menu, a copy of Blizzard's menu logic (`Minimap.lua:636-772`) |
-| `Drawer\Orb.lua`, `Collector.lua`, `Bar.lua` | Glass MiniMap Bar, absorbed (GPLv3, from HidingBar); `Bar.lua` holds the drawer settings, import, launcher disc |
-| `Drawer\Compartment.lua` | Blizzard's AddOns compartment entries as drawer buttons |
-| `Options.lua` | Esc > Options > AddOns > Glass MiniMap, sub-page "Addon drawer" |
+| `Drawer.lua` | the bottom-left disc as Glass MiniMap Bar's launcher, through its public API |
+| `Options.lua` | Esc > Options > AddOns > Glass MiniMap ("Drawer options" opens Glass MiniMap Bar's page) |
 | `GlassMiniMap.lua` | bootstrap, `GlassMiniMapDB`, `GMM.Settings`, `/gmm` |
 | `Tools\make_art.py` | generates every texture in `Media\` (uses ..\LibGlass\Tools primitives) |
 | `Tools\MinimapProbe\` | throwaway measuring addon (`/mmprobe`) |
@@ -98,7 +102,7 @@ python Tools\make_art.py                                             # regenerat
 
 Glass MiniMap Bar's harness, extended: `tests\wow_stubs.lua` (strict globals as an allowlist of
 APIs verified in the dump, event names validated against the dump, every widget method recorded,
-the Forever minimap cluster, `C_Minimap` tracking, the compartment, a fake LibDBIcon),
+the Forever minimap cluster, `C_Minimap` tracking, a fake Glass MiniMap Bar public API),
 `tests\harness.lua` (`check`, `eq`, `near`, `loadAddon`), `test_methods.lua` (every method called
 exists on this client). **Mutation-test every new test.** Offline tests can't cover taint,
 rendering or the live client's data: that's the probe and the in-game checklist.

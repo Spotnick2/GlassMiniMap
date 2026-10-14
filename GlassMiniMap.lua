@@ -9,7 +9,7 @@ local say = API.Print
 
 -- GlassMiniMapDB, account-wide. Only what the player SET is saved: the rest
 -- falls through to DEFAULTS, so a changed default reaches everyone (GlassMail's
--- rule). `drawer` is the drawer's own table (Drawer/Bar.lua), always saved.
+-- rule). The drawer's settings are Glass MiniMap Bar's own.
 local DEFAULTS = {
     theme = "clear",          -- "clear" | "smoked" | "class"
     coords = true,            -- the coordinates under the map
@@ -30,7 +30,7 @@ local function ensureDefaults()
     for k in pairs(BOOLEANS) do
         if db[k] ~= nil and type(db[k]) ~= "boolean" then db[k] = nil end
     end
-    db.drawer = GMM.Drawer.LoadDB(db.drawer)
+    db.drawer = nil   -- the absorbed drawer of a pre-release build; Glass MiniMap Bar keeps its own
     setmetatable(db, { __index = DEFAULTS })
     return db
 end
@@ -95,30 +95,12 @@ local function helpLines()
         "/gmm theme clear/smoked/class - the glass (" .. GMM.db.theme .. ")",
         "/gmm coords on/off - the coordinates under the map (" .. onoff(GMM.db.coords) .. ")",
         "/gmm sun on/off - the day and night disc (" .. onoff(GMM.db.sun) .. ")",
-        "/gmm drawer - open the addon drawer",
-        "/gmm scan - look for minimap buttons again, and list them",
         "/gmm options - open the options page",
         "/gmm failures - what failed to build or register",
         "/gmm version - client build vs the measured one",
     }
 end
 GMM.HelpLines = helpLines
-
-local function scan()
-    local C = GMM.Collector
-    if not GMM.Drawer.IsActive() then
-        return say("the drawer is off while Glass MiniMap Bar is enabled (/gmb scan there)")
-    end
-    local added, rejects = C.Scan(true)
-    GMM.Compartment.Sync()
-    say(("%d buttons in the drawer (%d new)."):format(#C.entries, added))
-    local hidden = GMM.Drawer.DB().hidden
-    for _, e in ipairs(C.entries) do
-        local state = hidden[e.name] and "hidden by you" or (not e.wanted and "hidden by its addon") or "shown"
-        say(("  |cff7fd4ff%s|r (%s): %s"):format(e.display, e.name, state))
-    end
-    for _, r in ipairs(rejects) do say(("  skipped %s: %s"):format(r.name, r.reason)) end
-end
 
 local ONOFF = { on = true, off = false }
 
@@ -131,11 +113,6 @@ local function slash(msg)
         if ONOFF[arg] == nil then return say("/gmm " .. cmd .. " on/off") end
         Settings.Set(cmd, ONOFF[arg])
         say(cmd .. " " .. arg)
-    elseif cmd == "drawer" then
-        if GMM.Drawer.IsActive() then GMM.Drawer.Open()
-        else say("the drawer is off while Glass MiniMap Bar is enabled") end
-    elseif cmd == "scan" then
-        scan()
     elseif cmd == "options" or cmd == "" then
         GMM.Options.Open()
     elseif cmd == "failures" then
@@ -158,25 +135,6 @@ local function start(key, fn)
     return ok
 end
 
--- The drawer, or, with the standalone Glass MiniMap Bar loaded, its settings
--- imported once and a note; that addon keeps the buttons and Blizzard keeps
--- its AddOns button (compartment-only addons stay reachable).
-local function startDrawer()
-    if API.IsAddOnLoaded("GlassMiniMapBar") then
-        local old = rawget(_G, "GlassMiniMapBarDB")
-        if GMM.Drawer.Import(old) then
-            say("copied Glass MiniMap Bar's settings into the drawer. Glass MiniMap now does its job: "
-                .. "disable Glass MiniMap Bar in the AddOns list and /reload.")
-        elseif not GMM.db.drawer.barNoted then
-            say("Glass MiniMap Bar is enabled, so the drawer stays off. Disable it and /reload to use the drawer.")
-        end
-        GMM.db.drawer.barNoted = true
-        return
-    end
-    GMM.Drawer.Build()
-    GMM.Blizzard.SetCompartmentHidden(true)
-end
-
 local boot = CreateFrame("Frame")
 boot:SetScript("OnEvent", function(_, event, arg1)
     if event == "ADDON_LOADED" then
@@ -190,7 +148,7 @@ boot:SetScript("OnEvent", function(_, event, arg1)
             start("zone pill", GMM.Header.Build)
             start("coords pill", GMM.Footer.Build)
             start("tracking", GMM.Tracking.Build)
-            start("drawer", startDrawer)
+            start("drawer", GMM.Drawer.Start)
         end
         start("theme", GMM.Theme.Refresh)
     elseif event == "PLAYER_ENTERING_WORLD" then
@@ -204,4 +162,4 @@ boot:SetScript("OnEvent", function(_, event, arg1)
 end)
 API.RegisterEvents(boot, { "ADDON_LOADED", "PLAYER_LOGIN", "PLAYER_ENTERING_WORLD" }, "boot")
 
-GMM._test = { ensureDefaults = ensureDefaults, DEFAULTS = DEFAULTS, slash = slash, startDrawer = startDrawer }
+GMM._test = { ensureDefaults = ensureDefaults, DEFAULTS = DEFAULTS, slash = slash }

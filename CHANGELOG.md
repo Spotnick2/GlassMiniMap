@@ -15,7 +15,6 @@ Not released yet. The first release.
   magnifier for Blizzard's own.
 - **Coordinates pill** with zoom − / +; whole numbers or tenths.
 - **Day and night disc**: a sun or a moon, with server and local time; click for the clock.
-- **Addon drawer**: Glass MiniMap Bar is now part of Glass MiniMap. The disc at the bottom left opens
-  a glass drawer with your addons' minimap buttons *and* Blizzard's AddOns list, so the AddOns button
-  goes away. Its settings are copied over from Glass MiniMap Bar the first time both are enabled;
-  then disable Glass MiniMap Bar.
+- **Addon drawer** with Glass MiniMap Bar 1.1 or later: its glass bar (your addons' minimap buttons
+  and Blizzard's AddOns list) opens from the disc at the bottom left of the map and takes on the
+  minimap's glass.

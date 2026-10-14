@@ -3,7 +3,7 @@
 dofile("tests/wow_stubs.lua")
 dofile("tests/harness.lua")
 
-local GMM = loadAddon({ before = function() WoW.LDBI():Register("DBM", { icon = "dbm" }, {}) end })
+local GMM = loadAddon()
 local ring = GMM.Ring.Glass()
 
 -- Theme: clear is the material as built; smoked AltStable's body; class the
@@ -14,7 +14,7 @@ GMM.Settings.SetTheme("smoked")
 eq(ring.tint._color[4], 0.62, "smoked: the darker body")
 local orbTint
 for _, s in ipairs(GMM.Theme._test.surfaces) do if s.kind == "orb" and s.g.tint ~= nil then orbTint = s.g.tint end end
-eq(orbTint._color[4], 0.62, "smoked reaches the orbs too")
+eq(orbTint._color[4], 0.62, "smoked reaches the north tab too")
 GMM.Settings.SetTheme("class")
 near(ring.tint._color[1], 0.25 * 0.6, "class: the class colour, shaded (r)")
 near(ring.tint._color[3], 0.92 * 0.6, "class: (b)")

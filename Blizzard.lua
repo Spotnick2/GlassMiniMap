@@ -19,15 +19,13 @@
 --   calendar              GameTimeFrame
 --   day/night ring        MinimapCluster.DielFrame (Forever's Camelot\Diel.lua)
 -- Left alone: QueueStatusButton (its own Edit Mode system), the mail and
--- crafting-order indicators, the instance difficulty, the clock.
+-- crafting-order indicators, the instance difficulty, the clock, and
+-- AddonCompartmentFrame (the "AddOns" button: Glass MiniMap Bar, when
+-- installed, lists its entries and hides it; Glass MiniMap never touches it).
 --
 -- The map's mask is Blizzard's own round one (ui-hud-minimap-frame-generic-mask,
 -- re-applied by Camelot\Skin.lua on every rotateMinimap change): the glass
 -- ring is built to its 198 px circle, so it is not replaced.
---
--- The one frame that goes entirely is AddonCompartmentFrame (the "AddOns"
--- button), whose entries live in our drawer instead: GlassPanel's
--- SystemHider, and only while our drawer is there to replace it.
 
 GlassMiniMap = GlassMiniMap or {}
 local GMM = GlassMiniMap
@@ -62,8 +60,6 @@ Blizzard.FADED = {
     { "day cycle",     function() return key(cluster(), "DielFrame") end },
 }
 
-local compartment
-
 -- Fade every piece we replace. Returns how many were found.
 function Blizzard.Start()
     local n = 0
@@ -75,14 +71,6 @@ function Blizzard.Start()
     end
     Blizzard.faded = n
     return n
-end
-
--- The "AddOns" button: hidden while our drawer lists its entries, given back
--- otherwise (the standalone Glass MiniMap Bar running instead of our drawer).
-function Blizzard.SetCompartmentHidden(hidden)
-    if not rawget(_G, "AddonCompartmentFrame") then return end
-    compartment = compartment or API.SystemHider("AddonCompartmentFrame")
-    compartment.Set(hidden)
 end
 
 -- The tracking dropdown's own menu (the glass menu's fallback, and right-click).
@@ -103,5 +91,3 @@ end
 function Blizzard.Container()
     return key(cluster(), "MinimapContainer") or (rawget(_G, "Minimap") and Minimap:GetParent())
 end
-
-Blizzard._test = { compartment = function() return compartment end }

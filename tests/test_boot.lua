@@ -9,8 +9,8 @@ check(GMM.Ring.Host() ~= nil, "the ring is built")
 check(GMM.Header.Pill() ~= nil, "the zone pill is built")
 check(GMM.Footer.Pill() ~= nil, "the coords pill is built")
 check(GMM.Tracking._test.popup() ~= nil, "the tracking menu is built")
-check(GMM.Drawer.IsActive(), "the drawer is on")
-check(launcher() ~= nil, "the launcher disc exists")
+check(not GMM.Drawer.IsActive(), "no drawer without Glass MiniMap Bar")
+eq(disc(), nil, "...and no disc")
 
 -- Faded, never hidden or moved.
 eq(MinimapCompassTexture._alpha, 0, "compass art faded")
@@ -29,8 +29,9 @@ eq(Minimap.ZoomIn._alpha, 0, "zoom button re-faded after Blizzard shows it")
 Minimap.ZoomIn:SetAlpha(1)
 eq(Minimap.ZoomIn._alpha, 0, "...and after Blizzard fades it in")
 
--- The compartment is hidden by reparenting, deferred.
-check(AddonCompartmentFrame:GetParent() ~= MinimapCluster, "AddOns button moved out of sight")
+-- Blizzard's AddOns button is never ours to touch.
+eq(AddonCompartmentFrame:GetParent(), MinimapCluster, "the AddOns button stays where Blizzard put it")
+eq(AddonCompartmentFrame._alpha, 1, "...as it was")
 
 -- Our frames live in the container Edit Mode scales.
 eq(GMM.Ring.Host():GetParent(), MinimapCluster.MinimapContainer, "ring parented to the container")
