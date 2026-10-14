@@ -18,8 +18,10 @@
 --   coordinates           MinimapCluster.MinimapContainer.PlayerCoords
 --   calendar              GameTimeFrame
 --   day/night ring        MinimapCluster.DielFrame (Forever's Camelot\Diel.lua)
--- Left alone: QueueStatusButton (its own Edit Mode system), the mail and
--- crafting-order indicators, the instance difficulty, the clock, and
+--   new mail              MinimapCluster.IndicatorFrame.MailFrame (hung under the faded
+--                         tracking button, over our zone pill; Mail.lua shows it in glass)
+-- Left alone: QueueStatusButton (its own Edit Mode system), the crafting-order
+-- indicator, the instance difficulty, the clock, and
 -- AddonCompartmentFrame (the "AddOns" button: Glass MiniMap Bar, when
 -- installed, lists its entries and hides it; Glass MiniMap never touches it).
 --
@@ -58,6 +60,7 @@ Blizzard.FADED = {
     { "coords",        function() return key(cluster(), "MinimapContainer", "PlayerCoords") end },
     { "calendar",      function() return rawget(_G, "GameTimeFrame") end },
     { "day cycle",     function() return key(cluster(), "DielFrame") end },
+    { "mail",          function() return key(cluster(), "IndicatorFrame", "MailFrame") end },
 }
 
 -- Fade every piece we replace. Returns how many were found.
