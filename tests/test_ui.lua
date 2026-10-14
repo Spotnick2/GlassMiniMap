@@ -44,9 +44,23 @@ WoW.fire("ZONE_CHANGED")
 eq(zt._textColor[1], 1.0, "no PvP info: Blizzard's gold")
 GMM.Header._test.zoneButton():Click("LeftButton")
 eq(WoW.worldMapToggled, 1, "a click opens the world map")
+-- The tooltip: Blizzard's zone lines, written by us (its Minimap_SetTooltip
+-- only writes for its own button: Codex, PR #6).
 local zb = GMM.Header._test.zoneButton()
+WoW.zoneName, WoW.subzone, WoW.pvp = "Elwynn Forest", "Goldshire", "sanctuary"
 zb._scripts.OnEnter(zb)
-eq(GameTooltip._lines[1], "pvp:nil", "the tooltip is Blizzard's own")
+eq(GameTooltip._lines[1], "Elwynn Forest", "the zone")
+eq(GameTooltip._lines[2], "Goldshire", "the subzone")
+eq(GameTooltip._colors[2][1], 0.41, "...in the zone's PvP colour")
+eq(GameTooltip._lines[3], "(Sanctuary)", "the territory line")
+eq(GameTooltip._lines[4], "Click: world map", "and the click hint")
+WoW.subzone, WoW.pvp = "Elwynn Forest", "contested"
+zb._scripts.OnEnter(zb)
+eq(GameTooltip._lines[2], "(Contested Territory)", "a subzone equal to the zone is left out")
+WoW.pvp = "friendly"
+zb._scripts.OnEnter(zb)
+eq(GameTooltip._lines[2], "Click: world map", "friendly without a faction: the zone only")
+WoW.zoneName, WoW.subzone, WoW.pvp = nil, nil, nil
 
 -- Calendar: today's page, invites, Blizzard's click handler.
 local cal = GMM.Header._test.calendar()

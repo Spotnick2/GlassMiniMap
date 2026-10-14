@@ -269,7 +269,11 @@ function Methods.SetFont(fs, file, size, flags) fs._font = { file, size, flags }
 function Methods.SetOwner(tt, owner) tt._owner = owner; tt._lines = {} end
 function Methods.GetOwner(tt) return tt._owner end
 function Methods.ClearLines(tt) tt._lines = {} end
-function Methods.AddLine(tt, text) table.insert(tt._lines, text) end
+function Methods.AddLine(tt, text, r, g, b)
+    table.insert(tt._lines, text)
+    tt._colors = tt._colors or {}
+    tt._colors[#tt._lines] = { r, g, b }
+end
 function Methods.AddDoubleLine(tt, l, r) table.insert(tt._lines, tostring(l) .. "|" .. tostring(r)) end
 
 -- Minimap: zoom.
@@ -463,7 +467,14 @@ function GameTimeFrame_SetDate() end
 function ToggleTimeManager() WoW.timeManager = (WoW.timeManager or 0) + 1 end
 function GameTime_GetGameTime() return "21:57" end
 function GameTime_GetLocalTime() return "22:57" end
-function Minimap_SetTooltip(pvpType) GameTooltip:AddLine("pvp:" .. tostring(pvpType)) end
+-- Blizzard's, with its owner check (Minimap.lua:179-181): it writes nothing
+-- unless MinimapCluster.ZoneTextButton owns the tooltip.
+function Minimap_SetTooltip(pvpType)
+    if GameTooltip._owner ~= MinimapCluster.ZoneTextButton then return end
+    GameTooltip:AddLine("pvp:" .. tostring(pvpType))
+end
+function GetZoneText() return WoW.zoneName or WoW.zone end
+function GetSubZoneText() return WoW.subzone or "" end
 
 -- C_Minimap tracking over WoW.tracking.
 C_Minimap = {

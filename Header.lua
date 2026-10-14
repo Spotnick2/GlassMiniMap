@@ -52,15 +52,56 @@ function Header.UpdateZone()
     zoneText:SetTextColor(c[1], c[2], c[3])
 end
 
+-- The zone tooltip's lines, as Blizzard's Minimap_SetTooltip writes them
+-- (Minimap.lua:179-215). Not called: it only writes when GameTooltip is owned
+-- by MinimapCluster.ZoneTextButton, so on our pill it added nothing (Codex,
+-- PR #6). Returns { { text, r, g, b }, ... }.
+local function gs(name, fallback)
+    local v = rawget(_G, name)
+    return type(v) == "string" and v or fallback
+end
+
+local function plainText(fn)
+    local f = rawget(_G, fn)
+    if type(f) ~= "function" then return nil end
+    local ok, v = pcall(f)
+    v = ok and API.Plain(v) or nil
+    return type(v) == "string" and v or nil
+end
+
+function Header.TooltipLines(pvpType, faction, zone, subzone)
+    if subzone == zone then subzone = "" end
+    local lines = { { zone or "", 1, 1, 1 } }
+    local function add(text, c) lines[#lines + 1] = { text, c[1], c[2], c[3] } end
+    local c = Header.PVP_COLORS[pvpType]
+    local hasFaction = type(faction) == "string" and faction ~= ""
+    local controlled = gs("FACTION_CONTROLLED_TERRITORY", "(%s Territory)")
+    if pvpType == "sanctuary" then
+        add(subzone, c); add(gs("SANCTUARY_TERRITORY", "(Sanctuary)"), c)
+    elseif pvpType == "arena" then
+        add(subzone, c); add(gs("FREE_FOR_ALL_TERRITORY", "(PvP Area)"), c)
+    elseif (pvpType == "friendly" or pvpType == "hostile") then
+        if hasFaction then add(subzone, c); add(controlled:format(faction), c) end
+    elseif pvpType == "contested" then
+        add(subzone, c); add(gs("CONTESTED_TERRITORY", "(Contested Territory)"), c)
+    elseif pvpType == "combat" then
+        local red = { 1.0, 0.1, 0.1 }
+        add(subzone, red); add(gs("COMBAT_ZONE", "(Combat Zone)"), red)
+    else
+        add(subzone, Header.DEFAULT_COLOR)
+    end
+    return lines
+end
+
 local function zoneTooltip(self)
     GameTooltip:SetOwner(self, "ANCHOR_LEFT")
     local pvpType, faction = pvpInfo()
-    local set = rawget(_G, "Minimap_SetTooltip")
-    if type(set) == "function" and pcall(set, pvpType, faction) then
-        GameTooltip:AddLine("Click: world map", 0.6, 0.6, 0.6)
-    else
-        GameTooltip:AddLine(zoneText:GetText() or "")
+    local zone = plainText("GetZoneText") or zoneText:GetText() or ""
+    local subzone = plainText("GetSubZoneText") or ""
+    for _, l in ipairs(Header.TooltipLines(pvpType, faction, zone, subzone)) do
+        if l[1] ~= "" then GameTooltip:AddLine(l[1], l[2], l[3], l[4]) end
     end
+    GameTooltip:AddLine("Click: world map", 0.6, 0.6, 0.6)
     GameTooltip:Show()
 end
 
