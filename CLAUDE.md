@@ -13,7 +13,7 @@ check how those handle it before you invent a new idiom.
 
 **The look** is `docs/mockups/glass-minimap.png`: a round map in a glass ring with a north tab, a
 zone pill above (tracking magnifier, zone name, calendar), a day/night disc top right, the drawer's
-launcher disc bottom right (the mockup's bottom left is Blizzard's LFG eye, #4), a coordinates pill with zoom below. The reviewed plan (Codex
+launcher disc on the left at 255° (the mockup's bottom left is Blizzard's LFG eye, #4), a coordinates pill with zoom below. The reviewed plan (Codex
 `gpt-6-astra`, two rounds, consensus) is [docs/PLAN.md](docs/PLAN.md), revised by
 [docs/PLAN-public-api.md](docs/PLAN-public-api.md) (the drawer stays Glass MiniMap Bar's, also two
 rounds to consensus); measured client facts go in [docs/FOREVER-PROBE.md](docs/FOREVER-PROBE.md).

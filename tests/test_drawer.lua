@@ -16,8 +16,13 @@ local d = disc()
 check(d ~= nil, "Glass MiniMap Bar: the disc is there")
 eq(gmb.launcher, d, "...handed to UseLauncher")
 local p = d._points[1]
-check(p[4] > 0 and p[5] < 0, "...at the bottom right of the ring (the eye has the bottom left: #4)")
-near(p[4], -p[5], "...at 135 degrees")
+check(p[4] < 0 and p[5] < 0 and math.abs(p[4]) > math.abs(p[5]), "...on the left, above the eye's bottom-left spot (#4)")
+local r = GMM.Ring.Radius() + GMM.Ring.RING_WIDTH * 0.3
+near(p[4], r * math.sin(math.rad(255)), "...at 255 degrees (x)")
+near(p[5], r * math.cos(math.rad(255)), "...at 255 degrees (y)")
+-- Clear of the eye's disc (centred at -68, -68, 44 px wide).
+local dx, dy = p[4] + 68, p[5] + 68
+check(math.sqrt(dx * dx + dy * dy) > 22 + 15 + 8, "...with a gap to the eye's disc")
 check(GMM.Drawer.IsActive(), "the drawer is active")
 eq(AddonCompartmentFrame:GetParent(), MinimapCluster, "Glass MiniMap itself still never touches the AddOns button")
 
