@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.1.1
+
+Not released yet.
+
+- **The LFG eye moves to the top left of the ring**, mirroring the day and night disc, with a
+  glass disc behind it in the minimap's glass. It used to sit on the addon drawer's disc at the
+  bottom left while you were queued. If you've placed the eye yourself in Edit Mode, it stays
+  where you put it.
+- The coordinates pill follows Blizzard's "Player Minimap Coordinates" and "Coordinates by
+  Tenths" settings live, and the zone tooltip shows the zone, subzone and territory again.
+
 ## v0.1.0
 
 Released 2026-10-14. The first release.

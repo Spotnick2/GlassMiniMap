@@ -1,5 +1,5 @@
 -- Drawer.lua: the addon drawer is Glass MiniMap Bar's bar, opened from our
--- bottom-left disc.
+-- disc at the bottom left of the ring.
 --
 -- Glass MiniMap Bar (a separate addon, ## OptionalDeps) collects the addons'
 -- minimap buttons and Blizzard's AddOns list into one glass bar. Through its
@@ -14,7 +14,10 @@ local API = GMM.API
 local Drawer = {}
 GMM.Drawer = Drawer
 
-Drawer.ANGLE = 225                  -- the disc's place on the ring (degrees clockwise from the top)
+-- The disc's place on the ring (degrees clockwise from the top): the bottom
+-- left, as in the mockup. Blizzard's LFG eye defaults to that spot too; it is
+-- mirrored to the top left (Queue.lua, issue #4).
+Drawer.ANGLE = 225
 Drawer.API_VERSION = 1              -- Glass MiniMap Bar's PUBLIC_API_VERSION we speak
 Drawer.ARROW = "Interface\\Icons\\misc_arrowleft"
 local CROP = { 0.08, 0.92, 0.08, 0.92 }   -- Interface\Icons squares, inside the round mask

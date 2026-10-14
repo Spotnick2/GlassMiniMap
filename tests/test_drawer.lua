@@ -16,7 +16,7 @@ local d = disc()
 check(d ~= nil, "Glass MiniMap Bar: the disc is there")
 eq(gmb.launcher, d, "...handed to UseLauncher")
 local p = d._points[1]
-check(p[4] < 0 and p[5] < 0, "...at the bottom left of the ring")
+check(p[4] < 0 and p[5] < 0, "...at the bottom left of the ring (the mockup's)")
 near(p[4], p[5], "...at 225 degrees")
 check(GMM.Drawer.IsActive(), "the drawer is active")
 eq(AddonCompartmentFrame:GetParent(), MinimapCluster, "Glass MiniMap itself still never touches the AddOns button")

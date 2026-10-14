@@ -55,6 +55,9 @@ for _, k in ipairs({ "sun", "glassTracking" }) do
     GMM.Settings.Set(k, false); GMM.Settings.Set(k, true)
 end
 
+-- The LFG eye's disc.
+QueueStatusButton:Show(); QueueStatusButton:SetScale(1.2); QueueStatusButton:Hide()
+
 -- The options page: every control's OnClick.
 local panel = GMM.Options._test.panel
 panel:Show()

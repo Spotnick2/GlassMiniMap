@@ -313,6 +313,38 @@ local function buildCluster()
     MinimapCompassTextureUnderlay = MinimapBackdrop:CreateTexture(nil, "OVERLAY")
     c.MinimapContainer.PlayerCoords = CreateFrame("Frame", nil, c.MinimapContainer)
     c.DielFrame = CreateFrame("Frame", nil, c)
+    -- The LFG eye: UIParent's, its own Edit Mode system, hidden until queued.
+    QueueStatusButton = CreateFrame("Button", "QueueStatusButton", UIParent)
+    QueueStatusButton._width, QueueStatusButton._height = 45, 45
+    QueueStatusButton._shown = false
+    QueueStatusButton._level = 20
+    QueueStatusButton:SetPoint("CENTER", Minimap, "CENTER", -68, -68)
+    -- Edit Mode's system methods (EditModeSystemTemplates.lua): the base
+    -- methods skip its anchor pass; the overrides would run it.
+    local q = QueueStatusButton
+    q.inDefault = true
+    q.SetPointBase = function(self, ...) WoW.Methods.SetPoint(self, ...); self._baseMoves = (self._baseMoves or 0) + 1 end
+    q.ClearAllPointsBase = function(self) WoW.Methods.ClearAllPoints(self) end
+    q.IsInDefaultPosition = function(self) return self.inDefault end
+    -- Camelot's UpdateDefaultAnchor: back to Minimap CENTER (-68, -68).
+    q.UpdateDefaultAnchor = function(self)
+        WoW.Methods.ClearAllPoints(self)
+        WoW.Methods.SetPoint(self, "CENTER", Minimap, "CENTER", -68, -68)
+    end
+    -- Its art, one level under the button (QueueStatusFrame.lua:165).
+    q.Eye = CreateFrame("Frame", nil, q)
+    q.Eye._level = q._level - 1
+    -- OnLoad registers the ORIGINAL function with EventRegistry (line 12): a
+    -- later hooksecurefunc on the frame doesn't wrap this copy.
+    EventRegistry = { callbacks = {} }
+    function EventRegistry:RegisterCallback(event, fn, owner)
+        self.callbacks[event] = self.callbacks[event] or {}
+        table.insert(self.callbacks[event], { fn = fn, owner = owner })
+    end
+    function EventRegistry:TriggerEvent(event, ...)
+        for _, c in ipairs(self.callbacks[event] or {}) do c.fn(c.owner, ...) end
+    end
+    EventRegistry:RegisterCallback("Minimap.OnScaleUpdated", q.UpdateDefaultAnchor, q)
     GameTimeFrame = CreateFrame("Button", "GameTimeFrame", c)
     GameTimeFrame._mouse = true
 
@@ -395,6 +427,7 @@ C_AddOns = {
 function IsShiftKeyDown() return WoW.shift end
 function issecretvalue(v) return false end
 function InCombatLockdown() return WoW.combat end
+EditModeManagerFrame = nil
 -- hooksecurefunc(table, name, fn) or hooksecurefunc(globalName, fn).
 function hooksecurefunc(t, name, fn)
     if type(t) == "string" then

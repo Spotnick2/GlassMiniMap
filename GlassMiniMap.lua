@@ -144,6 +144,7 @@ boot:SetScript("OnEvent", function(_, event, arg1)
         if start("ring", GMM.Ring.Build) and GMM.Ring.Host() then
             start("zone pill", GMM.Header.Build)
             start("coords pill", GMM.Footer.Build)
+            start("lfg eye", GMM.Queue.Build)
             start("tracking", GMM.Tracking.Build)
             start("drawer", GMM.Drawer.Start)
         end
