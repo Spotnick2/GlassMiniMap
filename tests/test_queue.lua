@@ -26,6 +26,13 @@ eq(select(5, at()), -68, "Blizzard's own call puts it back (untouched inside it)
 WoW.flushTimers(0)
 eq(select(5, at()), 68, "...and the next frame mirrors it again")
 
+-- A minimap scale change: Blizzard calls its EventRegistry copy, which the
+-- hook doesn't wrap; our own callback mirrors it again (Codex, PR #11).
+EventRegistry:TriggerEvent("Minimap.OnScaleUpdated", 1.2)
+eq(select(5, at()), -68, "the scale callback puts it back")
+WoW.flushTimers(0)
+eq(select(5, at()), 68, "...and the next frame mirrors it again")
+
 -- Edit Mode open: hands off (the player sees Blizzard's default there).
 EditModeManagerFrame = CreateFrame("Frame", "EditModeManagerFrame", UIParent)
 eye:UpdateDefaultAnchor()
@@ -66,7 +73,8 @@ eq(d._points[1][2], eye, "centred on the eye (follows it wherever it goes)")
 eq(d._mouse, false, "takes no clicks: they're the eye's")
 eye:Show()
 eq(d._shown, true, "queued: shown with the eye")
-eq(d._level, eye._level - 1, "...one level under it")
+check(d._level < eye.Eye._level, "...under the eye's art (Eye, at button - 1)")
+check(GMM.Queue.Glass().top._level < eye.Eye._level, "...its rims too (g.top, not host + 10)")
 eye:SetScale(1.3)
 eq(d._scale, 1.3, "Edit Mode's scale followed")
 eye:Hide()

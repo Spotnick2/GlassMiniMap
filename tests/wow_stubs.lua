@@ -331,6 +331,20 @@ local function buildCluster()
         WoW.Methods.ClearAllPoints(self)
         WoW.Methods.SetPoint(self, "CENTER", Minimap, "CENTER", -68, -68)
     end
+    -- Its art, one level under the button (QueueStatusFrame.lua:165).
+    q.Eye = CreateFrame("Frame", nil, q)
+    q.Eye._level = q._level - 1
+    -- OnLoad registers the ORIGINAL function with EventRegistry (line 12): a
+    -- later hooksecurefunc on the frame doesn't wrap this copy.
+    EventRegistry = { callbacks = {} }
+    function EventRegistry:RegisterCallback(event, fn, owner)
+        self.callbacks[event] = self.callbacks[event] or {}
+        table.insert(self.callbacks[event], { fn = fn, owner = owner })
+    end
+    function EventRegistry:TriggerEvent(event, ...)
+        for _, c in ipairs(self.callbacks[event] or {}) do c.fn(c.owner, ...) end
+    end
+    EventRegistry:RegisterCallback("Minimap.OnScaleUpdated", q.UpdateDefaultAnchor, q)
     GameTimeFrame = CreateFrame("Button", "GameTimeFrame", c)
     GameTimeFrame._mouse = true
 

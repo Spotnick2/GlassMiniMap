@@ -18,8 +18,12 @@
 -- (ApplySystemAnchor, the minimap's scale) the hook flips it again.
 --
 -- The glass disc is ours: a frame on UIParent (the eye's parent), centred on
--- the eye, one level under it, at its scale, shown and hidden with it. The eye
--- itself is never restyled.
+-- the eye, at its scale, shown and hidden with it. The eye itself is never
+-- restyled. Levels: Blizzard draws the eye's art (QueueStatusButton.Eye) one
+-- level under the button (QueueStatusFrame.lua:165), and LibGlass puts a
+-- disc's rims on g.top at host + 10, so the whole disc, g.top included, is
+-- kept one level under the eye's art (LibGlass's Pill does the same with its
+-- g.top), or the rim drew over the animated eye (Codex, PR #11).
 
 GlassMiniMap = GlassMiniMap or {}
 local GMM = GlassMiniMap
@@ -30,7 +34,7 @@ GMM.Queue = Queue
 
 Queue.SIZE = 44            -- the eye is 45 x 45; its round art sits inside the glass rim
 
-local disc, waiter
+local disc, glass, waiter
 local scheduled = false
 
 local function eye() return rawget(_G, "QueueStatusButton") end
@@ -85,8 +89,14 @@ function Queue.Sync()
     if type(scale) == "number" and scale > 0 then disc:SetScale(scale) end
     local strata = plain(e, "GetFrameStrata")
     if type(strata) == "string" then disc:SetFrameStrata(strata) end
-    local level = plain(e, "GetFrameLevel")
-    if type(level) == "number" then disc:SetFrameLevel(math.max(0, level - 1)) end
+    -- Under the eye's art (Eye, at button - 1), rims included.
+    local art = type(e.Eye) == "table" and e.Eye or e
+    local level = plain(art, "GetFrameLevel")
+    if type(level) == "number" then
+        local under = math.max(0, level - 1)
+        disc:SetFrameLevel(under)
+        if glass and glass.top then glass.top:SetFrameLevel(under) end
+    end
     disc:SetShown(plain(e, "IsShown") == true)
 end
 
@@ -98,7 +108,8 @@ function Queue.Build()
     disc:SetPoint("CENTER", e, "CENTER", 0, 0)
     disc:EnableMouse(false)            -- every click is the eye's
     disc:Hide()
-    GMM.Theme.Register(Glass.Disc(disc, "disc_small"))
+    glass = Glass.Disc(disc, "disc_small")
+    GMM.Theme.Register(glass)
     -- Script hooks see every show and hide; the scale hook follows Edit Mode.
     e:HookScript("OnShow", Queue.Sync)
     e:HookScript("OnHide", Queue.Sync)
@@ -116,6 +127,13 @@ function Queue.Build()
     if type(e.UpdateDefaultAnchor) == "function" then
         hooksecurefunc(e, "UpdateDefaultAnchor", request)
     end
+    -- Blizzard also calls it from EventRegistry's Minimap.OnScaleUpdated with
+    -- the function it registered at OnLoad (QueueStatusFrame.lua:12), which the
+    -- hook above doesn't wrap: listen there too (Codex, PR #11).
+    local registry = rawget(_G, "EventRegistry")
+    if type(registry) == "table" and type(registry.RegisterCallback) == "function" then
+        API.Try("eye:scale", registry.RegisterCallback, registry, "Minimap.OnScaleUpdated", request, Queue)
+    end
     local em = rawget(_G, "EditModeManagerFrame")
     if type(em) == "table" and em.HookScript then em:HookScript("OnHide", request) end
     request()
@@ -123,3 +141,4 @@ function Queue.Build()
 end
 
 function Queue.Disc() return disc end
+function Queue.Glass() return glass end
