@@ -86,11 +86,18 @@ local function near(radius)
     local r = Minimap:GetWidth() / 2
     local tx, ty = (mx - r * 0.707) * s, (my - r * 0.707) * s
     local found = 0
+    -- Visibility can be secret too (a unit aura frame's, measured on 70374): a
+    -- secret or unreadable answer counts as "not visible", never truth-tested.
+    local function yes(obj, method)
+        local ok, v = pcall(obj[method], obj)
+        if not ok or (issecretvalue and issecretvalue(v)) then return false end
+        return v == true
+    end
     local f = EnumerateFrames()
     while f do
-        if not f:IsForbidden() and f:IsVisible() then
+        if not yes(f, "IsForbidden") and yes(f, "IsVisible") then
             for _, reg in ipairs({ f:GetRegions() }) do
-                if reg:IsObjectType("FontString") and reg:IsVisible() then
+                if reg:IsObjectType("FontString") and yes(reg, "IsVisible") then
                     local x, y = reg:GetCenter()
                     local t = reg:GetText()
                     local es = reg:GetEffectiveScale()

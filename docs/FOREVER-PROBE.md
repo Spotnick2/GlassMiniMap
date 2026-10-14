@@ -8,7 +8,7 @@ Record the build each result was measured on.
 
 | # | Question | Command | Result |
 |---|---|---|---|
-| P1 | What draws the purple "72" above the bottom-left disc (mockup and stock screenshot)? | `/mmprobe near` | **partly**: an unnamed child frame of `Minimap`; its source location is next (the probe now prints it) |
+| P1 | What draws the purple "72" above the bottom-left disc (mockup and stock screenshot)? | `/mmprobe near` | **RestedXP's guide step** (owner, 70374): its step pin on the minimap, an unnamed child of `Minimap`. Not ours; left alone |
 | P2 | Are `IngameCalendarDisabled`, `IngameTrackingDisabled`, `MinimapDisabled` active on Forever? | `/mmprobe rules` | **all off** (ids 75, 76, 146; WorldMapDisabled 145 and UserAddonsDisabled 29 off too) |
 | P3 | Which tracking entries does a Vanilla-content character get (filterIDs, spellIDs, subTypes)? | `/mmprobe tracking` | **24 types**, below |
 | P4 | What is in `AddonCompartmentFrame.registeredAddons` with the usual addons? | `/mmprobe frames` | **6**: DBM, AltStableSync, Gnomesweeper, GuildSpy, Leatrix Maps, Leatrix Plus (icons as file paths, one file ID) |
@@ -52,4 +52,10 @@ Record the build each result was measured on.
   (32768, -1); 23 Track Quest POIs (65536, -1); 24 Track Digsites (131072, -1).
   The glass menu lists the same 13 as Blizzard's (12 optional + Find Herbs).
 - `/mmprobe near` threw on a FontString with a **secret position** (another addon's glass text, a
-  unit name): positions can be secret on this client. Fixed in the probe (#7).
+  unit name): positions can be secret on this client. Fixed in the probe (#7). Its second run threw
+  on a frame's **IsVisible** being a secret boolean (a unit aura frame): visibility can be secret
+  too. Fixed.
+- First look (owner's screenshot): the ring, notch, pills and sun disc render; the coords pill
+  hung below the cluster onto the quest tracker's header (moved up into the ring's edge); Glass
+  MiniMap Bar's start stopped before collecting the minimap buttons (most likely the same secret
+  answers, from `IsProtected`/sizes: Spotnick2/GlassMiniMapBar#26 now skips secrets).

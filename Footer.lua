@@ -16,9 +16,9 @@ local Theme = GMM.Theme
 local Footer = {}
 GMM.Footer = Footer
 
-Footer.HEIGHT = 26
+Footer.HEIGHT = 22
 Footer.WIDTH = 158
-Footer.ZOOM_SIZE = 20
+Footer.ZOOM_SIZE = 18
 Footer.INTERVAL = 0.2
 
 local pill, coords, zoomIn, zoomOut
@@ -115,7 +115,10 @@ function Footer.Build()
     local container, host = GMM.Ring.Container(), GMM.Ring.Host()
     pill = CreateFrame("Frame", nil, container)
     pill:SetSize(Footer.WIDTH, Footer.HEIGHT)
-    pill:SetPoint("TOP", host, "BOTTOM", 0, -10)
+    -- Tucked 4 px into the ring's bottom: the quest tracker starts at the
+    -- cluster's bottom edge, 14 px under the ring (measured on 70374), and a
+    -- pill hanging lower sat on its header.
+    pill:SetPoint("TOP", host, "BOTTOM", 0, 4)
     pill:SetFrameLevel(GMM.Ring.AboveMap(4))
     Theme.Register(Glass.Apply(pill, "small"))
 
