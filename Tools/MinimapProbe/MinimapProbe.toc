@@ -1,0 +1,7 @@
+## Interface: 16001
+## Title: MinimapProbe (Glass MiniMap measuring)
+## Notes: Throwaway: measures the minimap cluster for Glass MiniMap. /mmprobe
+## Author: Spotnick
+## Version: dev
+
+MinimapProbe.lua

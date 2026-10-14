@@ -10,11 +10,12 @@ A liquid-glass minimap for **World of Warcraft: Forever**.
   tracking, and today's calendar page with your pending invites.
 - **Glass tracking menu**: the same entries as Blizzard's menu, in glass. Right-click the magnifier
   for Blizzard's own.
-- **Coordinates pill** with zoom buttons.
+- **Coordinates pill** with zoom buttons (Blizzard's "Player Minimap Coordinates" and "Coordinates by
+  Tenths" settings apply).
 - **Day and night disc**: a sun or a moon, with the server and local time. Click it for the clock.
-- **Addon drawer**: the disc at the bottom left opens a glass drawer with your addons' minimap
-  buttons and Blizzard's AddOns list, in one place. Hover or click to open; hide, show and reorder
-  buttons in the options.
+- **Addon drawer** with Glass MiniMap Bar installed: the disc at the bottom left opens its glass
+  drawer, with your addons' minimap buttons and Blizzard's AddOns list in one place, in the same
+  glass as the minimap.
 
 It's a reskin: Blizzard's minimap keeps working underneath, so **Edit Mode** still moves and scales
 it, and everything glass follows.
@@ -22,18 +23,15 @@ it, and everything glass follows.
 ## Commands
 
 - `/gmm theme clear|smoked|class`: the glass
-- `/gmm coords on|off`, `/gmm sun on|off`
-- `/gmm drawer`: open the addon drawer
-- `/gmm scan`: look for minimap buttons again, and list them
+- `/gmm sun on|off`: the day and night disc
 - `/gmm options`: Esc > Options > AddOns > Glass MiniMap
 
-## Coming from Glass MiniMap Bar
+## Glass MiniMap Bar
 
-Glass MiniMap Bar is now part of Glass MiniMap. Log in once with both enabled: your bar settings
-(hidden buttons, order, layout) are copied into the drawer. Then disable Glass MiniMap Bar and
-`/reload`. While both are enabled, the drawer stays off so the two don't fight over the buttons.
+Glass MiniMap Bar is optional and stays its own addon (it works with any minimap). With both
+installed, its bar opens from Glass MiniMap's bottom-left disc instead of its own minimap button,
+and its settings (`/gmb`) stay yours.
 
 ## Licence
 
-GPLv3 (the drawer's button collector adapts HidingBar's technique). The embedded LibGlass-1.0 is
-MIT. See [LICENSE](LICENSE).
+MIT, like the embedded LibGlass-1.0. See [LICENSE](LICENSE).
