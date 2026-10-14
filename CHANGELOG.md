@@ -2,7 +2,7 @@
 
 ## v0.1.0
 
-Not released yet. The first release.
+Released 2026-10-14. The first release.
 
 - **The minimap in liquid glass**: a glass ring around the map with a north tab (it follows north
   when the minimap rotates), on LibGlass r6's clean material. Blizzard's own minimap keeps working
