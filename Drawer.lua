@@ -1,5 +1,5 @@
 -- Drawer.lua: the addon drawer is Glass MiniMap Bar's bar, opened from our
--- bottom-left disc.
+-- bottom-right disc.
 --
 -- Glass MiniMap Bar (a separate addon, ## OptionalDeps) collects the addons'
 -- minimap buttons and Blizzard's AddOns list into one glass bar. Through its
