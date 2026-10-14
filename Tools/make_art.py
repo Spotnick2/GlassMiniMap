@@ -27,6 +27,7 @@ Requires Pillow-free numpy only (the writer is LibGlass's).
 import math
 import os
 import random
+import re
 import sys
 
 import numpy as np
@@ -49,6 +50,13 @@ make_textures.OUT = os.path.join(ROOT, "Media")
 # where the map's edge falls, as a share of the host's radius.
 MAP_SIZE, RING_WIDTH = 198, 10
 INNER = MAP_SIZE / (MAP_SIZE + 2 * RING_WIDTH)
+# Both exterior effects use the same runtime geometry. Fail if the literal
+# changes shape instead of silently generating art for different padding.
+with open(os.path.join(ROOT, "Ring.lua"), encoding="utf-8") as source:
+    padding = re.search(r"Ring\.EFFECT_PADDING\s*=\s*(\d+)", source.read())
+if not padding:
+    sys.exit("Ring.EFFECT_PADDING must be a numeric literal in Ring.lua")
+EFFECT_PADDING = int(padding.group(1))
 
 
 def grid(size):
@@ -178,8 +186,7 @@ def ring_fog():
     dx, dy = xs - RING / 2, ys - RING / 2
     radius, angle = np.hypot(dx, dy), np.arctan2(dy, dx)
     host_size = MAP_SIZE + 2 * RING_WIDTH
-    fog_padding = 18  # Ring.FOG_PADDING
-    lo = RING / 2 * host_size / (host_size + 2 * fog_padding) + 2
+    lo = RING / 2 * host_size / (host_size + 2 * EFFECT_PADDING) + 2
     hi = RING / 2 - 3
     radial = (radius - lo) / (hi - lo)
     # Integer angular frequencies join seamlessly at the texture's left edge.
@@ -196,7 +203,7 @@ def ring_bloom():
     """Uneven light patches and neutral falloff, on a host with 18px padding."""
     xs, ys = grid(RING)
     host_size = MAP_SIZE + 2 * RING_WIDTH
-    units = (host_size + 36) / RING
+    units = (host_size + 2 * EFFECT_PADDING) / RING
     radius = np.hypot(xs - RING / 2, ys - RING / 2) * units
     rim_radius = host_size / 2 - 1
     distance = radius - rim_radius
@@ -210,7 +217,7 @@ def ring_bloom():
     detail = 0.7 + 0.3 * (0.5 + 0.5 * np.sin(11 * angle + 2 * np.sin(5 * angle)))
     # Keep the map clear and fade to zero before the square texture boundary.
     window = np.clip((radius - (MAP_SIZE / 2 + 0.75)) / 1.5, 0, 1)
-    window *= np.clip(((host_size + 36) / 2 - 1 - radius) / 3, 0, 1)
+    window *= np.clip(((host_size + 2 * EFFECT_PADDING) / 2 - 1 - radius) / 3, 0, 1)
     return white(np.clip(core * 0.85 + halo * 0.7, 0, 1) * window * patches * detail)
 
 

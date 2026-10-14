@@ -192,6 +192,13 @@ function Methods.SetValue(w, value)
         if w._scripts.OnValueChanged then w._scripts.OnValueChanged(w, value) end
     end
 end
+
+-- A drag requires a visible mouse-enabled slider; direct SetValue alone does
+-- not exercise that interaction requirement.
+function WoW.dragSlider(w, value)
+    assert(Methods.IsVisible(w) and Methods.IsMouseEnabled(w), "slider cannot be dragged")
+    w:SetValue(value)
+end
 function Methods.GetText(w) return w._text end
 function Methods.SetTextColor(w, r, g, b) w._textColor = { r, g, b } end
 function Methods.GetAnimationGroups(w) return unpack(w._anims or {}) end

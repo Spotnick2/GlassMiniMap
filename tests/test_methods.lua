@@ -71,9 +71,11 @@ QueueStatusButton:Show(); QueueStatusButton:SetScale(1.2); QueueStatusButton:Hid
 -- The options page: every control's OnClick.
 local panel = GMM.Options._test.panel
 panel:Show()
-for _, group in pairs(GMM.Options._test.runic.buttons) do
+for _, group in ipairs({GMM.Options._test.runic.style, GMM.Options._test.runic.motion}) do
     for _, button in ipairs(group) do button:Click("LeftButton") end
 end
+GMM.Options._test.runic.vapor:SetChecked(false)
+GMM.Options._test.runic.vapor:Click("LeftButton")
 GMM.Options._test.intensity:SetValue(50)
 GMM.Options._test.speed:SetValue(150)
 for _, w in ipairs(WoW.frames) do

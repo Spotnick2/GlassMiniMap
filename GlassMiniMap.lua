@@ -62,29 +62,32 @@ local function store(key, value)
     if value == DEFAULTS[key] then GMM.db[key] = nil else GMM.db[key] = value end
 end
 
-function Settings.PreviewRunes(on)
-    local ok = GMM.Ring.PreviewRunes(on)
-    if ok then store("runicMode", on == true) end
+function Settings.SetRunicMode(on)
+    store("runicMode", on == true)
+    GMM.Ring.UpdateRunes("runicMode")
     GMM.Options.RefreshRunicControls()
-    return ok
+    return true
 end
 
-function Settings.SetRunePreviewOption(kind, value)
-    local ok = GMM.Ring.SetRunePreviewOption(kind, value)
-    if ok then
-        if kind == "style" then store("runeStyle", value)
-        elseif kind == "motion" then store("runeMotion", value)
-        elseif kind == "fog" then store("runeFog", value == "on") end
+function Settings.SetRuneOption(kind, value)
+    local key
+    if kind == "style" and RUNE_CHOICES.runeStyle[value] then key = "runeStyle"
+    elseif kind == "motion" and RUNE_CHOICES.runeMotion[value] then key = "runeMotion"
+    elseif kind == "fog" and (value == "on" or value == "off") then key, value = "runeFog", value == "on"
+    else return false end
+    if GMM.db[key] ~= value then
+        store(key, value)
+        GMM.Ring.UpdateRunes(key)
     end
     GMM.Options.RefreshRunicControls()
-    return ok
+    return true
 end
 
 function Settings.SetRuneTuning(key, value)
     if not validRuneNumber(key, value) then return false end
     if GMM.db[key] ~= value then
         store(key, value)
-        GMM.Ring.RefreshRuneTuning(key)
+        GMM.Ring.UpdateRunes(key)
     end
     GMM.Options.RefreshRunicControls()
     return true
@@ -100,8 +103,8 @@ function Settings.SetTheme(name)
 end
 
 function Settings.Set(key, on)
-    if key == "runicMode" then return Settings.PreviewRunes(on) end
-    if key == "runeFog" then return Settings.SetRunePreviewOption("fog", on and "on" or "off") end
+    if key == "runicMode" then return Settings.SetRunicMode(on) end
+    if key == "runeFog" then return Settings.SetRuneOption("fog", on and "on" or "off") end
     if not BOOLEANS[key] then return false end
     store(key, on == true)
     if key == "sun" then
@@ -179,13 +182,13 @@ local function slash(msg)
             return say(kind == "intensity" and "/gmm runes intensity 0-100" or "/gmm runes speed 25-200")
         end
         if kind == "style" or kind == "motion" or kind == "fog" then
-            if Settings.SetRunePreviewOption(kind, value) then return say("runes " .. kind .. " " .. value) end
+            if Settings.SetRuneOption(kind, value) then return say("runes " .. kind .. " " .. value) end
             if kind == "fog" then return say("/gmm runes fog on/off") end
             return say(kind == "style" and "/gmm runes style etched/glowing" or "/gmm runes motion sway/orbit")
         end
         if ONOFF[arg] == nil then return say("/gmm runes on/off/status") end
-        if Settings.PreviewRunes(ONOFF[arg]) then say("runes " .. arg)
-        else say("Runic mode requires a built ring. Check /gmm failures.") end
+        Settings.SetRunicMode(ONOFF[arg])
+        say("runes " .. arg)
     elseif cmd == "options" or cmd == "" then
         GMM.Options.Open()
     elseif cmd == "failures" then
@@ -224,6 +227,7 @@ boot:SetScript("OnEvent", function(_, event, arg1)
             start("tracking", GMM.Tracking.Build)
             start("drawer", GMM.Drawer.Start)
         end
+        start("runic mode", function() GMM.Ring.UpdateRunes("init") end)
         start("theme", GMM.Theme.Refresh)
     elseif event == "PLAYER_ENTERING_WORLD" then
         GMM.Theme.Retry()

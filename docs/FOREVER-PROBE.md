@@ -59,6 +59,9 @@ The development preview window has been replaced by these shipping settings.
 - Effects are neutral white on clear, softer white on smoked, and class-tinted
   on class glass. A temporarily unreadable class colour falls back to white.
 - All animation is native; rune effects add no per-frame Lua or ticker.
+- Disabled mode builds no rune frames or textures. Enabling builds the effects
+  separately from core startup; render errors are recorded without blocking
+  the minimap, and saved choices remain usable even when rendering fails.
 
 Textures changed during development: restart the client after deployment.
 Subsequent Lua-only updates need `/reload`. Commands remain available through
@@ -71,6 +74,9 @@ Owner confirmed motion and changing animation progress. The reference video
 light; bloom now uses uneven sectors. Owner requested a stationary etched base
 and fewer bright moving glyphs, then selected the defaults above from the preview.
 The square pattern previously seen inside the map persisted with the addon off.
+These owner visual passes were on 2026-10-14; the client build was not captured.
+They are visual feedback rather than build-stamped probe results. Record the
+build from `/gmm version` for the remaining live checks below.
 
 - [ ] Fresh settings: runic mode off; enabling gives the approved defaults.
 - [ ] Settings controls appear/disappear with mode; all choices survive reload.
