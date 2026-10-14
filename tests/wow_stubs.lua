@@ -314,6 +314,12 @@ local function buildCluster()
     MinimapCompassTextureUnderlay = MinimapBackdrop:CreateTexture(nil, "OVERLAY")
     c.MinimapContainer.PlayerCoords = CreateFrame("Frame", nil, c.MinimapContainer)
     c.DielFrame = CreateFrame("Frame", nil, c)
+    -- The instance flag (InstanceDifficulty.xml): it and its Guild banner have
+    -- OnEnter tooltips, so both take the mouse.
+    c.InstanceDifficulty = CreateFrame("Frame", nil, c)
+    c.InstanceDifficulty._mouse = true
+    c.InstanceDifficulty.Guild = CreateFrame("Frame", nil, c.InstanceDifficulty)
+    c.InstanceDifficulty.Guild._mouse = true
     -- The mail icon: a mouse-enabled frame in IndicatorFrame, shown by
     -- Blizzard on UPDATE_PENDING_MAIL while there's mail.
     c.IndicatorFrame = CreateFrame("Frame", nil, c)

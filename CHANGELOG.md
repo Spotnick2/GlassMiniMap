@@ -4,6 +4,8 @@
 
 - **New mail shows as a glass disc** at the bottom right of the ring, with the latest senders on
   hover. Blizzard's mail icon used to float over the zone pill.
+- Blizzard's instance flag (the group size, 5 to 40, shown in dungeons and raids) no longer floats
+  over the zone pill: it's hidden, as Forever has no difficulties to show.
 
 ## v0.1.1
 
