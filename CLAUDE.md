@@ -79,6 +79,8 @@ From `..\wow-ui-source` (branch `forever`, 70338) and the 70374 API dump:
 - `..\References\PORTING-TBC-TO-FOREVER.md`: Edit Mode systems, options-page recipe, packaging.
 - `..\References\forever-api-1.60.1.70374.md`: does an API exist?
 - `..\References\RELEASING.md`, `..\References\LIBGLASS-MIGRATION.md`.
+- `..\References\SexyMap-v12.1.2`: a full minimap addon (borders, rotating ring textures, HUD, button
+  handling). "All Rights Reserved": ideas only, never its code.
 - `..\LibGlass\docs\GLASS-MATERIAL.md`: the material, discs, region fields.
 
 ## Toolchain and commands
