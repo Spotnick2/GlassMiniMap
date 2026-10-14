@@ -13,7 +13,7 @@ check how those handle it before you invent a new idiom.
 
 **The look** is `docs/mockups/glass-minimap.png`: a round map in a glass ring with a north tab, a
 zone pill above (tracking magnifier, zone name, calendar), a day/night disc top right, the drawer's
-launcher disc bottom left, a coordinates pill with zoom below. The reviewed plan (Codex
+launcher disc bottom right (the mockup's bottom left is Blizzard's LFG eye, #4), a coordinates pill with zoom below. The reviewed plan (Codex
 `gpt-6-astra`, two rounds, consensus) is [docs/PLAN.md](docs/PLAN.md), revised by
 [docs/PLAN-public-api.md](docs/PLAN-public-api.md) (the drawer stays Glass MiniMap Bar's, also two
 rounds to consensus); measured client facts go in [docs/FOREVER-PROBE.md](docs/FOREVER-PROBE.md).
@@ -53,7 +53,8 @@ and a taint minefield (`..\References\PORTING-TBC-TO-FOREVER.md`, "Edit Mode sys
 | `Blizzard.lua` | fades stock art, opens Blizzard's tracking menu |
 | `Ring.lua` | the ring (one `Glass.Disc` behind the map), the north tab, `Ring.AddDisc`, the day/night disc |
 | `Header.lua` | zone pill: magnifier, zone name (PvP colours), calendar |
-| `Footer.lua` | coordinates pill, zoom − / + |
+| `Footer.lua` | coordinates pill (Blizzard's coords CVars), zoom − / + |
+| `Queue.lua` | a glass disc behind Blizzard's LFG eye (`QueueStatusButton`, untouched) |
 | `Tracking.lua` | the glass tracking menu, a copy of Blizzard's menu logic (`Minimap.lua:636-772`) |
 | `Drawer.lua` | the bottom-left disc as Glass MiniMap Bar's launcher, through its public API |
 | `Options.lua` | Esc > Options > AddOns > Glass MiniMap ("Drawer options" opens Glass MiniMap Bar's page) |

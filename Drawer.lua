@@ -14,7 +14,10 @@ local API = GMM.API
 local Drawer = {}
 GMM.Drawer = Drawer
 
-Drawer.ANGLE = 225                  -- the disc's place on the ring (degrees clockwise from the top)
+-- The disc's place on the ring (degrees clockwise from the top): the bottom
+-- right. The mockup's bottom left is where Blizzard's LFG eye sits while
+-- queued (Queue.lua, issue #4).
+Drawer.ANGLE = 135
 Drawer.API_VERSION = 1              -- Glass MiniMap Bar's PUBLIC_API_VERSION we speak
 Drawer.ARROW = "Interface\\Icons\\misc_arrowleft"
 local CROP = { 0.08, 0.92, 0.08, 0.92 }   -- Interface\Icons squares, inside the round mask

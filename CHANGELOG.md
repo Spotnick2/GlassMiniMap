@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.1.1
+
+Not released yet.
+
+- **The addon drawer's disc moved to the bottom right of the ring.** The bottom left is where
+  Blizzard's LFG eye shows while you're queued, and it covered the disc.
+- **The LFG eye gets a glass disc** behind it, in the minimap's glass. The eye itself is
+  Blizzard's, untouched, and still moves with Edit Mode.
+- The coordinates pill follows Blizzard's "Player Minimap Coordinates" and "Coordinates by
+  Tenths" settings live, and the zone tooltip shows the zone, subzone and territory again.
+
 ## v0.1.0
 
 Released 2026-10-14. The first release.

@@ -313,6 +313,12 @@ local function buildCluster()
     MinimapCompassTextureUnderlay = MinimapBackdrop:CreateTexture(nil, "OVERLAY")
     c.MinimapContainer.PlayerCoords = CreateFrame("Frame", nil, c.MinimapContainer)
     c.DielFrame = CreateFrame("Frame", nil, c)
+    -- The LFG eye: UIParent's, its own Edit Mode system, hidden until queued.
+    QueueStatusButton = CreateFrame("Button", "QueueStatusButton", UIParent)
+    QueueStatusButton._width, QueueStatusButton._height = 45, 45
+    QueueStatusButton._shown = false
+    QueueStatusButton._level = 20
+    QueueStatusButton:SetPoint("CENTER", Minimap, "CENTER", -68, -68)
     GameTimeFrame = CreateFrame("Button", "GameTimeFrame", c)
     GameTimeFrame._mouse = true
 

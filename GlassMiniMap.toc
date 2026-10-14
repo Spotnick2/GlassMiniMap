@@ -17,6 +17,7 @@ Blizzard.lua
 Ring.lua
 Header.lua
 Footer.lua
+Queue.lua
 Tracking.lua
 Drawer.lua
 Options.lua
