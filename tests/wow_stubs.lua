@@ -41,7 +41,7 @@ do
                              "ZONE_CHANGED", "ZONE_CHANGED_INDOORS", "ZONE_CHANGED_NEW_AREA",
                              "CALENDAR_UPDATE_PENDING_INVITES", "MINIMAP_UPDATE_ZOOM", "MINIMAP_UPDATE_TRACKING",
                              "SPELLS_CHANGED", "CVAR_UPDATE", "DIEL_CYCLE_CHANGED", "EDIT_MODE_LAYOUTS_UPDATED",
-                             "PLAYER_REGEN_ENABLED" }) do
+                             "PLAYER_REGEN_ENABLED", "UPDATE_PENDING_MAIL" }) do
             WoW.KNOWN_EVENTS[e] = true
         end
     end
@@ -268,6 +268,7 @@ function Methods.SetFont(fs, file, size, flags) fs._font = { file, size, flags }
 -- GameTooltip: records its lines.
 function Methods.SetOwner(tt, owner) tt._owner = owner; tt._lines = {} end
 function Methods.GetOwner(tt) return tt._owner end
+function Methods.IsOwned(tt, owner) return tt._owner == owner end
 function Methods.ClearLines(tt) tt._lines = {} end
 function Methods.AddLine(tt, text, r, g, b)
     table.insert(tt._lines, text)
@@ -313,6 +314,12 @@ local function buildCluster()
     MinimapCompassTextureUnderlay = MinimapBackdrop:CreateTexture(nil, "OVERLAY")
     c.MinimapContainer.PlayerCoords = CreateFrame("Frame", nil, c.MinimapContainer)
     c.DielFrame = CreateFrame("Frame", nil, c)
+    -- The mail icon: a mouse-enabled frame in IndicatorFrame, shown by
+    -- Blizzard on UPDATE_PENDING_MAIL while there's mail.
+    c.IndicatorFrame = CreateFrame("Frame", nil, c)
+    c.IndicatorFrame.MailFrame = CreateFrame("Frame", nil, c.IndicatorFrame)
+    c.IndicatorFrame.MailFrame._mouse = true
+    c.IndicatorFrame.MailFrame._shown = false
     -- The LFG eye: UIParent's, its own Edit Mode system, hidden until queued.
     QueueStatusButton = CreateFrame("Button", "QueueStatusButton", UIParent)
     QueueStatusButton._width, QueueStatusButton._height = 45, 45
@@ -385,6 +392,7 @@ function WoW.reset()
     WoW.class = "MAGE"
     WoW.facing = 0
     WoW.combat = false
+    WoW.mail, WoW.senders = false, {}
     WoW.loaded = {}
     WoW.tracking = {
         { name = "Auctioneer", texture = 1, active = false, type = "other", subType = 2, filterID = 8 },
@@ -508,6 +516,13 @@ function Minimap_SetTooltip(pvpType)
     GameTooltip:AddLine("pvp:" .. tostring(pvpType))
 end
 function GetZoneText() return WoW.zoneName or WoW.zone end
+function HasNewMail() return WoW.mail end
+function GetLatestThreeSenders() return unpack(WoW.senders) end
+-- Blizzard's (FormattingUtil.lua:181): the header, then one sender per line.
+function FormatUnreadMailTooltip(tooltip, headerText, senders)
+    for _, sender in ipairs(senders) do headerText = headerText .. "\n" .. sender end
+    tooltip:SetText(headerText)
+end
 function GetSubZoneText() return WoW.subzone or "" end
 
 -- C_Minimap tracking over WoW.tracking.
