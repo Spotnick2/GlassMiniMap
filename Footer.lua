@@ -3,8 +3,12 @@
 --   [  43.2, 24.8   (-) (+) ]
 --
 -- Coordinates as Blizzard's own PlayerCoords computes them (Minimap.lua,
--- MinimapPlayerCoordsMixin), updated five times a second while the pill is
--- shown; a dash where the map has no position (most instances). Zoom goes
+-- MinimapPlayerCoordsMixin), updated five times a second while shown; a dash
+-- where the map has no position (most instances). Shown and rounded by
+-- Blizzard's own settings (Options > Interface: "Player Minimap Coordinates",
+-- the minimapShowPlayerCoords CVar, and "Coordinates by Tenths",
+-- coordsByTenths), which the faded stock text no longer shows: one setting,
+-- not two (owner, 70374). Zoom goes
 -- through Minimap:SetZoom within GetZoomLevels(), and the buttons follow
 -- MINIMAP_UPDATE_ZOOM (the mouse wheel zooms too).
 
@@ -45,7 +49,7 @@ end
 function Footer.UpdateCoords()
     if not coords then return end
     local x, y = Footer.PlayerXY()
-    coords:SetText(Footer.CoordText(x, y, GMM.db.coordsTenths) or "\226\128\148")   -- em dash
+    coords:SetText(Footer.CoordText(x, y, API.CVarBool("coordsByTenths")) or "\226\128\148")   -- em dash
 end
 
 local function onUpdate(_, elapsed)
@@ -103,7 +107,7 @@ end
 -- Lay the pill out for the coordinates setting: text and buttons, or buttons only.
 function Footer.Layout()
     if not pill then return end
-    local show = GMM.db.coords ~= false
+    local show = API.CVarBool("minimapShowPlayerCoords")
     local zoomW = 2 * Footer.ZOOM_SIZE + 3 + 8
     pill:SetWidth(show and Footer.WIDTH or (zoomW + 4))
     coords:SetShown(show)
@@ -132,8 +136,14 @@ function Footer.Build()
     coords:SetPoint("RIGHT", zoomOut, "LEFT", -4, 0)
     coords:SetTextColor(0.92, 0.94, 0.97)
 
-    pill:SetScript("OnEvent", function() Footer.UpdateZoomButtons() end)
-    API.RegisterEvent(pill, "MINIMAP_UPDATE_ZOOM", "zoom buttons")
+    pill:SetScript("OnEvent", function(_, event, name)
+        if event == "MINIMAP_UPDATE_ZOOM" then
+            Footer.UpdateZoomButtons()
+        elseif name == "minimapShowPlayerCoords" or name == "coordsByTenths" then
+            Footer.Layout()
+        end
+    end)
+    API.RegisterEvents(pill, { "MINIMAP_UPDATE_ZOOM", "CVAR_UPDATE" }, "coords pill")
     Footer.Layout()
     Footer.UpdateZoomButtons()
     return pill

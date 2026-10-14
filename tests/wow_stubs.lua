@@ -344,7 +344,8 @@ function WoW.reset()
     WoW.shift = false
     WoW.settingsOpened = nil
     WoW.blizzardMenuOpened = nil
-    WoW.cvars = { rotateMinimap = false, minimapTrackingShowAll = false }
+    WoW.cvars = { rotateMinimap = false, minimapTrackingShowAll = false, minimapShowPlayerCoords = true,
+                  coordsByTenths = true }
     WoW.zone, WoW.pvp = "Thendal Village", "sanctuary"
     WoW.position = { 0.432, 0.248 }
     WoW.isDay = true

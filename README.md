@@ -10,7 +10,8 @@ A liquid-glass minimap for **World of Warcraft: Forever**.
   tracking, and today's calendar page with your pending invites.
 - **Glass tracking menu**: the same entries as Blizzard's menu, in glass. Right-click the magnifier
   for Blizzard's own.
-- **Coordinates pill** with zoom buttons.
+- **Coordinates pill** with zoom buttons (Blizzard's "Player Minimap Coordinates" and "Coordinates by
+  Tenths" settings apply).
 - **Day and night disc**: a sun or a moon, with the server and local time. Click it for the clock.
 - **Addon drawer** with Glass MiniMap Bar installed: the disc at the bottom left opens its glass
   drawer, with your addons' minimap buttons and Blizzard's AddOns list in one place, in the same
@@ -22,7 +23,7 @@ it, and everything glass follows.
 ## Commands
 
 - `/gmm theme clear|smoked|class`: the glass
-- `/gmm coords on|off`, `/gmm sun on|off`
+- `/gmm sun on|off`: the day and night disc
 - `/gmm options`: Esc > Options > AddOns > Glass MiniMap
 
 ## Glass MiniMap Bar

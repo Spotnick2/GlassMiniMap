@@ -13,7 +13,8 @@ Not released yet. The first release.
   magnifier, and today's calendar page with pending invites.
 - **Glass tracking menu**: the same entries and rules as Blizzard's menu, in glass. Right-click the
   magnifier for Blizzard's own.
-- **Coordinates pill** with zoom − / +; whole numbers or tenths.
+- **Coordinates pill** with zoom − / +, following Blizzard's own "Player Minimap Coordinates" and
+  "Coordinates by Tenths" settings.
 - **Day and night disc**: a sun or a moon, with server and local time; click for the clock.
 - **Addon drawer** with Glass MiniMap Bar 1.1 or later: its glass bar (your addons' minimap buttons
   and Blizzard's AddOns list) opens from the disc at the bottom left of the map and takes on the

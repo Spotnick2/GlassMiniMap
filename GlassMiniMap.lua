@@ -12,13 +12,11 @@ local say = API.Print
 -- rule). The drawer's settings are Glass MiniMap Bar's own.
 local DEFAULTS = {
     theme = "clear",          -- "clear" | "smoked" | "class"
-    coords = true,            -- the coordinates under the map
-    coordsTenths = true,      -- 43.2, 24.8 rather than 43, 25
     sun = true,               -- the day/night disc
     glassTracking = true,     -- the magnifier opens the glass menu (off: Blizzard's)
 }
 GMM.DEFAULTS = DEFAULTS
-local BOOLEANS = { coords = true, coordsTenths = true, sun = true, glassTracking = true }
+local BOOLEANS = { sun = true, glassTracking = true }
 
 local function ensureDefaults()
     if type(GlassMiniMapDB) ~= "table" then GlassMiniMapDB = {} end
@@ -31,6 +29,8 @@ local function ensureDefaults()
         if db[k] ~= nil and type(db[k]) ~= "boolean" then db[k] = nil end
     end
     db.drawer = nil   -- the absorbed drawer of a pre-release build; Glass MiniMap Bar keeps its own
+    -- Pre-release coordinate settings: Blizzard's own CVars now (Footer.lua).
+    db.coords, db.coordsTenths = nil, nil
     setmetatable(db, { __index = DEFAULTS })
     return db
 end
@@ -54,9 +54,7 @@ end
 function Settings.Set(key, on)
     if not BOOLEANS[key] then return false end
     store(key, on == true)
-    if key == "coords" or key == "coordsTenths" then
-        if GMM.Footer.Pill() then GMM.Footer.Layout() end
-    elseif key == "sun" then
+    if key == "sun" then
         GMM.Ring.ShowSun(on == true)
     elseif key == "glassTracking" then
         GMM.Tracking.Close()
@@ -93,7 +91,6 @@ local function onoff(v) return v and "on" or "off" end
 local function helpLines()
     return {
         "/gmm theme clear/smoked/class - the glass (" .. GMM.db.theme .. ")",
-        "/gmm coords on/off - the coordinates under the map (" .. onoff(GMM.db.coords) .. ")",
         "/gmm sun on/off - the day and night disc (" .. onoff(GMM.db.sun) .. ")",
         "/gmm options - open the options page",
         "/gmm failures - what failed to build or register",
@@ -109,7 +106,7 @@ local function slash(msg)
     if cmd == "theme" or cmd == "glass" then
         if Settings.SetTheme(arg) then say("theme " .. arg)
         else say("/gmm theme " .. table.concat(GMM.Theme.NAMES, "/")) end
-    elseif cmd == "coords" or cmd == "sun" then
+    elseif cmd == "sun" then
         if ONOFF[arg] == nil then return say("/gmm " .. cmd .. " on/off") end
         Settings.Set(cmd, ONOFF[arg])
         say(cmd .. " " .. arg)

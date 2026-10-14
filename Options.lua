@@ -109,18 +109,17 @@ local function build()
     Options._test.themeRadios = group
 
     local map = heading("Around the map", last)
-    local c1 = checkbox(map, "Show the coordinates under the map",
-        function() return GMM.db.coords end, function(on) GMM.Settings.Set("coords", on) end)
-    local c2 = checkbox(c1, "Coordinates to a tenth (43.2, 24.8)",
-        function() return GMM.db.coordsTenths end, function(on) GMM.Settings.Set("coordsTenths", on) end)
-    local c3 = checkbox(c2, "Show the day and night disc",
+    local c3 = checkbox(map, "Show the day and night disc",
         function() return GMM.db.sun end, function(on) GMM.Settings.Set("sun", on) end)
     local c4 = checkbox(c3, "Glass tracking menu (off: Blizzard's menu)",
         function() return GMM.db.glassTracking end, function(on) GMM.Settings.Set("glassTracking", on) end)
-    Options._test.checks = { c1, c2, c3, c4 }
+    Options._test.checks = { c3, c4 }
+    local cnote = label(panel, "Coordinates: Options > Interface, \"Player Minimap Coordinates\" and "
+        .. "\"Coordinates by Tenths\".", "GameFontHighlightSmall")
+    cnote:SetPoint("TOPLEFT", c4, "BOTTOMLEFT", 0, -8)
 
     -- The drawer: Glass MiniMap Bar's, when it's installed.
-    local drawer = heading("Addon drawer", c4)
+    local drawer = heading("Addon drawer", cnote)
     local note = label(panel, "", "GameFontHighlightSmall")
     note:SetPoint("TOPLEFT", drawer, "BOTTOMLEFT", 0, -6)
     note:SetWidth(560)

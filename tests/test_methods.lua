@@ -50,7 +50,8 @@ WoW.cvars.rotateMinimap = true
 WoW.fire("CVAR_UPDATE", "rotateMinimap", "1")
 WoW.tick(0.02)
 for _, t in ipairs(GMM.Theme.NAMES) do GMM.Settings.SetTheme(t) end
-for _, k in ipairs({ "coords", "coordsTenths", "sun", "glassTracking" }) do
+WoW.fire("CVAR_UPDATE", "minimapShowPlayerCoords", "1")
+for _, k in ipairs({ "sun", "glassTracking" }) do
     GMM.Settings.Set(k, false); GMM.Settings.Set(k, true)
 end
 
@@ -60,7 +61,7 @@ panel:Show()
 for _, w in ipairs(WoW.frames) do
     if w._parent == panel and w._scripts.OnClick then w._scripts.OnClick(w, "LeftButton") end
 end
-for _, cmd in ipairs({ "failures", "options", "version", "theme smoked", "coords off",
+for _, cmd in ipairs({ "failures", "options", "version", "theme smoked",
                        "sun on", "help", "" }) do
     GMM._test.slash(cmd)
 end

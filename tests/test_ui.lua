@@ -73,22 +73,25 @@ eq(cal.icon._atlas, "ui-hud-calendar-14-up", "re-dated with Blizzard's own butto
 cal:Click("LeftButton")
 eq(WoW.calendarClicked, GameTimeFrame, "the click goes through Blizzard's handler")
 
--- Coords: tenths by default, a dash with no position, off hides the text.
+-- Coords: Blizzard's own settings (minimapShowPlayerCoords, coordsByTenths)
+-- decide, live; a dash with no position.
 local F = GMM.Footer
 local coords = F._test.coords()
-eq(coords._text, "43.2, 24.8", "the mockup's coordinates")
-GMM.Settings.Set("coordsTenths", false)
-F._test.tick(nil, 1)
-eq(coords._text, "43, 25", "whole numbers when asked")
+eq(coords._text, "43.2, 24.8", "the mockup's coordinates (by tenths)")
+WoW.cvars.coordsByTenths = false
+WoW.fire("CVAR_UPDATE", "coordsByTenths", "0")
+eq(coords._text, "43, 25", "Blizzard's 'Coordinates by Tenths' off: whole numbers")
 WoW.position = nil
 F._test.tick(nil, 1)
 eq(coords._text, "\226\128\148", "a dash where the map has no position")
-GMM.Settings.Set("coords", false)
-eq(coords._shown, false, "coords off: no text")
+WoW.cvars.minimapShowPlayerCoords = false
+WoW.fire("CVAR_UPDATE", "minimapShowPlayerCoords", "0")
+eq(coords._shown, false, "Blizzard's 'Player Minimap Coordinates' off: no text")
 check(F.Pill()._width < F.WIDTH, "...and a pill just for the zoom buttons")
 eq(F.Pill()._scripts.OnUpdate, nil, "...and no updates")
-GMM.Settings.Set("coords", true)
-GMM.Settings.Set("coordsTenths", true)
+WoW.cvars.minimapShowPlayerCoords, WoW.cvars.coordsByTenths = true, true
+WoW.fire("CVAR_UPDATE", "minimapShowPlayerCoords", "1")
+eq(coords._shown, true, "on again: back")
 
 -- Zoom: one step within the client's levels; the buttons follow.
 local zin, zout = F._test.zoomIn(), F._test.zoomOut()
