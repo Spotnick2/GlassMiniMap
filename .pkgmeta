@@ -17,6 +17,11 @@ manual-changelog:
   filename: CHANGELOG.md
   markup-type: markdown
 
+# CurseForge relations, set on every release (CurseForge project slugs).
+# Glass MiniMap Bar is the addon drawer: optional (## OptionalDeps in the TOC).
+optional-dependencies:
+  - glass-minimap-bar
+
 # YAML list, not markdown bullets. Every pattern matches the WHOLE path from
 # the package root, so the top-level names below never reach inside Libs/:
 # Libs/LibGlass-1.0/LICENSE ships (MIT). Our LICENSE ships too (GPLv3 asks for it).
