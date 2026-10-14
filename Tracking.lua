@@ -275,7 +275,16 @@ function Tracking.Build()
     popup:SetClampedToScreen(true)
     popup:EnableMouse(true)
     popup:Hide()
-    Theme.Register(Glass.Apply(popup, "large"))
+    local g = Glass.Apply(popup, "large")
+    Theme.Register(g)
+    -- An opaque backing under the glass (GlassPanel's dialogs): the glass is
+    -- made for the world, and over the map and the quest tracker their text
+    -- showed through the menu (owner's screenshot, 70374). Above the shadow
+    -- (-8), under the tint (-6), clipped by the glass's own mask.
+    local backing = popup:CreateTexture(nil, "BACKGROUND", nil, -7)
+    backing:SetAllPoints(popup)
+    backing:SetColorTexture(0.05, 0.06, 0.08, 0.92)
+    backing:AddMaskTexture(g.mask)
     -- Escape closes it, like Blizzard's menus.
     local special = rawget(_G, "UISpecialFrames")
     if type(special) == "table" then table.insert(special, Tracking.NAME) end
@@ -296,7 +305,8 @@ function Tracking.Open(anchor)
     wipe(predicted)
     popup:ClearAllPoints()
     if anchor then
-        popup:SetPoint("TOPRIGHT", anchor, "BOTTOMRIGHT", 0, -4)
+        -- Beside the map, like Blizzard's tracking menu, not over it.
+        popup:SetPoint("TOPRIGHT", anchor, "BOTTOMLEFT", -4, -4)
     else
         popup:SetPoint("CENTER", UIParent, "CENTER")
     end
