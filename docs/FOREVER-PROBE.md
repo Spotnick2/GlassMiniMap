@@ -29,7 +29,7 @@ another module's.
 |---|---|---|
 | `wash` (#22) | clear then smoked: the wash's gradient peak 0.18 / 0.14 on the ring and the zoom buttons; zoomed fully out, the minus button dimmed (LibGlass's `disabledAlpha`) in both; the owner judges the sheen | **passed** (70374): peaks 0.18 / 0.14, minus dimmed 0.25 in both. The sheen change is too small to judge by eye (owner skipped the question); measured on the shots instead, below |
 | `mail` (#19) | after new mail and its senders: the disc shows with `HasNewMail()`, Blizzard's icon faded; a shot in each theme; the tooltip held for a delayed shot | **passed** (70374): disc shown, Blizzard's icon alpha 0, readable in all three themes (owner), tooltip lists the sender (owner) |
-| `instance` (#21) | in a dungeon or raid, once loading has finished: the disc shows the shown Blizzard flag's size, the flag faded; the tooltip shot; outside, no disc | **passed** (70374), Ragefire Chasm: "5" from Blizzard's Default flag (alpha 0), tooltip matched (owner); outside, no disc |
+| `instance` (#21) | in a dungeon or raid, once loading has finished: the disc shows the shown Blizzard flag's size, the flag faded; the tooltip shot; outside, no disc | **passed** (70374), Ragefire Chasm: "5" from Blizzard's Default flag (alpha 0), tooltip matched (owner); outside, no disc. **Pills placement (#27, rev 3): passed**, below |
 
 `wash` and `mail` change the theme and zoom: they save both first (`MinimapProbeDB.restore`, never
 overwritten while one is outstanding) and put them back at the end. After a Stop or a relog,
@@ -42,10 +42,19 @@ blocked or forbidden actions in ForeverProbe's log.
   is the designed 0.14 / 0.18 (0.78). Smoked's darker body (about 13 levels darker on the pill)
   is what the eye sees; the softer sheen alone is too subtle to tell by eye at this size.
 - **Tooltips weren't in the delayed shots.** The owner saw both tooltips (the mail sender; the
-  instance's type and size), but neither 3 s shot shows one: the hover wasn't held to the
-  shutter, or the client leaves tooltips out of screenshots taken this way. Unmeasured; the owner's
-  answer is the record.
+  instance's type and size), but neither 3 s shot shows one. The second run's shot did (below),
+  so the hover wasn't held to the shutter: screenshots do include tooltips.
 - The instance disc's "5" is small at 90°, but readable.
+
+The pills placement (#27), `instance` at rev 3, on 1.60.1.70374, 2026-10-15, Ragefire Chasm:
+- Inside: the coords pill reads "Dungeon · 5" in gold, well inside the pill; no disc; the flag
+  faded. "Raid · 40" is shorter, so it fits too (no raid access to see it).
+- The tooltip on the pill: Blizzard's "Dungeon / 5 Player", in the delayed shot this time.
+- Unread mail at the time: the envelope sat in the zone pill beside "Ragefire Chasm", the name
+  still whole.
+- Outside: the pill back to coordinates (52.1, 49.4) in their colour.
+- Not seen yet: the mail tooltip on the envelope, a long zone name beside it, the switch to "On
+  the ring" in game.
 
 ## In-game checklist
 
