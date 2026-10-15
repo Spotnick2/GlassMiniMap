@@ -1,20 +1,39 @@
 # Forever probe: Glass MiniMap
 
 What has to be measured on the live client before v0.1.0 ships, and what was found. Deploy with
-`pwsh Tools\deploy.ps1 -Probe`, restart the client, then run `/mmprobe` and the checklist below.
-Record the build each result was measured on.
+`pwsh Tools\deploy.ps1 -Probe` (it deploys `..\ForeverProbe` first), `/reload`, then run `/fp mm`
+and the procedures below. Record the build each result was measured on.
 
-## Probe questions (`/mmprobe`)
+## Probe questions (`/fp mm`)
 
 | # | Question | Command | Result |
 |---|---|---|---|
-| P1 | What draws the purple "72" above the bottom-left disc (mockup and stock screenshot)? | `/mmprobe near` | **RestedXP's guide step** (owner, 70374): its step pin on the minimap, an unnamed child of `Minimap`. Not ours; left alone |
-| P2 | Are `IngameCalendarDisabled`, `IngameTrackingDisabled`, `MinimapDisabled` active on Forever? | `/mmprobe rules` | **all off** (ids 75, 76, 146; WorldMapDisabled 145 and UserAddonsDisabled 29 off too) |
-| P3 | Which tracking entries does a Vanilla-content character get (filterIDs, spellIDs, subTypes)? | `/mmprobe tracking` | **24 types**, below |
-| P4 | What is in `AddonCompartmentFrame.registeredAddons` with the usual addons? | `/mmprobe frames` | **6**: DBM, AltStableSync, Gnomesweeper, GuildSpy, Leatrix Maps, Leatrix Plus (icons as file paths, one file ID) |
-| P5 | Where does `QueueStatusButton` sit while queued? Its Edit Mode default is `Minimap` CENTER (-68, -68), the launcher disc's spot (225°). | `/mmprobe queue` while queued | **default confirmed** (not queued): parent UIParent, CENTER -> Minimap CENTER (-68, -68), 45×45, hidden. Overlap while queued: **confirmed** (owner's screenshot, Thunder Bluff): the eye covered the drawer disc. The eye is mirrored to the top left, (-68, +68), with a glass backing; the drawer disc stays bottom left (#4; tried: drawer at 135°, the open drawer crossed the map; at 255°, owner preferred the mirror) |
+| P1 | What draws the purple "72" above the bottom-left disc (mockup and stock screenshot)? | `/fp mm near` | **RestedXP's guide step** (owner, 70374): its step pin on the minimap, an unnamed child of `Minimap`. Not ours; left alone |
+| P2 | Are `IngameCalendarDisabled`, `IngameTrackingDisabled`, `MinimapDisabled` active on Forever? | `/fp mm rules` | **all off** (ids 75, 76, 146; WorldMapDisabled 145 and UserAddonsDisabled 29 off too) |
+| P3 | Which tracking entries does a Vanilla-content character get (filterIDs, spellIDs, subTypes)? | `/fp mm tracking` | **24 types**, below |
+| P4 | What is in `AddonCompartmentFrame.registeredAddons` with the usual addons? | `/fp mm frames` | **6**: DBM, AltStableSync, Gnomesweeper, GuildSpy, Leatrix Maps, Leatrix Plus (icons as file paths, one file ID) |
+| P5 | Where does `QueueStatusButton` sit while queued? Its Edit Mode default is `Minimap` CENTER (-68, -68), the launcher disc's spot (225°). | `/fp mm queue` while queued | **default confirmed** (not queued): parent UIParent, CENTER -> Minimap CENTER (-68, -68), 45×45, hidden. Overlap while queued: **confirmed** (owner's screenshot, Thunder Bluff): the eye covered the drawer disc. The eye is mirrored to the top left, (-68, +68), with a glass backing; the drawer disc stays bottom left (#4; tried: drawer at 135°, the open drawer crossed the map; at 255°, owner preferred the mirror) |
 | P6 | Is Blizzard's mask (`ui-hud-minimap-frame-generic-mask`) a clean 198 px circle the ring fits, in both rotation modes? | look, toggle Rotate Minimap | open |
-| P7 | `MinimapContainer` scale and size per Edit Mode scale (the ring is sized once and scales with it). | `/mmprobe frames` at 80% / 120% | at 100%: Minimap 198×198, all scale 1 (effective 0.64, the UI scale); other scales open |
+| P7 | `MinimapContainer` scale and size per Edit Mode scale (the ring is sized once and scales with it). | `/fp mm frames` at 80% / 120% | at 100%: Minimap 198×198, all scale 1 (effective 0.64, the UI scale); other scales open |
+
+## Guided procedures (`/fp steps mm <name>`)
+
+MinimapProbe is a ForeverProbe module (`..\ForeverProbe\docs\GUIDE.md`): its lines go to the `/fp`
+console and `MinimapProbeDB.log`, never to chat. A procedure is a panel of buttons, one step at a
+time; every outcome, check and screenshot is saved, and a session reads `MinimapProbe.lua` and
+`ForeverProbe.lua` (`steps.records`) after the owner's `/reload`. Screenshots are listed and then
+deleted with `pwsh ..\ForeverProbe\Tools\screenshots.ps1 -Module MinimapProbe` (`-Remove`), never
+another module's.
+
+| Procedure | Checks | Status |
+|---|---|---|
+| `wash` (#22) | clear then smoked: the wash's gradient peak 0.18 / 0.14 on the ring and the zoom buttons; zoomed fully out, the minus button dimmed (LibGlass's `disabledAlpha`) in both; the owner judges the sheen | open |
+| `mail` (#19) | after new mail and its senders: the disc shows with `HasNewMail()`, Blizzard's icon faded; a shot in each theme; the tooltip held for a delayed shot | open |
+| `instance` (#21) | in a dungeon or raid, once loading has finished: the disc shows the shown Blizzard flag's size, the flag faded; the tooltip shot; outside, no disc | open |
+
+`wash` and `mail` change the theme and zoom: they save both first (`MinimapProbeDB.restore`, never
+overwritten while one is outstanding) and put them back at the end. After a Stop or a relog,
+`/fp mm restore` does it. `/fp mm glass` and `/fp mm discs` read the same state on demand.
 
 ## In-game checklist
 
@@ -115,7 +134,7 @@ build from `/gmm version` for the remaining live checks below.
   (2097152, -1, false); 20 Points of Interest (8192, -1); 21 Target (16384, -1); 22 Focus Target
   (32768, -1); 23 Track Quest POIs (65536, -1); 24 Track Digsites (131072, -1).
   The glass menu lists the same 13 as Blizzard's (12 optional + Find Herbs).
-- `/mmprobe near` threw on a FontString with a **secret position** (another addon's glass text, a
+- `/fp mm near` threw on a FontString with a **secret position** (another addon's glass text, a
   unit name): positions can be secret on this client. Fixed in the probe (#7). Its second run threw
   on a frame's **IsVisible** being a secret boolean (a unit aura frame): visibility can be secret
   too. Fixed.

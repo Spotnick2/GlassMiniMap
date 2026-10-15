@@ -1,7 +1,10 @@
 ## Interface: 16001
 ## Title: MinimapProbe (Glass MiniMap measuring)
-## Notes: Throwaway: measures the minimap cluster for Glass MiniMap. /mmprobe
+## Notes: Throwaway probe for Glass MiniMap: the minimap cluster, the glass, the discs. A ForeverProbe module: /fp mm
 ## Author: Spotnick
 ## Version: dev
+## Dependencies: ForeverProbe
+## OptionalDeps: GlassMiniMap
+## SavedVariables: MinimapProbeDB
 
 MinimapProbe.lua

@@ -65,7 +65,7 @@ and a taint minefield (`..\References\PORTING-TBC-TO-FOREVER.md`, "Edit Mode sys
 | `Options.lua` | Esc > Options > AddOns > Glass MiniMap ("Drawer options" opens Glass MiniMap Bar's page) |
 | `GlassMiniMap.lua` | bootstrap, `GlassMiniMapDB`, `GMM.Settings`, `/gmm` |
 | `Tools\make_art.py` | generates every texture in `Media\` (uses ..\LibGlass\Tools primitives) |
-| `Tools\MinimapProbe\` | throwaway measuring addon (`/mmprobe`) |
+| `Tools\MinimapProbe\` | throwaway measuring addon, a ForeverProbe module (`/fp mm`, procedures `/fp steps mm <name>`) |
 
 ## Minimap facts for this client
 
@@ -96,7 +96,7 @@ Lua 5.1 at `C:\Program Files (x86)\Lua\5.1\` (`lua.exe`, `luac.exe`). No build s
 ```powershell
 pwsh tests\run.ps1                                                   # luac -p on the TOC files + probe, then every tests\test_*.lua (needs ..\LibGlass or $env:LIBGLASS)
 & 'C:\Program Files (x86)\Lua\5.1\lua.exe' tests\test_boot.lua      # one test, from the repo root
-pwsh Tools\deploy.ps1 -Probe                                         # copy the addon (+ MinimapProbe) into AddOns
+pwsh Tools\deploy.ps1 -Probe                                         # copy the addon (+ ForeverProbe, MinimapProbe) into AddOns
 python Tools\make_art.py                                             # regenerate Media\*.tga
 ```
 
@@ -111,9 +111,11 @@ python Tools\make_art.py                                             # regenerat
 Glass MiniMap Bar's harness, extended: `tests\wow_stubs.lua` (strict globals as an allowlist of
 APIs verified in the dump, event names validated against the dump, every widget method recorded,
 the Forever minimap cluster, `C_Minimap` tracking, a fake Glass MiniMap Bar public API),
-`tests\harness.lua` (`check`, `eq`, `near`, `loadAddon`), `test_methods.lua` (every method called
-exists on this client). **Mutation-test every new test.** Offline tests can't cover taint,
-rendering or the live client's data: that's the probe and the in-game checklist.
+`tests\harness.lua` (`check`, `eq`, `near`, `loadAddon`, `loadForeverProbe`, `loadProbe`),
+`test_methods.lua` (every method called exists on this client), `test_probe.lua` (MinimapProbe on
+`..\ForeverProbe`: local only, CI skips it with `FOREVERPROBE_OPTIONAL=1` because the host is
+private). **Mutation-test every new test.** Offline tests can't cover taint, rendering or the live
+client's data: that's the probe's procedures and the in-game checklist.
 
 ## Workflow and releasing
 
