@@ -6,6 +6,9 @@ A liquid-glass minimap for **World of Warcraft: Forever**.
 
 - **A glass ring** around the map, with a north tab that follows north when the minimap rotates.
 - **Clear, smoked or class-coloured glass**, switched live.
+- **Optional runic mode:** stationary engraved runes beneath a moving layer,
+  with etched/glowing styles, sway/orbit motion, and exterior vapor. Effects
+  follow the glass theme; glow intensity and orbit speed are adjustable.
 - **Zone pill**: the zone name in Blizzard's PvP colours (click for the world map), a magnifier for
   tracking, and today's calendar page with your pending invites.
 - **Glass tracking menu**: the same entries as Blizzard's menu, in glass. Right-click the magnifier
@@ -28,6 +31,11 @@ it, and everything glass follows.
 - `/gmm theme clear|smoked|class`: the glass
 - `/gmm sun on|off`: the day and night disc
 - `/gmm options`: Esc > Options > AddOns > Glass MiniMap
+- `/gmm runes on|off`: enable or disable runic mode; `/gmm runes` opens settings
+
+Runic mode is off by default. Enable it in the settings dialog to reveal its
+controls. Initial choices are Glowing, Sway, Vapor On, 100% glow intensity, and
+100% orbit speed. All choices are saved; disabling the mode keeps your choices.
 
 ## Glass MiniMap Bar
 

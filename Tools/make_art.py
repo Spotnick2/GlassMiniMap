@@ -12,6 +12,10 @@ generator's primitives (SDF, bands, TGA writer) from the LibGlass checkout
                          glass ring and a fine line where it meets the map.
                          Perimeter only: the centre is clear, because these
                          draw ABOVE the map (g.top is host level + 10).
+  ring_runes             optional etched rune band, fitted outside the map
+  ring_runes_glow        soft halo around the rune glyphs
+  ring_bloom             neutral rim light, tinted by the active theme in game
+  ring_fog               broken wisps within the same annulus
   notch_mask / notch_rim the glass tab at 12 o'clock that carries the "N"
   sun / moon / magnifier icons, white with the shape in alpha (tinted in game)
 
@@ -22,6 +26,8 @@ Requires Pillow-free numpy only (the writer is LibGlass's).
 
 import math
 import os
+import random
+import re
 import sys
 
 import numpy as np
@@ -44,6 +50,13 @@ make_textures.OUT = os.path.join(ROOT, "Media")
 # where the map's edge falls, as a share of the host's radius.
 MAP_SIZE, RING_WIDTH = 198, 10
 INNER = MAP_SIZE / (MAP_SIZE + 2 * RING_WIDTH)
+# Both exterior effects use the same runtime geometry. Fail if the literal
+# changes shape instead of silently generating art for different padding.
+with open(os.path.join(ROOT, "Ring.lua"), encoding="utf-8") as source:
+    padding = re.search(r"Ring\.EFFECT_PADDING\s*=\s*(\d+)", source.read())
+if not padding:
+    sys.exit("Ring.EFFECT_PADDING must be a numeric literal in Ring.lua")
+EFFECT_PADDING = int(padding.group(1))
 
 
 def grid(size):
@@ -67,6 +80,7 @@ def orbs():
 # ---------------------------------------------------------------------------
 
 RING = 512
+MOVING_RUNE_COUNT = 16  # brighter moving glyphs need more space than the engraving
 
 
 def ring():
@@ -103,6 +117,108 @@ def ring():
     dark[r > 1.0 + px] = 0
     dark[r < INNER - 14 * px] = 0                 # the map's centre stays untouched
     write_tga("ring_dark", black(dark))
+
+
+def rune_band(circles=True, count=28, dots=True):
+    """Portal Roulette's seed-7 glyphs, fitted to this ring; no Pillow needed.
+
+    Distance-based soft strokes at 2x retain the etched look at minimap size.
+    The radial window leaves room for filtering when the client rotates it.
+    """
+    scale = 2
+    xs, ys = grid(RING * scale)
+    xs, ys = xs / scale - RING / 2, ys / scale - RING / 2
+    radius = np.hypot(xs, ys)
+    inner, outer = RING / 2 * INNER + 3.5, RING / 2 - 5
+    mid = (inner + outer) / 2
+    height = (outer - inner) * 0.62
+    alpha = np.zeros_like(radius)
+
+    def stroke(distance, opacity):
+        # A soft edge around a 1.8 texture-pixel stroke, like the source art.
+        nonlocal alpha
+        alpha = np.maximum(alpha, np.clip((1.5 - distance) / 1.2, 0, 1) * opacity)
+
+    if circles:
+        for r, opacity in ((inner, 150 / 255), (outer, 150 / 255)):
+            stroke(np.abs(radius - r), opacity)
+    rng = random.Random(7)
+    points = [(x, y) for y in (-0.5, 0, 0.5) for x in (-0.5, 0, 0.5)]
+    for i in range(count):
+        angle = 2 * math.pi * i / count
+        ux, uy = math.cos(angle), math.sin(angle)
+        vx, vy = -uy, ux
+        for _ in range(rng.randint(3, 5)):
+            a, b = rng.sample(points, 2)
+            ax = ux * mid + (a[0] * vx * 0.7 + a[1] * ux) * height
+            ay = uy * mid + (a[0] * vy * 0.7 + a[1] * uy) * height
+            bx = ux * mid + (b[0] * vx * 0.7 + b[1] * ux) * height
+            by = uy * mid + (b[0] * vy * 0.7 + b[1] * uy) * height
+            dx, dy = bx - ax, by - ay
+            t = np.clip(((xs - ax) * dx + (ys - ay) * dy) / (dx * dx + dy * dy), 0, 1)
+            stroke(np.hypot(xs - ax - t * dx, ys - ay - t * dy), 230 / 255)
+        if dots:
+            dot = angle + math.pi / count
+            stroke(np.hypot(xs - math.cos(dot) * mid, ys - math.sin(dot) * mid) - 0.7, 170 / 255)
+    alpha[(radius < RING / 2 * INNER + 2) | (radius > RING / 2 - 3)] = 0
+    return alpha.reshape(RING, scale, RING, scale).mean(axis=(1, 3))
+
+
+def rune_glow():
+    """A tight blue-light halo around glyphs, not the bounding circles."""
+    alpha = rune_band(circles=False, count=MOVING_RUNE_COUNT, dots=False)
+    offsets = np.arange(-9, 10)
+    kernel = np.exp(-0.5 * (offsets / 3.0) ** 2)
+    kernel /= kernel.sum()
+    for axis in (0, 1):
+        alpha = np.apply_along_axis(lambda row: np.convolve(row, kernel, mode="same"), axis, alpha)
+    xs, ys = grid(RING)
+    radius = np.hypot(xs - RING / 2, ys - RING / 2)
+    # Fade before the map and texture edge, including a filtering margin.
+    window = np.clip((radius - (RING / 2 * INNER + 2)) / 2, 0, 1)
+    window *= np.clip((RING / 2 - 3 - radius) / 2, 0, 1)
+    return np.clip(alpha * 7, 0, 1) * window
+
+
+def ring_fog():
+    """Cold vapor outside the glass, fading away over 18 UI pixels."""
+    xs, ys = grid(RING)
+    dx, dy = xs - RING / 2, ys - RING / 2
+    radius, angle = np.hypot(dx, dy), np.arctan2(dy, dx)
+    host_size = MAP_SIZE + 2 * RING_WIDTH
+    lo = RING / 2 * host_size / (host_size + 2 * EFFECT_PADDING) + 2
+    hi = RING / 2 - 3
+    radial = (radius - lo) / (hi - lo)
+    # Integer angular frequencies join seamlessly at the texture's left edge.
+    bend = radial + 0.2 * np.sin(5 * angle + 3 * radial) + 0.1 * np.sin(9 * angle + 1)
+    wisps = np.exp(-((bend - 0.35) / 0.23) ** 2)
+    wisps += 0.5 * np.exp(-((bend - 0.65) / 0.16) ** 2)
+    gaps = (0.5 + 0.5 * np.sin(7 * angle + 2 * np.sin(3 * angle) + 5 * radial)) ** 2
+    window = np.sin(np.pi * np.clip(radial, 0, 1)) ** 2
+    window[(radius <= lo) | (radius >= hi)] = 0
+    return np.clip(wisps * gaps * window, 0, 1)
+
+
+def ring_bloom():
+    """Uneven light patches and neutral falloff, on a host with 18px padding."""
+    xs, ys = grid(RING)
+    host_size = MAP_SIZE + 2 * RING_WIDTH
+    units = (host_size + 2 * EFFECT_PADDING) / RING
+    radius = np.hypot(xs - RING / 2, ys - RING / 2) * units
+    rim_radius = host_size / 2 - 1
+    distance = radius - rim_radius
+    core = np.exp(-(distance / 1.4) ** 2)
+    halo = np.exp(-(distance / 8.0) ** 2)
+    angle = np.arctan2(ys - RING / 2, xs - RING / 2)
+    # Irregular bright sectors travel with the glyphs. A uniform annulus
+    # looked like a neon tube in the owner's comparison video.
+    lobes = 0.5 + 0.5 * np.sin(3 * angle + 0.7 * np.sin(2 * angle + 0.8))
+    patches = 0.08 + 0.92 * lobes ** 3
+    detail = 0.7 + 0.3 * (0.5 + 0.5 * np.sin(11 * angle + 2 * np.sin(5 * angle)))
+    # Keep the map clear and fade to zero before the square texture boundary.
+    window = np.clip((radius - (MAP_SIZE / 2 + 0.75)) / 1.5, 0, 1)
+    window *= np.clip(((host_size + 2 * EFFECT_PADDING) / 2 - 1 - radius) / 3, 0, 1)
+    return white(np.clip(core * 0.85 + halo * 0.7, 0, 1) * window * patches * detail)
 
 
 # ---------------------------------------------------------------------------
@@ -195,6 +311,11 @@ def main():
     print("Writing Glass MiniMap textures")
     orbs()
     ring()
+    write_tga("ring_runes", white(rune_band()))
+    write_tga("ring_runes_moving", white(rune_band(circles=False, count=MOVING_RUNE_COUNT, dots=False)))
+    write_tga("ring_runes_glow", white(rune_glow()))
+    write_tga("ring_fog", white(ring_fog()))
+    write_tga("ring_bloom", ring_bloom())
     notch()
     sun()
     moon()
