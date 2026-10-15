@@ -42,8 +42,9 @@ blocked or forbidden actions in ForeverProbe's log.
   is the designed 0.14 / 0.18 (0.78). Smoked's darker body (about 13 levels darker on the pill)
   is what the eye sees; the softer sheen alone is too subtle to tell by eye at this size.
 - **Tooltips weren't in the delayed shots.** The owner saw both tooltips (the mail sender; the
-  instance's type and size), but neither 3 s shot shows one. The second run's shot did (below),
-  so the hover wasn't held to the shutter: screenshots do include tooltips.
+  instance's type and size), but neither 3 s shot shows one. The later runs' shots do (below), so
+  screenshots taken this way can include tooltips; why these two missed them (they hovered the ring
+  discs, the later runs the pills) remains unmeasured.
 - The instance disc's "5" is small at 90°, but readable.
 
 The pills placement (#27), `instance` at rev 3, on 1.60.1.70374, 2026-10-15, Ragefire Chasm:
