@@ -41,7 +41,8 @@ do
                              "ZONE_CHANGED", "ZONE_CHANGED_INDOORS", "ZONE_CHANGED_NEW_AREA",
                              "CALENDAR_UPDATE_PENDING_INVITES", "MINIMAP_UPDATE_ZOOM", "MINIMAP_UPDATE_TRACKING",
                              "SPELLS_CHANGED", "CVAR_UPDATE", "DIEL_CYCLE_CHANGED", "EDIT_MODE_LAYOUTS_UPDATED",
-                             "PLAYER_REGEN_ENABLED", "UPDATE_PENDING_MAIL" }) do
+                             "PLAYER_REGEN_ENABLED", "UPDATE_PENDING_MAIL",
+                             "SCREENSHOT_SUCCEEDED", "SCREENSHOT_FAILED" }) do
             WoW.KNOWN_EVENTS[e] = true
         end
     end
@@ -694,7 +695,8 @@ WoW.reset()
 -- Strict globals.
 -- LibStub: the embedded library's own loader reads _G.LibStub before creating it.
 local allowNil = { GlassMiniMap = true, GlassMiniMapDB = true, GlassMiniMapBar = true,
-                   SLASH_GLASSMINIMAP1 = true, SLASH_GLASSMINIMAP2 = true, LibStub = true }
+                   SLASH_GLASSMINIMAP1 = true, SLASH_GLASSMINIMAP2 = true, LibStub = true,
+                   ForeverProbe = true, ForeverProbeDB = true, MinimapProbeDB = true }
 setmetatable(_G, { __index = function(_, k)
     if allowNil[k] then return nil end
     error("read of undefined global '" .. tostring(k) .. "' (not stubbed: is it in the API dump?)", 2)

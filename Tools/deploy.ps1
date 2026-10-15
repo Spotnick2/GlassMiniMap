@@ -10,6 +10,10 @@
     checkout, copies only the shipped files and prints its commit. The checkout
     is $env:LIBGLASS, else ..\LibGlass. (GlassChat's deploy, trimmed.)
 
+    MinimapProbe is a ForeverProbe module, so -Probe and -ProbeOnly deploy the
+    ForeverProbe checkout first ($env:FOREVERPROBE, else ..\ForeverProbe), with
+    its own deploy.ps1, and stop if it refuses.
+
     Usage:
         pwsh Tools/deploy.ps1               # GlassMiniMap
         pwsh Tools/deploy.ps1 -Probe        # ...and MinimapProbe
@@ -29,6 +33,7 @@ if (-not (Test-Path $AddOnsPath)) { Write-Error "AddOns path not found: $AddOnsP
 
 . (Join-Path $PSScriptRoot "LibGlassPin.ps1")
 $LibGlass = if ($env:LIBGLASS) { $env:LIBGLASS } else { Join-Path (Split-Path -Parent $RepoRoot) "LibGlass" }
+$ForeverProbe = if ($env:FOREVERPROBE) { $env:FOREVERPROBE } else { Join-Path (Split-Path -Parent $RepoRoot) "ForeverProbe" }
 
 function Deploy-Addon {
     $dest = Join-Path $AddOnsPath "GlassMiniMap"
@@ -75,6 +80,14 @@ function Deploy-Addon {
 }
 
 function Deploy-Probe {
+    # The host first: MinimapProbe has ## Dependencies: ForeverProbe, so without
+    # it the probe wouldn't load.
+    if (-not (Test-Path -LiteralPath (Join-Path $ForeverProbe "Tools\deploy.ps1"))) {
+        Write-Error "ForeverProbe checkout not found at $ForeverProbe (clone github.com/Spotnick2/ForeverProbe there, or set `$env:FOREVERPROBE)"
+        exit 1
+    }
+    & pwsh -NoProfile -File (Join-Path $ForeverProbe "Tools\deploy.ps1") -AddOnsPath $AddOnsPath
+    if ($LASTEXITCODE -ne 0) { Write-Error "ForeverProbe deploy refused; MinimapProbe was not touched"; exit 1 }
     $dest = Join-Path $AddOnsPath "MinimapProbe"
     Write-Host "Deploying MinimapProbe -> $dest" -ForegroundColor Cyan
     New-Item -ItemType Directory -Force -Path $dest | Out-Null
@@ -89,4 +102,4 @@ if ($Probe -or $ProbeOnly) { Deploy-Probe }
 
 Write-Host ""
 Write-Host "First deploy (a brand-new addon folder with new textures): restart the client. Afterwards /reload is enough unless a texture changed." -ForegroundColor Yellow
-Write-Host "In game:  /console scriptErrors 1   then   /gmm help   (probe: /mmprobe)" -ForegroundColor Green
+Write-Host "In game:  /console scriptErrors 1   then   /gmm help   (probe: /fp mm, procedures: /fp steps)" -ForegroundColor Green
