@@ -11,6 +11,8 @@
   hover. Blizzard's mail icon used to float over the zone pill.
 - **The instance size shows as a glass disc** on the right of the ring in dungeons and raids (5 to
   40, with Blizzard's tooltip). Blizzard's instance flag used to float over the zone pill.
+- **Smoked glass gets its softer top sheen**, as designed: the game ignored the setting, so smoked
+  surfaces drew the clear glass's brighter sheen. Uses LibGlass r7.
 
 ## v0.1.1
 
