@@ -52,16 +52,23 @@ The development preview window has been replaced by these shipping settings.
 - Sway: +4 degrees over two seconds, then -4 over two seconds, eased at both
   ends. Explicit return replaced BOUNCE after the owner reported a visible reset.
 - Orbit: one turn in 30 seconds at 100% speed. Range 25-200%; 50% takes 60
-  seconds and 200% takes 15. Changing speed restarts the orbit cycle.
+  seconds and 200% takes 15. The native speed multiplier changes pace in place
+  without stopping the orbit or resetting its angle.
 - Glow intensity: 0-100%, independent of the stationary engraving and vapor.
 - Vapor: independent, soft wisps outside the ring, up to 18 UI pixels out,
   drifting once every 80 seconds.
-- Effects are neutral white on clear, softer white on smoked, and class-tinted
-  on class glass. A temporarily unreadable class colour falls back to white.
+- Effects use the current theme tint's hue, normalized for emitted light, with
+  the theme's wash controlling strength. Clear is neutral white; smoked and
+  class glass follow their material presets. Missing class tint falls back to white.
 - All animation is native; rune effects add no per-frame Lua or ticker.
 - Disabled mode builds no rune frames or textures. Enabling builds the effects
   separately from core startup; render errors are recorded without blocking
   the minimap, and saved choices remain usable even when rendering fails.
+- Failed enables show an unavailable message in chat and in the settings pane.
+  Later settings/visibility updates retry using the existing frames, textures,
+  and animations, including partial builds. No mode toggle is required.
+- Intensity and speed use the sliders' five-percent steps for commands and saved
+  settings too; for example, speed 33 is normalized and reported as 35%.
 
 Textures changed during development: restart the client after deployment.
 Subsequent Lua-only updates need `/reload`. Commands remain available through
@@ -83,6 +90,7 @@ build from `/gmm version` for the remaining live checks below.
 - [ ] Disable/re-enable retains choices; off/hidden state stops all animations.
 - [ ] Both styles and motions work with all themes, with vapor on and off.
 - [ ] Zero glow leaves stationary engraving; orbit speed leaves sway/vapor alone.
+- [ ] Dragging orbit speed changes pace smoothly with no visible reset.
 - [ ] Moving glyphs and bloom remain aligned; sway returns without a jump.
 - [ ] No light or vapor leaks onto the map centre or obscures control interactions.
 - [ ] Edit Mode 80%, 100%, 120% and rotating minimap keep layout and motion correct.

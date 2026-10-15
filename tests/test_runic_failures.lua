@@ -22,16 +22,54 @@ check(GlassMiniMapBar.launcher ~= nil, "drawer survives rune failure")
 local root = GMM.Ring._test.runes()
 check(root and not root:IsShown(), "partial render stays hidden")
 GMM.Options._test.panel:Show()
+local frameCount, groupCount = #WoW.frames, #WoW.animGroups
+local function subresourceCount()
+    local textures, animations = 0, 0
+    for _, frame in ipairs(WoW.frames) do textures = textures + #frame._regions end
+    for _, group in ipairs(WoW.animGroups) do animations = animations + #group._animations end
+    return textures, animations
+end
+local textureCount, animationCount = subresourceCount()
+for _ = 1, 3 do
+    check(not GMM.Settings.SetRunicMode(true), "failed enable reports rendering failure")
+    eq(GMM.Ring._test.runes(), root, "failed retry reuses root")
+end
+eq(#WoW.frames, frameCount, "failed retries allocate no additional frames")
+eq(#WoW.animGroups, groupCount, "failed retries allocate no additional animation groups")
+local textures, animations = subresourceCount()
+eq(textures, textureCount, "failed retries allocate no additional textures")
+eq(animations, animationCount, "failed retries allocate no additional animations")
+GMM._test.slash("runes on")
+check(WoW.chat[#WoW.chat]:find("unavailable", 1, true), "failed command explains unavailable rendering")
+check(GMM.Options._test.runic.status._text:find("unavailable", 1, true), "settings display rendering failure")
 check(GMM.Options._test.runic.style[2]:GetChecked(), "UI reads glowing default despite render failure")
 check(GMM.Options._test.runic.vapor:GetChecked(), "UI reads vapor default despite render failure")
 check(GMM.Settings.SetRuneOption("style", "etched"), "style accepted after render failure")
 eq(GlassMiniMapDB.runeStyle, "etched", "choice saved independently of render")
 check(GMM.Options._test.runic.style[1]:GetChecked(), "UI shows saved choice after render failure")
 WoW.Methods.SetOrder = setOrder
-GMM.Settings.SetRunicMode(false)
-GMM.Settings.SetRunicMode(true)
+GMM.Settings.SetTheme("smoked")
 local readyRoot, animation = GMM.Ring._test.runes()
-check(readyRoot:IsVisible() and animation:IsPlaying(), "toggle retries rendering after recovery")
+check(readyRoot:IsVisible() and animation:IsPlaying(), "theme update retries rendering after recovery")
+eq(readyRoot, root, "recovery keeps the existing root")
+eq(GMM.Options._test.runic.status._text, "", "recovery clears visible failure")
+
+-- A fully built stack also stays allocated once across runtime errors/retries.
+local _, _, moving = GMM.Ring._test.runes()
+frameCount, groupCount = #WoW.frames, #WoW.animGroups
+textureCount, animationCount = subresourceCount()
+local vertexColor = moving.core.SetVertexColor
+moving.core.SetVertexColor = function() error("injected runtime paint failure", 0) end
+GMM.Settings.SetRuneOption("motion", "orbit")
+for _ = 1, 3 do GMM.Settings.SetRunicMode(true) end
+eq(#WoW.frames, frameCount, "runtime retries allocate no additional frames")
+eq(#WoW.animGroups, groupCount, "runtime retries allocate no additional animations")
+textures, animations = subresourceCount()
+eq(textures, textureCount, "runtime retries reuse textures")
+eq(animations, animationCount, "runtime retries reuse animation objects")
+moving.core.SetVertexColor = vertexColor
+GMM.Settings.SetRuneOption("style", "glowing")
+check(readyRoot:IsVisible() and animation:IsPlaying(), "style update recovers without mode toggle")
 
 -- A core ring failure also leaves the settings page and choices usable.
 GMM = loadAddon({ before = function()
@@ -40,7 +78,7 @@ end })
 check(GMM.Settings.SetRuneOption("motion", "orbit"), "choice accepted when core ring is unavailable")
 eq(GMM.db.runeMotion, "orbit", "motion saved without ring")
 GMM.Options._test.panel:Show()
-GMM.Settings.SetRunicMode(true)
+check(not GMM.Settings.SetRunicMode(true), "missing core ring reports unavailable effects")
 check(GMM.Options._test.runic.motion[2]:GetChecked(), "UI reads saved motion without ring")
 
 -- A control-refresh error is contained and does not leave the slider's

@@ -232,7 +232,7 @@ end
 function Methods.GetAnimations(ag) return unpack(ag._animations) end
 function Methods.GetTarget(a) return a._parent and a._parent._parent end
 function Methods.Play(ag) ag._playing = true; ag._plays = (ag._plays or 0) + 1 end
-function Methods.Stop(ag) ag._playing = false end
+function Methods.Stop(ag) ag._playing = false; ag._stops = (ag._stops or 0) + 1 end
 function Methods.IsPlaying(ag) return ag._playing == true end
 function Methods.SetLooping(ag, value) ag._looping = value end
 function Methods.SetDegrees(a, value) a._degrees = value end
@@ -240,6 +240,8 @@ function Methods.SetBlendMode(t, value) t._blendMode = value end
 function Methods.SetOrder(a, value) a._order = value end
 function Methods.GetProgress(a) return a._progress or 0 end
 function Methods.SetDuration(a, value) a._duration = value end
+function Methods.SetAnimationSpeedMultiplier(ag, value) ag._speedMultiplier = value end
+function Methods.GetAnimationSpeedMultiplier(ag) return ag._speedMultiplier or 1 end
 function Methods.SetSmoothing(a, value) a._smoothing = value end
 function Methods.SetOrigin(a, point) a._origin = point end
 function Methods.SetScaleFrom(a, x, y) a._from = { x, y } end

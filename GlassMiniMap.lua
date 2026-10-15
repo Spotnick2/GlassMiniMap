@@ -31,6 +31,11 @@ local function validRuneNumber(key, value)
         and value >= range[1] and value <= range[2]
 end
 
+local function steppedRuneNumber(key, value)
+    local lo = RUNE_RANGES[key][1]
+    return lo + math.floor((value - lo) / 5 + 0.5) * 5
+end
+
 local function ensureDefaults()
     if type(GlassMiniMapDB) ~= "table" then GlassMiniMapDB = {} end
     local db = setmetatable(GlassMiniMapDB, nil)
@@ -42,7 +47,10 @@ local function ensureDefaults()
         if db[k] ~= nil and type(db[k]) ~= "boolean" then db[k] = nil end
     end
     for key in pairs(RUNE_RANGES) do
-        if db[key] ~= nil and not validRuneNumber(key, db[key]) then db[key] = nil end
+        if db[key] ~= nil then
+            db[key] = validRuneNumber(key, db[key]) and steppedRuneNumber(key, db[key]) or nil
+            if db[key] == DEFAULTS[key] then db[key] = nil end
+        end
     end
     for key, choices in pairs(RUNE_CHOICES) do
         if db[key] ~= nil and not choices[db[key]] then db[key] = nil end
@@ -64,9 +72,10 @@ end
 
 function Settings.SetRunicMode(on)
     store("runicMode", on == true)
-    GMM.Ring.UpdateRunes("runicMode")
+    local rendered = GMM.Ring.UpdateRunes("runicMode")
     GMM.Options.RefreshRunicControls()
-    return true
+    if not rendered then API.Print("Runic settings saved, but effects are unavailable. See /gmm failures.") end
+    return rendered
 end
 
 function Settings.SetRuneOption(kind, value)
@@ -85,6 +94,7 @@ end
 
 function Settings.SetRuneTuning(key, value)
     if not validRuneNumber(key, value) then return false end
+    value = steppedRuneNumber(key, value)
     if GMM.db[key] ~= value then
         store(key, value)
         GMM.Ring.UpdateRunes(key)
@@ -148,15 +158,13 @@ local function helpLines()
         "/gmm options - open the options page",
         "/gmm failures - what failed to build or register",
         "/gmm version - client build vs the measured one",
+        "/gmm runes on/off/status - runic mode",
+        "/gmm runes - open runic settings",
+        "/gmm runes style etched/glowing",
+        "/gmm runes motion sway/orbit",
+        "/gmm runes fog on/off",
+        "/gmm runes intensity 0-100 / speed 25-200 (percent)",
     }
-    lines[#lines + 1] = "/gmm runes on/off/status - runic mode"
-    do
-        lines[#lines + 1] = "/gmm runes - open runic settings"
-        lines[#lines + 1] = "/gmm runes style etched/glowing"
-        lines[#lines + 1] = "/gmm runes motion sway/orbit"
-        lines[#lines + 1] = "/gmm runes fog on/off"
-        lines[#lines + 1] = "/gmm runes intensity 0-100 / speed 25-200 (percent)"
-    end
     return lines
 end
 GMM.HelpLines = helpLines
@@ -178,7 +186,7 @@ local function slash(msg)
         local kind, value = arg:match("^(%S+)%s+(%S+)$")
         if kind == "intensity" or kind == "speed" then
             local key = kind == "intensity" and "runeIntensity" or "runeSpeed"
-            if Settings.SetRuneTuning(key, tonumber(value)) then return say("runes " .. kind .. " " .. value .. "%") end
+            if Settings.SetRuneTuning(key, tonumber(value)) then return say("runes " .. kind .. " " .. GMM.db[key] .. "%") end
             return say(kind == "intensity" and "/gmm runes intensity 0-100" or "/gmm runes speed 25-200")
         end
         if kind == "style" or kind == "motion" or kind == "fog" then
@@ -187,8 +195,7 @@ local function slash(msg)
             return say(kind == "style" and "/gmm runes style etched/glowing" or "/gmm runes motion sway/orbit")
         end
         if ONOFF[arg] == nil then return say("/gmm runes on/off/status") end
-        Settings.SetRunicMode(ONOFF[arg])
-        say("runes " .. arg)
+        if Settings.SetRunicMode(ONOFF[arg]) then say("runes " .. arg) end
     elseif cmd == "options" or cmd == "" then
         GMM.Options.Open()
     elseif cmd == "failures" then
@@ -227,7 +234,6 @@ boot:SetScript("OnEvent", function(_, event, arg1)
             start("tracking", GMM.Tracking.Build)
             start("drawer", GMM.Drawer.Start)
         end
-        start("runic mode", function() GMM.Ring.UpdateRunes("init") end)
         start("theme", GMM.Theme.Refresh)
     elseif event == "PLAYER_ENTERING_WORLD" then
         GMM.Theme.Retry()

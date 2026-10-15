@@ -29,33 +29,42 @@ Ring.EFFECT_PADDING = 18     -- bloom/vapor; Tools/make_art.py reads this value
 
 local host, glass, notch, container
 local runes, movingLayer, fog, fogAnimation, runeBloom, runeLight, runeMist, etchedBase
-local runesReady, runesFailed = false, false
+local runesReady, runesError = false, nil
 local visibilityHooksInstalled = false
+local protectRunes
 
 local function stopRunes()
-    if movingLayer then movingLayer.animation:Stop() end
+    if movingLayer and movingLayer.animation then movingLayer.animation:Stop() end
     if fogAnimation then fogAnimation:Stop() end
 end
 
 -- The map can hide independently of its container (Blizzard's ToggleMinimap).
-local function syncRunes()
-    runes:SetShown(GMM.db.runicMode and Minimap:IsVisible())
+local function playRunes()
     if runes:IsVisible() then
         if not movingLayer.animation:IsPlaying() then movingLayer.animation:Play() end
     else movingLayer.animation:Stop() end
-    fog:SetShown(GMM.db.runeFog)
     if runes:IsVisible() and GMM.db.runeFog then
         if not fogAnimation:IsPlaying() then fogAnimation:Play() end
     else fogAnimation:Stop() end
 end
 
+local function syncRunes()
+    fog:SetShown(GMM.db.runeFog)
+    local shown = GMM.db.runicMode and Minimap:IsVisible()
+    if runes:IsShown() ~= shown then runes:SetShown(shown)
+    else playRunes() end
+end
+
 local function paintRunes()
     local r, g, b = 1, 1, 1
-    if GMM.db.theme == "class" then
-        local cr, cg, cb = API.ClassColor()
-        if cr then r, g, b = cr, cg, cb end
+    local tint, wash = Theme.Current()
+    if tint then
+        -- Preserve the material's hue while allowing it to emit light.
+        local peak = math.max(tint[1], tint[2], tint[3])
+        r, g, b = tint[1], tint[2], tint[3]
+        if peak > 0 then r, g, b = r / peak, g / peak, b / peak end
     end
-    local brightness = GMM.db.theme == "smoked" and 0.65 or 1
+    local brightness = math.max(0, math.min(1, wash))
     local intensity = GMM.db.runeIntensity / 100
     etchedBase:SetVertexColor(0.35 + 0.65 * r, 0.35 + 0.65 * g, 0.35 + 0.65 * b, 0.65 * brightness)
     local glowing = GMM.db.runeStyle == "glowing"
@@ -76,71 +85,86 @@ local function configureRuneMotion()
     -- Explicit return keeps the two-second legs and ends at the starting angle.
     movingLayer.animation:SetLooping("REPEAT")
     movingLayer.rotation:SetDegrees(orbit and 360 or 4)
-    movingLayer.rotation:SetDuration(orbit and 30 * 100 / GMM.db.runeSpeed or 2)
+    movingLayer.rotation:SetDuration(orbit and 30 or 2)
     movingLayer.rotation:SetSmoothing(orbit and "NONE" or "IN_OUT")
     movingLayer.returnRotation:SetDegrees(orbit and 0 or -4)
     movingLayer.returnRotation:SetDuration(orbit and 0 or 2)
     movingLayer.returnRotation:SetSmoothing(orbit and "NONE" or "IN_OUT")
+    movingLayer.animation:SetAnimationSpeedMultiplier(orbit and GMM.db.runeSpeed / 100 or 1)
+end
+
+local function setRuneTexture(texture, file)
+    if texture:SetTexture(file) == false then
+        error("Runic texture unavailable: " .. file .. ". Restart the client after texture updates.", 0)
+    end
 end
 
 local function buildRunes()
-    runes = CreateFrame("Frame", nil, container)
+    -- Keep each object as soon as it is created, including partial builds.
+    -- Reapplying configuration after a failure never allocates another stack.
+    runes = runes or CreateFrame("Frame", nil, container)
     runes:Hide()
     runes:SetAllPoints(host)
     runes:SetFrameLevel(Ring.AboveMap(3))
     runes:EnableMouse(false)
-    etchedBase = runes:CreateTexture(nil, "BACKGROUND")
+    etchedBase = etchedBase or runes:CreateTexture(nil, "BACKGROUND")
     etchedBase:SetAllPoints(runes)
-    etchedBase:SetTexture(GMM.MEDIA .. "ring_runes")
+    setRuneTexture(etchedBase, GMM.MEDIA .. "ring_runes")
     etchedBase:SetBlendMode("BLEND")
-    local f = CreateFrame("Frame", nil, runes)
+    movingLayer = movingLayer or {}
+    movingLayer.frame = movingLayer.frame or CreateFrame("Frame", nil, runes)
+    local f = movingLayer.frame
     f:SetAllPoints(runes)
     f:SetFrameLevel(runes:GetFrameLevel())
     f:EnableMouse(false)
-    local core = f:CreateTexture(nil, "ARTWORK")
+    movingLayer.core = movingLayer.core or f:CreateTexture(nil, "ARTWORK")
+    local core = movingLayer.core
     core:SetAllPoints(f)
-    core:SetTexture(GMM.MEDIA .. "ring_runes_moving")
-    local glow = f:CreateTexture(nil, "BACKGROUND")
+    setRuneTexture(core, GMM.MEDIA .. "ring_runes_moving")
+    movingLayer.glow = movingLayer.glow or f:CreateTexture(nil, "BACKGROUND")
+    local glow = movingLayer.glow
     glow:SetAllPoints(f)
-    glow:SetTexture(GMM.MEDIA .. "ring_runes_glow")
+    setRuneTexture(glow, GMM.MEDIA .. "ring_runes_glow")
     glow:SetBlendMode("ADD")
-    local animation = f:CreateAnimationGroup()
-    local rotation = animation:CreateAnimation("Rotation")
+    movingLayer.animation = movingLayer.animation or f:CreateAnimationGroup()
+    local animation = movingLayer.animation
+    movingLayer.rotation = movingLayer.rotation or animation:CreateAnimation("Rotation")
+    local rotation = movingLayer.rotation
     rotation:SetOrder(1)
     rotation:SetOrigin("CENTER", 0, 0)
-    local returnRotation = animation:CreateAnimation("Rotation")
+    movingLayer.returnRotation = movingLayer.returnRotation or animation:CreateAnimation("Rotation")
+    local returnRotation = movingLayer.returnRotation
     returnRotation:SetOrder(2)
     returnRotation:SetOrigin("CENTER", 0, 0)
-    movingLayer = { frame = f, core = core, glow = glow,
-        animation = animation, rotation = rotation, returnRotation = returnRotation }
-    runeBloom = CreateFrame("Frame", nil, f)
+    runeBloom = runeBloom or CreateFrame("Frame", nil, f)
     runeBloom:SetPoint("TOPLEFT", f, "TOPLEFT", -Ring.EFFECT_PADDING, Ring.EFFECT_PADDING)
     runeBloom:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", Ring.EFFECT_PADDING, -Ring.EFFECT_PADDING)
     runeBloom:SetFrameLevel(Ring.AboveMap(1))
     runeBloom:EnableMouse(false)
-    runeLight = runeBloom:CreateTexture(nil, "ARTWORK")
+    runeLight = runeLight or runeBloom:CreateTexture(nil, "ARTWORK")
     runeLight:SetAllPoints(runeBloom)
-    runeLight:SetTexture(GMM.MEDIA .. "ring_bloom")
+    setRuneTexture(runeLight, GMM.MEDIA .. "ring_bloom")
     runeLight:SetBlendMode("ADD")
-    fog = CreateFrame("Frame", nil, runes)
+    fog = fog or CreateFrame("Frame", nil, runes)
     fog:SetPoint("TOPLEFT", runes, "TOPLEFT", -Ring.EFFECT_PADDING, Ring.EFFECT_PADDING)
     fog:SetPoint("BOTTOMRIGHT", runes, "BOTTOMRIGHT", Ring.EFFECT_PADDING, -Ring.EFFECT_PADDING)
     fog:SetFrameLevel(Ring.AboveMap(2))
     fog:EnableMouse(false)
-    runeMist = fog:CreateTexture(nil, "ARTWORK")
+    runeMist = runeMist or fog:CreateTexture(nil, "ARTWORK")
     runeMist:SetAllPoints(fog)
-    runeMist:SetTexture(GMM.MEDIA .. "ring_fog")
+    setRuneTexture(runeMist, GMM.MEDIA .. "ring_fog")
     runeMist:SetBlendMode("ADD")
-    fogAnimation = runeMist:CreateAnimationGroup()
+    fogAnimation = fogAnimation or runeMist:CreateAnimationGroup()
     fogAnimation:SetLooping("REPEAT")
-    local drift = fogAnimation:CreateAnimation("Rotation")
+    local drift = fogAnimation:GetAnimations()
+    if not drift then drift = fogAnimation:CreateAnimation("Rotation") end
     drift:SetOrder(1)
     drift:SetOrigin("CENTER", 0, 0)
     drift:SetDegrees(-360)
     drift:SetDuration(80)
     drift:SetSmoothing("NONE")
-    runes:SetScript("OnShow", function() Ring.UpdateRunes("visibility") end)
-    runes:SetScript("OnHide", function() API.Try("runic mode", stopRunes) end)
+    runes:SetScript("OnShow", function() protectRunes(playRunes) end)
+    runes:SetScript("OnHide", function() protectRunes(stopRunes) end)
     if not visibilityHooksInstalled then
         Minimap:HookScript("OnShow", function() Ring.UpdateRunes("visibility") end)
         Minimap:HookScript("OnHide", function() Ring.UpdateRunes("visibility") end)
@@ -149,32 +173,50 @@ local function buildRunes()
 end
 
 local function updateRunes(changed)
-    if not GMM.db or not host then return end
+    if not GMM.db then return end
+    if not host then
+        if GMM.db.runicMode then error("Minimap ring unavailable for runic mode", 0) end
+        return
+    end
     if not runesReady then
-        if not GMM.db.runicMode or runesFailed then return end
+        if not GMM.db.runicMode then return end
         buildRunes()
         configureRuneMotion()
         runesReady = true
-    elseif changed == "runeMotion" or (changed == "runeSpeed" and GMM.db.runeMotion == "orbit") then
+    elseif changed == "runeMotion" then
         configureRuneMotion()
+    elseif changed == "runeSpeed" and GMM.db.runeMotion == "orbit" then
+        movingLayer.animation:SetAnimationSpeedMultiplier(GMM.db.runeSpeed / 100)
     end
     paintRunes()
     syncRunes()
 end
 
 -- Optional rendering is isolated from both core startup and saved settings.
--- A failed build stays hidden; toggling the mode allows an explicit retry.
-function Ring.UpdateRunes(changed)
-    if changed == "runicMode" then runesFailed = false end
-    local ok, err = pcall(updateRunes, changed)
+-- A failed build stays hidden; the next settings/visibility update can retry.
+protectRunes = function(fn, ...)
+    local ok, err = pcall(fn, ...)
     if not ok then
-        runesFailed, runesReady = true, false
+        runesError, runesReady = true, false
         API.Fail("runic mode", err)
         if runes then pcall(runes.Hide, runes) end
-        if movingLayer then pcall(movingLayer.animation.Stop, movingLayer.animation) end
+        if movingLayer and movingLayer.animation then pcall(movingLayer.animation.Stop, movingLayer.animation) end
         if fogAnimation then pcall(fogAnimation.Stop, fogAnimation) end
     end
     return ok
+end
+
+function Ring.UpdateRunes(changed)
+    local ok = protectRunes(updateRunes, changed)
+    if ok and (not GMM.db or not GMM.db.runicMode or runesReady) then
+        runesError = nil
+        return true
+    end
+    return false
+end
+
+function Ring.RunicError()
+    if runesError then return "Runic effects unavailable. See /gmm failures." end
 end
 
 function Ring.RuneStatus()

@@ -137,8 +137,9 @@ local fog, fogAnimation = GMM.Ring._test.fog()
 local light, mist = bloom:GetRegions(), fog:GetRegions()
 for _, theme in ipairs({ "clear", "smoked", "class" }) do
     GMM.Settings.SetTheme(theme)
-    local brightness = theme == "smoked" and 0.65 or 1
-    local c = theme == "class" and { 0.25, 0.78, 0.92 } or { 1, 1, 1 }
+    local brightness = theme == "smoked" and (0.14 / 0.18) or 1
+    local c = theme == "class" and { 0.25 / 0.92, 0.78 / 0.92, 1 }
+        or (theme == "smoked" and { 0.625, 0.75, 1 } or { 1, 1, 1 })
     for channel = 1, 3 do
         near(light._vertex[channel], c[channel], "bloom follows theme hue")
         near(layer.glow._vertex[channel], c[channel], "glyph halo follows theme hue")
@@ -153,7 +154,7 @@ GMM.Theme.Refresh()
 eq(light._vertex[1], 1, "unreadable class colour falls back to white")
 C_ClassColor.GetClassColor = classColor
 WoW.fire("PLAYER_ENTERING_WORLD", false, false)
-near(light._vertex[1], 0.25, "class colour recovery repaints bloom")
+near(light._vertex[1], 0.25 / 0.92, "class colour recovery repaints bloom")
 GMM.Settings.SetTheme("clear")
 GMM._test.slash("runes off")
 check(not fog:IsVisible() and not fogAnimation:IsPlaying(), "default vapor stays inactive while mode is off")

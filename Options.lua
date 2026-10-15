@@ -64,7 +64,7 @@ local function checkbox(anchor, text, get, set, parent)
     fs:SetPoint("LEFT", cb, "RIGHT", 4, 0)
     fs:SetWidth(275)
     local function sync() cb:SetChecked(get() == true) end
-    cb:SetScript("OnClick", function() set(cb:GetChecked() == true); API.Try("options:refresh", sync) end)
+    cb:SetScript("OnClick", function() set(cb:GetChecked() == true) end)
     refreshers[#refreshers + 1] = sync
     return cb
 end
@@ -82,7 +82,7 @@ local function radios(anchor, options, get, set, parent)
         local rb = radioButton(parent, o[2])
         rb.value = o[1]
         rb:SetPoint("TOPLEFT", prev, "BOTTOMLEFT", 0, prev == anchor and -8 or -4)
-        rb:SetScript("OnClick", function() set(o[1]); API.Try("options:refresh", sync) end)
+        rb:SetScript("OnClick", function() set(o[1]) end)
         group[#group + 1] = rb
         prev = rb
     end
@@ -96,10 +96,9 @@ local function heading(text, anchor, y)
     return fs
 end
 
-local function runeSlider(title, key, lo, hi, y, parent, x, callbacks)
-    parent, x, callbacks = parent or panel, x or 335, callbacks or refreshers
+local function runeSlider(title, key, lo, hi, y, parent)
     local text = label(parent, "", "GameFontHighlight")
-    text:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y)
+    text:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, y)
     local slider = CreateFrame("Slider", nil, parent)
     slider:EnableMouse(true)
     slider:SetPoint("TOPLEFT", text, "BOTTOMLEFT", 0, -8)
@@ -127,10 +126,9 @@ local function runeSlider(title, key, lo, hi, y, parent, x, callbacks)
     slider:SetScript("OnValueChanged", function(_, value)
         if not updating then
             GMM.Settings.SetRuneTuning(key, value)
-            API.Try("options:refresh", refresh)
         end
     end)
-    callbacks[#callbacks + 1] = refresh
+    refreshers[#refreshers + 1] = refresh
     return slider
 end
 
@@ -156,7 +154,7 @@ local function buildRunicSettings()
     controls:SetSize(260, 280)
     local styleLabel = label(controls, "Style", "GameFontNormal")
     styleLabel:SetPoint("TOPLEFT", controls, "TOPLEFT", 0, 0)
-    local _, style = radios(styleLabel, {{"etched", "Etched"}, {"glowing", "Glowing"}},
+    local lastStyle, style = radios(styleLabel, {{"etched", "Etched"}, {"glowing", "Glowing"}},
         function() return GMM.db.runeStyle end,
         function(v) GMM.Settings.SetRuneOption("style", v) end, controls)
     local motionLabel = label(controls, "Motion", "GameFontNormal")
@@ -164,21 +162,24 @@ local function buildRunicSettings()
     local _, motion = radios(motionLabel, {{"sway", "Sway"}, {"orbit", "Orbit"}},
         function() return GMM.db.runeMotion end,
         function(v) GMM.Settings.SetRuneOption("motion", v) end, controls)
-    local fogAnchor = label(controls, "")
-    fogAnchor:SetPoint("TOPLEFT", controls, "TOPLEFT", 0, -72)
-    local vapor = checkbox(fogAnchor, "Exterior vapor",
+    local vapor = checkbox(lastStyle, "Exterior vapor",
         function() return GMM.db.runeFog end,
         function(on) GMM.Settings.Set("runeFog", on) end, controls)
-    Options._test.intensity = runeSlider("Glow intensity", "runeIntensity", 0, 100, -114, controls, 0)
-    Options._test.speed = runeSlider("Orbit speed", "runeSpeed", 25, 200, -174, controls, 0)
+    Options._test.intensity = runeSlider("Glow intensity", "runeIntensity", 0, 100, -114, controls)
+    Options._test.speed = runeSlider("Orbit speed", "runeSpeed", 25, 200, -174, controls)
     local note = label(controls, "Uses the selected glass theme.\n100% orbit speed: one turn in 30 seconds.", "GameFontHighlightSmall")
     note:SetPoint("TOPLEFT", controls, "TOPLEFT", 0, -232)
     note:SetWidth(250)
+    local status = label(controls, "", "GameFontHighlightSmall")
+    status:SetPoint("TOPLEFT", controls, "TOPLEFT", 0, -264)
+    status:SetWidth(250)
+    status:SetTextColor(1, 0.4, 0.3)
     refreshers[#refreshers + 1] = function()
         enable:SetChecked(GMM.db.runicMode)
         controls:SetShown(GMM.db.runicMode)
+        status:SetText(GMM.Ring.RunicError() or "")
     end
-    Options._test.runic = { enable = enable, controls = controls, style = style, motion = motion, vapor = vapor }
+    Options._test.runic = { enable = enable, controls = controls, style = style, motion = motion, vapor = vapor, status = status }
 end
 
 local function build()
