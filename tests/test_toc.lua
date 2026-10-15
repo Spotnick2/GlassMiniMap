@@ -40,7 +40,8 @@ for size, S in pairs(GMM.Glass.SIZES) do
         check(io.open(f, "rb") ~= nil, size .. " texture exists: " .. f)
     end
 end
-local OURS = { "orb_mask", "ring_rim", "ring_dark", "notch_mask", "notch_rim", "sun", "moon", "magnifier" }
+local OURS = { "orb_mask", "ring_rim", "ring_dark", "ring_runes", "ring_runes_moving", "ring_runes_glow", "ring_fog", "ring_bloom",
+    "notch_mask", "notch_rim", "sun", "moon", "magnifier" }
 for _, t in ipairs(OURS) do
     check(io.open("Media/" .. t .. ".tga", "rb") ~= nil, "our texture exists: " .. t)
 end

@@ -103,8 +103,28 @@ function CreateFrame(ftype, name, parent, template)
     return w
 end
 
-function Methods.Show(w) if not w._shown then w._shown = true; if w._scripts.OnShow then w._scripts.OnShow(w) end end end
-function Methods.Hide(w) if w._shown then w._shown = false; if w._scripts.OnHide then w._scripts.OnHide(w) end end end
+-- Dispatch effective visibility changes, including descendants. Re-evaluate
+-- after each callback, since a handler can hide another frame in this tree.
+local function visibilityTree(w, list)
+    list[#list + 1] = { w, Methods.IsVisible(w) }
+    for _, child in ipairs(w._children) do visibilityTree(child, list) end
+end
+local function setShown(w, shown)
+    if w._shown == shown then return end
+    local list = {}
+    visibilityTree(w, list)
+    w._shown = shown
+    for _, entry in ipairs(list) do
+        local node, was = entry[1], entry[2]
+        local visible = Methods.IsVisible(node)
+        if was ~= visible then
+            local fn = node._scripts[visible and "OnShow" or "OnHide"]
+            if fn then fn(node) end
+        end
+    end
+end
+function Methods.Show(w) setShown(w, true) end
+function Methods.Hide(w) setShown(w, false) end
 function Methods.SetShown(w, v) if v then Methods.Show(w) else Methods.Hide(w) end end
 function Methods.IsShown(w) return w._shown end
 function Methods.IsVisible(w)
@@ -166,6 +186,19 @@ function Methods.SetEnabled(w, v) w._enabled = v and true or false end
 function Methods.IsEnabled(w) return w._enabled ~= false end
 function Methods.SetChecked(w, v) w._checked = v and true or false end
 function Methods.SetText(w, t) w._text = t end
+function Methods.SetValue(w, value)
+    if w._value ~= value then
+        w._value = value
+        if w._scripts.OnValueChanged then w._scripts.OnValueChanged(w, value) end
+    end
+end
+
+-- A drag requires a visible mouse-enabled slider; direct SetValue alone does
+-- not exercise that interaction requirement.
+function WoW.dragSlider(w, value)
+    assert(Methods.IsVisible(w) and Methods.IsMouseEnabled(w), "slider cannot be dragged")
+    w:SetValue(value)
+end
 function Methods.GetText(w) return w._text end
 function Methods.SetTextColor(w, r, g, b) w._textColor = { r, g, b } end
 function Methods.GetAnimationGroups(w) return unpack(w._anims or {}) end
@@ -199,14 +232,23 @@ end
 function Methods.GetAnimations(ag) return unpack(ag._animations) end
 function Methods.GetTarget(a) return a._parent and a._parent._parent end
 function Methods.Play(ag) ag._playing = true; ag._plays = (ag._plays or 0) + 1 end
-function Methods.Stop(ag) ag._playing = false end
+function Methods.Stop(ag) ag._playing = false; ag._stops = (ag._stops or 0) + 1 end
 function Methods.IsPlaying(ag) return ag._playing == true end
+function Methods.SetLooping(ag, value) ag._looping = value end
+function Methods.SetDegrees(a, value) a._degrees = value end
+function Methods.SetBlendMode(t, value) t._blendMode = value end
+function Methods.SetOrder(a, value) a._order = value end
+function Methods.GetProgress(a) return a._progress or 0 end
+function Methods.SetDuration(a, value) a._duration = value end
+function Methods.SetAnimationSpeedMultiplier(ag, value) ag._speedMultiplier = value end
+function Methods.GetAnimationSpeedMultiplier(ag) return ag._speedMultiplier or 1 end
+function Methods.SetSmoothing(a, value) a._smoothing = value end
 function Methods.SetOrigin(a, point) a._origin = point end
 function Methods.SetScaleFrom(a, x, y) a._from = { x, y } end
 function Methods.SetScaleTo(a, x, y) a._to = { x, y } end
 function WoW.finishAnimations()
     for _, ag in ipairs(WoW.animGroups) do
-        if ag._playing then
+        if ag._playing and (not ag._looping or ag._looping == "NONE") then
             ag._playing = false
             if ag._scripts.OnFinished then ag._scripts.OnFinished(ag) end
         end
