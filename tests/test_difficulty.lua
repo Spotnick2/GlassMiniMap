@@ -4,7 +4,7 @@
 dofile("tests/wow_stubs.lua")
 dofile("tests/harness.lua")
 
-local GMM = loadAddon()
+local GMM = loadAddon({ db = { indicators = "ring" } })   -- the discs; the pills: test_indicators
 local flag = MinimapCluster.InstanceDifficulty
 local disc, label = GMM.Difficulty.Disc(), GMM.Difficulty.Label()
 local function enter(i) WoW.instance = i; flag:Update() end
@@ -77,7 +77,7 @@ eq(GameTooltip._shown, true, "another frame's tooltip: untouched")
 eq(#GMM.failures, 0, "no failures")
 
 -- Already in an instance at login: shown from the start.
-GMM = loadAddon({ before = function()
+GMM = loadAddon({ db = { indicators = "ring" }, before = function()
     WoW.instance = { type = "party", maxPlayers = 5 }
     MinimapCluster.InstanceDifficulty:Update()
 end })

@@ -1,5 +1,6 @@
--- Difficulty.lua: the instance's group size as a glass disc on the ring, at
--- 3 o'clock (#18).
+-- Difficulty.lua: the instance's group size, in the coords pill ("Dungeon ·
+-- 5", the default) or as a glass disc on the ring at 3 o'clock (#18; where:
+-- GMM.Settings.Indicators(), #27).
 --
 -- Blizzard's instance flag (MinimapCluster.InstanceDifficulty) hangs from the
 -- zone header we fade, over the right end of our zone pill, so it is faded
@@ -54,27 +55,52 @@ function Difficulty.Size()
     return s
 end
 
--- Blizzard's tooltip for the flag, on our disc. Forever's override adds
--- nothing for a size of 0 (between instances): then there's no tooltip.
-local function tooltip(self)
+-- Blizzard's tooltip for the flag, on whatever shows the size (the disc, or
+-- the coords pill's text). Forever's override adds nothing for a size of 0
+-- (between instances): then there's no tooltip.
+function Difficulty.Tooltip(owner)
     local _, _, difficulty, _, maxPlayers, _, _, _, groupSize, lfgID = GetInstanceInfo()
     difficulty, maxPlayers = API.Plain(difficulty), API.Plain(maxPlayers)
     local f = flag()
-    GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+    GameTooltip:SetOwner(owner, "ANCHOR_LEFT")
     if f and type(f.GetDifficultyTooltip) == "function" and type(maxPlayers) == "number" and maxPlayers > 0 then
         f:GetDifficultyTooltip(maxPlayers, API.Plain(groupSize), "", nil, API.Plain(lfgID), difficulty)
     end
     if (GameTooltip:NumLines() or 0) > 0 then GameTooltip:Show() else GameTooltip:Hide() end
 end
 
+-- What the coords pill shows: "Dungeon · 5", "Raid · 40", else the size alone.
+-- Taken once, after Blizzard's Update, with the instance type read at that
+-- moment: Blizzard defers its Update 0.25 s on entering, so a type read on
+-- its own (the coords ticker runs every 0.2 s) could pair the new instance
+-- with the old size.
+local shownText
+Difficulty.KINDS = { party = "Dungeon", raid = "Raid" }
+
+function Difficulty.Text() return shownText end
+
+local function capture(size)
+    if not size then return nil end
+    local _, kind = GetInstanceInfo()
+    kind = Difficulty.KINDS[API.Plain(kind)]
+    return kind and (kind .. " \194\183 " .. size) or size
+end
+
+-- After each of Blizzard's Updates, and when the placement changes: the disc
+-- with the ring placement, the coords pill's text with the pills. A tooltip
+-- whose owner no longer shows the size is closed; one that still does is
+-- redrawn.
 function Difficulty.Sync()
     if not disc then return end
     local size = Difficulty.Size()
+    shownText = capture(size)
     if size then label:SetText(size) end
-    disc:SetShown(size ~= nil)
+    local ring = size ~= nil and GMM.Settings.Indicators() == "ring"
+    disc:SetShown(ring)
     if GameTooltip:IsOwned(disc) then
-        if size then API.Try("difficulty:tooltip", tooltip, disc) else GameTooltip:Hide() end
+        if ring then API.Try("difficulty:tooltip", Difficulty.Tooltip, disc) else GameTooltip:Hide() end
     end
+    GMM.Footer.Layout()
 end
 
 function Difficulty.Build()
@@ -84,7 +110,7 @@ function Difficulty.Build()
     label = Glass.Font(disc, 11, "CENTER")
     label:SetPoint("CENTER", disc, "CENTER", 0, 0)
     label:SetTextColor(1, 0.82, 0)
-    disc:SetScript("OnEnter", function(self) API.Try("difficulty:tooltip", tooltip, self) end)
+    disc:SetScript("OnEnter", function(self) API.Try("difficulty:tooltip", Difficulty.Tooltip, self) end)
     disc:SetScript("OnLeave", function() GameTooltip:Hide() end)
     hooksecurefunc(f, "Update", function() API.Try("difficulty:sync", Difficulty.Sync) end)
     Difficulty.Sync()

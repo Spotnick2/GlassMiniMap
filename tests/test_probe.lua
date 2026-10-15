@@ -100,7 +100,7 @@ WoW.fire("MINIMAP_UPDATE_ZOOM")
 
 -- discs: outside an instance, no mail.
 fp("mm discs")
-check(logged("mail: HasNewMail false; disc shown false"), "discs: no mail")
+check(logged("mail: HasNewMail false; placement pills: envelope shown false"), "discs: no mail")
 check(logged("instance: instance none, 0 players; flag none"), "discs: no instance")
 eq(errors(), 0, "still no command threw")
 
@@ -186,6 +186,18 @@ okMail, why = mailCheck()
 check(okMail == false and why:find("Blizzard's mail icon alpha MISSING"), "Blizzard's icon missing: FAIL")
 MinimapCluster.IndicatorFrame.MailFrame = blizzMail
 eq(select(1, mailCheck()), true, "...and faded again: PASS")
+-- Each placement: its own indicator, never both.
+local envelope = GMM.Header.MailButton()
+GMM.Mail.Disc():Show()
+eq(select(1, mailCheck()), false, "pills, the disc showing too: FAIL")
+GMM.Mail.Disc():Hide()
+GMM.Settings.SetIndicators("ring")
+local okRing, whyRing = mailCheck()
+check(okRing and whyRing:find("placement ring: disc shown true"), "ring: the disc")
+envelope:Show()
+eq(select(1, mailCheck()), false, "ring, the envelope showing too: FAIL")
+GMM.Settings.SetIndicators("pills")
+eq(select(1, mailCheck()), true, "back in the pills: PASS")
 S.Run(); settle(); S.Run(); settle(); S.Run(); settle()
 eq(GlassMiniMapDB.theme, "class", "the three themes, in turn")
 S.Answer(true)
@@ -221,13 +233,43 @@ check(result("instance", 2).checkDetail:find("go Back and Check again"), "...say
 S.Back()
 flag:Update()
 S.Run(); settle()
-eq(result("instance", 2).check, "PASS", "in a dungeon: the disc shows Blizzard's 5")
-check(result("instance", 2).checkDetail:find("instance party, 5 players; flag Default 5 alpha 0; disc shown true label 5"),
-    "...what was read")
+eq(result("instance", 2).check, "PASS", "in a dungeon: the coords pill shows Blizzard's 5")
+check(result("instance", 2).checkDetail:find("instance party, 5 players; flag Default 5 alpha 0; placement pills; "
+    .. "disc shown false label 5; pill \"?Dungeon \194\183 5"), "...what was read")
 local insideCheck = FP.procedures["MinimapProbe/instance"].steps[2].check
+-- The disc showing as well (a duplicate) fails; so does a pill without the size.
+GMM.Difficulty.Disc():Show()
+eq(select(1, insideCheck()), false, "pills, the disc showing too: FAIL")
+GMM.Difficulty.Disc():Hide()
+local pillCoords = GMM.Footer._test.coords()
+pillCoords:SetText("\226\128\148")
+eq(select(1, insideCheck()), false, "pills, the size missing from the pill: FAIL")
+GMM.Footer.Layout()
+-- On the ring: the disc with Blizzard's size, and not in the pill.
+GMM.Settings.SetIndicators("ring")
+eq(select(1, insideCheck()), true, "ring: the disc shows Blizzard's 5")
 GMM.Difficulty.Label():SetText("40")
-eq(select(1, insideCheck()), false, "a label that isn't Blizzard's size: FAIL")
+eq(select(1, insideCheck()), false, "ring, a label that isn't Blizzard's size: FAIL")
 GMM.Difficulty.Label():SetText("5")
+pillCoords:SetText(GMM.Difficulty.Text())
+eq(select(1, insideCheck()), false, "ring, the size in the pill too: FAIL")
+GMM.Settings.SetIndicators("pills")
+-- Blizzard's coordinates off: the pill's text shows only for the size. Switched
+-- to the ring, it hides and keeps the size as text: not a duplicate.
+WoW.cvars.minimapShowPlayerCoords = false
+WoW.fire("CVAR_UPDATE", "minimapShowPlayerCoords")
+eq(select(1, insideCheck()), true, "pills, coordinates off: the size in the widened pill")
+GMM.Settings.SetIndicators("ring")
+eq(pillCoords._shown, false, "ring, coordinates off: the pill's text hidden")
+eq(pillCoords._text, GMM.Difficulty.Text(), "...still holding the size")
+local okHidden, whyHidden = insideCheck()
+check(okHidden and whyHidden:find("pill hidden"), "...not a duplicate: PASS")
+-- A hidden text never set (logged in on the ring with coordinates off).
+pillCoords._text = nil
+eq(select(1, insideCheck()), true, "ring, a hidden text never set: PASS")
+GMM.Settings.SetIndicators("pills")
+WoW.cvars.minimapShowPlayerCoords = true
+WoW.fire("CVAR_UPDATE", "minimapShowPlayerCoords")
 S.Run(); WoW.flushTimers(); settle()
 S.Answer(true)
 eq(result("instance", 4).check, "PASS", "the tooltip shot")
