@@ -18,6 +18,7 @@ Ring.lua
 Header.lua
 Footer.lua
 Queue.lua
+Mail.lua
 Tracking.lua
 Drawer.lua
 Options.lua

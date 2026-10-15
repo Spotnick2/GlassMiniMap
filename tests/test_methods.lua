@@ -65,6 +65,12 @@ for _, k in ipairs({ "sun", "glassTracking" }) do
     GMM.Settings.Set(k, false); GMM.Settings.Set(k, true)
 end
 
+-- The mail disc.
+WoW.mail, WoW.senders = true, { "Thrall" }
+WoW.fire("UPDATE_PENDING_MAIL")
+local mail = GMM.Mail.Disc()
+mail._scripts.OnEnter(mail); WoW.fire("UPDATE_PENDING_MAIL"); mail._scripts.OnLeave(mail)
+
 -- The LFG eye's disc.
 QueueStatusButton:Show(); QueueStatusButton:SetScale(1.2); QueueStatusButton:Hide()
 
