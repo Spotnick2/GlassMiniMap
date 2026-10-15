@@ -27,13 +27,25 @@ another module's.
 
 | Procedure | Checks | Status |
 |---|---|---|
-| `wash` (#22) | clear then smoked: the wash's gradient peak 0.18 / 0.14 on the ring and the zoom buttons; zoomed fully out, the minus button dimmed (LibGlass's `disabledAlpha`) in both; the owner judges the sheen | open |
-| `mail` (#19) | after new mail and its senders: the disc shows with `HasNewMail()`, Blizzard's icon faded; a shot in each theme; the tooltip held for a delayed shot | open |
-| `instance` (#21) | in a dungeon or raid, once loading has finished: the disc shows the shown Blizzard flag's size, the flag faded; the tooltip shot; outside, no disc | open |
+| `wash` (#22) | clear then smoked: the wash's gradient peak 0.18 / 0.14 on the ring and the zoom buttons; zoomed fully out, the minus button dimmed (LibGlass's `disabledAlpha`) in both; the owner judges the sheen | **passed** (70374): peaks 0.18 / 0.14, minus dimmed 0.25 in both. The sheen change is too small to judge by eye (owner skipped the question); measured on the shots instead, below |
+| `mail` (#19) | after new mail and its senders: the disc shows with `HasNewMail()`, Blizzard's icon faded; a shot in each theme; the tooltip held for a delayed shot | **passed** (70374): disc shown, Blizzard's icon alpha 0, readable in all three themes (owner), tooltip lists the sender (owner) |
+| `instance` (#21) | in a dungeon or raid, once loading has finished: the disc shows the shown Blizzard flag's size, the flag faded; the tooltip shot; outside, no disc | **passed** (70374), Ragefire Chasm: "5" from Blizzard's Default flag (alpha 0), tooltip matched (owner); outside, no disc |
 
 `wash` and `mail` change the theme and zoom: they save both first (`MinimapProbeDB.restore`, never
 overwritten while one is outstanding) and put them back at the end. After a Stop or a relog,
 `/fp mm restore` does it. `/fp mm glass` and `/fp mm discs` read the same state on demand.
+
+Run on 1.60.1.70374, 2026-10-15 (`wash`, `mail` on one character; `instance` on another). No
+blocked or forbidden actions in ForeverProbe's log.
+- **The smoked sheen, measured on the shots:** down the zone pill (left of the zone name), the
+  brightness falls 36 grey levels from top to bottom in clear and 29 in smoked. That ratio, 0.8,
+  is the designed 0.14 / 0.18 (0.78). Smoked's darker body (about 13 levels darker on the pill)
+  is what the eye sees; the softer sheen alone is too subtle to tell by eye at this size.
+- **Tooltips weren't in the delayed shots.** The owner saw both tooltips (the mail sender; the
+  instance's type and size), but neither 3 s shot shows one: the hover wasn't held to the
+  shutter, or the client leaves tooltips out of screenshots taken this way. Unmeasured; the owner's
+  answer is the record.
+- The instance disc's "5" is small at 90°, but readable.
 
 ## In-game checklist
 
