@@ -146,6 +146,7 @@ boot:SetScript("OnEvent", function(_, event, arg1)
             start("coords pill", GMM.Footer.Build)
             start("lfg eye", GMM.Queue.Build)
             start("mail disc", GMM.Mail.Build)
+            start("instance disc", GMM.Difficulty.Build)
             start("tracking", GMM.Tracking.Build)
             start("drawer", GMM.Drawer.Start)
         end

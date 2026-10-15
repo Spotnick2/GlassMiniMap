@@ -15,6 +15,7 @@ A liquid-glass minimap for **World of Warcraft: Forever**.
 - **Day and night disc**: a sun or a moon, with the server and local time. Click it for the clock.
 - **New-mail disc** at the bottom right of the ring while you have unread mail, with the latest
   senders on hover.
+- **Instance disc** on the right of the ring in dungeons and raids: the group size, 5 to 40.
 - **Addon drawer** with [Glass MiniMap Bar](https://www.curseforge.com/wow/addons/glass-minimap-bar) installed: the disc at the bottom left opens its glass
   drawer, with your addons' minimap buttons and Blizzard's AddOns list in one place, in the same
   glass as the minimap.

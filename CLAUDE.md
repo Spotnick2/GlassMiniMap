@@ -59,6 +59,7 @@ and a taint minefield (`..\References\PORTING-TBC-TO-FOREVER.md`, "Edit Mode sys
 | `Footer.lua` | coordinates pill (Blizzard's coords CVars), zoom − / + |
 | `Queue.lua` | Blizzard's LFG eye (`QueueStatusButton`) mirrored to the top left while in its default position (base methods, deferred, out of Edit Mode and combat), with a glass disc behind it |
 | `Mail.lua` | the new-mail disc (bottom right, 135°) while `HasNewMail()`, Blizzard's tooltip; Blizzard's `IndicatorFrame.MailFrame` is faded |
+| `Difficulty.lua` | the instance size disc (right, 90°), mirrored from Blizzard's faded `InstanceDifficulty` after each of its `Update`s, with its own tooltip method |
 | `Tracking.lua` | the glass tracking menu, a copy of Blizzard's menu logic (`Minimap.lua:636-772`) |
 | `Drawer.lua` | the bottom-left disc as Glass MiniMap Bar's launcher, through its public API |
 | `Options.lua` | Esc > Options > AddOns > Glass MiniMap ("Drawer options" opens Glass MiniMap Bar's page) |

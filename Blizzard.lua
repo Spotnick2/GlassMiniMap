@@ -24,7 +24,7 @@
 --                         the mouse). Forever has no difficulties: in an instance it shows
 --                         only the group size (Camelot\InstanceDifficultyOverrides.lua),
 --                         hung from the faded header over the right end of our zone pill.
---                         Not replaced (owner, #18).
+--                         Difficulty.lua shows that size in glass.
 -- Left alone: QueueStatusButton (its own Edit Mode system), the crafting-order
 -- indicator, the clock, and
 -- AddonCompartmentFrame (the "AddOns" button: Glass MiniMap Bar, when
