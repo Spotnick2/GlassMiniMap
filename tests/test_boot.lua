@@ -21,6 +21,10 @@ eq(MinimapCluster.MinimapContainer.PlayerCoords._alpha, 0, "Blizzard's coords fa
 eq(GameTimeFrame._alpha, 0, "calendar faded")
 eq(GameTimeFrame._mouse, false, "...and takes no clicks")
 eq(MinimapCluster.DielFrame._alpha, 0, "day/night ring faded")
+eq(MinimapCluster.InstanceDifficulty._alpha, 0, "instance flag faded")
+eq(MinimapCluster.InstanceDifficulty._mouse, false, "...its tooltip takes no hover")
+eq(MinimapCluster.InstanceDifficulty.Guild._mouse, false, "...nor its guild banner's")
+eq(MinimapCluster.InstanceDifficulty._shown, true, "...never hidden")
 eq(Minimap:GetParent(), MinimapCluster.MinimapContainer, "the map stays in its container")
 eq(#Minimap._points, 0, "the map is never re-anchored")
 -- Blizzard showing a piece again: faded again.

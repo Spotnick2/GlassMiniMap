@@ -185,7 +185,7 @@ function Methods.GetChecked(w) return w._checked == true end
 function Methods.SetEnabled(w, v) w._enabled = v and true or false end
 function Methods.IsEnabled(w) return w._enabled ~= false end
 function Methods.SetChecked(w, v) w._checked = v and true or false end
-function Methods.SetText(w, t) w._text = t end
+function Methods.SetText(w, t) w._text = type(t) == "number" and tostring(t) or t end   -- a FontString keeps a string
 function Methods.SetValue(w, value)
     if w._value ~= value then
         w._value = value
@@ -311,6 +311,7 @@ function Methods.SetFont(fs, file, size, flags) fs._font = { file, size, flags }
 function Methods.SetOwner(tt, owner) tt._owner = owner; tt._lines = {} end
 function Methods.GetOwner(tt) return tt._owner end
 function Methods.IsOwned(tt, owner) return tt._owner == owner end
+function Methods.NumLines(tt) return #(tt._lines or {}) end
 function Methods.ClearLines(tt) tt._lines = {} end
 function Methods.AddLine(tt, text, r, g, b)
     table.insert(tt._lines, text)
@@ -356,6 +357,37 @@ local function buildCluster()
     MinimapCompassTextureUnderlay = MinimapBackdrop:CreateTexture(nil, "OVERLAY")
     c.MinimapContainer.PlayerCoords = CreateFrame("Frame", nil, c.MinimapContainer)
     c.DielFrame = CreateFrame("Frame", nil, c)
+    -- The instance flag (InstanceDifficulty.xml): it and its Guild banner have
+    -- OnEnter tooltips, so both take the mouse.
+    c.InstanceDifficulty = CreateFrame("Frame", nil, c)
+    c.InstanceDifficulty._mouse = true
+    c.InstanceDifficulty.Guild = CreateFrame("Frame", nil, c.InstanceDifficulty)
+    c.InstanceDifficulty.Guild._mouse = true
+    local d = c.InstanceDifficulty
+    d.Default = CreateFrame("Frame", nil, d)
+    d.Default.Text = d.Default:CreateFontString(nil, "OVERLAY")
+    d.Guild.Instance = CreateFrame("Frame", nil, d.Guild)
+    d.Guild.Instance.Text = d.Guild.Instance:CreateFontString(nil, "OVERLAY")
+    d.Default._shown, d.Guild._shown = false, false
+    -- Forever's Update (InstanceDifficulty.lua:106 + the Camelot override):
+    -- the size goes into the chosen frame FIRST, then the modes switch, so a
+    -- hidden frame keeps its stale text. WoW.instance = { type, maxPlayers, guild }.
+    function d:Update()
+        local i = WoW.instance
+        local content
+        if i.guild then content = self.Guild elseif i.type ~= "none" then content = self.Default end
+        local textFrame = content == self.Guild and self.Guild.Instance or content
+        if textFrame then textFrame.Text:SetText(i.maxPlayers == 0 and "" or i.maxPlayers) end
+        self.Default:SetShown(content == self.Default)
+        self.Guild:SetShown(content == self.Guild)
+    end
+    function d:GetDifficultyTooltip(maxPlayers, groupSize, name, isLFR, lfgID, difficulty)
+        if maxPlayers == 5 then
+            GameTooltip:AddLine("Dungeon"); GameTooltip:AddLine("5 Player")
+        elseif maxPlayers == 10 or maxPlayers == 20 or maxPlayers == 40 then
+            GameTooltip:AddLine("Raid"); GameTooltip:AddLine(maxPlayers .. " Player")
+        end
+    end
     -- The mail icon: a mouse-enabled frame in IndicatorFrame, shown by
     -- Blizzard on UPDATE_PENDING_MAIL while there's mail.
     c.IndicatorFrame = CreateFrame("Frame", nil, c)
@@ -435,6 +467,7 @@ function WoW.reset()
     WoW.facing = 0
     WoW.combat = false
     WoW.mail, WoW.senders = false, {}
+    WoW.instance = { type = "none", maxPlayers = 0, guild = false }
     WoW.loaded = {}
     WoW.tracking = {
         { name = "Auctioneer", texture = 1, active = false, type = "other", subType = 2, filterID = 8 },
@@ -559,6 +592,12 @@ function Minimap_SetTooltip(pvpType)
 end
 function GetZoneText() return WoW.zoneName or WoW.zone end
 function HasNewMail() return WoW.mail end
+-- name, instanceType, difficultyID, difficultyName, maxPlayers, dynamicDifficulty, isDynamic,
+-- instanceID, instanceGroupSize, lfgDungeonID (the 70374 dump).
+function GetInstanceInfo()
+    local i = WoW.instance
+    return "Somewhere", i.type, i.type == "none" and 0 or 1, "", i.maxPlayers, 0, false, 33, i.maxPlayers, nil
+end
 function GetLatestThreeSenders() return unpack(WoW.senders) end
 -- Blizzard's (FormattingUtil.lua:181): the header, then one sender per line.
 function FormatUnreadMailTooltip(tooltip, headerText, senders)

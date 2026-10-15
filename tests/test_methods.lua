@@ -71,6 +71,12 @@ WoW.fire("UPDATE_PENDING_MAIL")
 local mail = GMM.Mail.Disc()
 mail._scripts.OnEnter(mail); WoW.fire("UPDATE_PENDING_MAIL"); mail._scripts.OnLeave(mail)
 
+-- The instance disc.
+WoW.instance = { type = "party", maxPlayers = 5 }
+MinimapCluster.InstanceDifficulty:Update()
+local inst = GMM.Difficulty.Disc()
+inst._scripts.OnEnter(inst); MinimapCluster.InstanceDifficulty:Update(); inst._scripts.OnLeave(inst)
+
 -- The LFG eye's disc.
 QueueStatusButton:Show(); QueueStatusButton:SetScale(1.2); QueueStatusButton:Hide()
 

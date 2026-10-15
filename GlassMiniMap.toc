@@ -19,6 +19,7 @@ Header.lua
 Footer.lua
 Queue.lua
 Mail.lua
+Difficulty.lua
 Tracking.lua
 Drawer.lua
 Options.lua
