@@ -10,7 +10,7 @@
 -- Every glass surface this addon builds registers here: LibGlass surfaces
 -- (the ring, the pills, the discs, the tracking menu) by their g, and the
 -- north tab (drawn the orb's way) by its tint and wash textures. Only body
--- regions are touched (tint colour, grain and wash alpha): the rims stay the
+-- regions are touched (tint colour, grain alpha, wash strength): the rims stay the
 -- instance's. Theme.OnChange hears every repaint: Drawer.lua passes the look
 -- on to Glass MiniMap Bar's glass.
 
@@ -53,6 +53,13 @@ local function tintFor(name)
     return p.tint, true
 end
 
+-- The wash is a gradient, and a gradient texture ignores SetAlpha on this
+-- client (70374; porting guide §3, LibGlass#47): its strength is the top
+-- colour of its gradient. The preset's wash multiplies the built one.
+local function washTop(p)
+    return math.max(0, math.min(1, (Glass.STYLE.wash or 0) * (p.wash or 1)))
+end
+
 local function paintGlass(s, name, tint)
     local p = Theme.PRESETS[name]
     if tint then
@@ -61,7 +68,7 @@ local function paintGlass(s, name, tint)
         Glass.SetSurfaceTint(s.g)
     end
     if s.g.grain then s.g.grain:SetAlpha(Glass.STYLE.grain or 0) end
-    if s.g.wash then s.g.wash:SetAlpha(p.wash or 1) end
+    if s.g.wash then Glass.SetWash(s.g, washTop(p)) end
 end
 
 -- An orb is a round piece drawn without LibGlass (the north tab): a tint and a
@@ -72,7 +79,11 @@ local function paintOrb(s, name, tint)
     local c = tint or base
     local a = (tint and tint[4]) or math.max(base[4], 0.35)
     s.g.tint:SetColorTexture(c[1], c[2], c[3], a)
-    if s.g.wash then s.g.wash:SetAlpha(p.wash or 1) end
+    if s.g.wash then
+        local top = washTop(p)
+        s.g.wash:SetGradient("VERTICAL", CreateColor(1, 1, 1, 0), CreateColor(1, 1, 1, top))
+        s.g.wash:SetShown(top > 0)
+    end
 end
 
 local function paint(s, name, tint)

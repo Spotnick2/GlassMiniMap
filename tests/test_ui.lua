@@ -15,6 +15,13 @@ eq(ring.tint._color[4], 0.62, "smoked: the darker body")
 local orbTint
 for _, s in ipairs(GMM.Theme._test.surfaces) do if s.kind == "orb" and s.g.tint ~= nil then orbTint = s.g.tint end end
 eq(orbTint._color[4], 0.62, "smoked reaches the north tab too")
+-- The wash's strength is its gradient's top colour: SetAlpha doesn't reach a
+-- gradient on this client (#22).
+local orbWash
+for _, s in ipairs(GMM.Theme._test.surfaces) do if s.kind == "orb" and s.g.wash ~= nil then orbWash = s.g.wash end end
+near(ring.wash._gradient[3].a, 0.14, "smoked: the softer wash")
+near(orbWash._gradient[3].a, 0.14, "...on the north tab too")
+check(ring.wash._shown ~= false and orbWash._shown ~= false, "...still drawn")
 GMM.Settings.SetTheme("class")
 near(ring.tint._color[1], 0.25 * 0.6, "class: the class colour, shaded (r)")
 near(ring.tint._color[3], 0.92 * 0.6, "class: (b)")
@@ -30,6 +37,8 @@ C_ClassColor.GetClassColor = get
 WoW.fire("PLAYER_ENTERING_WORLD", false, false)
 near(ring.tint._color[1], 0.25 * 0.6, "painted once it can be read")
 GMM.Settings.SetTheme("clear")
+near(ring.wash._gradient[3].a, 0.18, "clear: the wash as built")
+near(orbWash._gradient[3].a, 0.18, "...on the north tab too")
 
 -- Zone pill: the minimap's zone name, Blizzard's PvP colours, world map on click.
 local zt = GMM.Header._test.zoneText()
@@ -105,6 +114,16 @@ eq(zin._enabled, false, "fully in (the wheel): plus disabled")
 check(not F.Zoom(1), "...and does nothing")
 zout:Click("LeftButton")
 eq(Minimap._zoom, 4, "minus zooms out")
+-- A theme change keeps a disabled button's wash dimmed, and enabling it gives
+-- back the theme's (#22: why the wash goes through Glass.SetWash).
+Minimap._zoom = 0
+WoW.fire("MINIMAP_UPDATE_ZOOM")
+GMM.Settings.SetTheme("smoked")
+near(zout.glass.wash._gradient[3].a, 0.14 * GMM.Glass.STYLE.disabledAlpha, "smoked, disabled: dimmed")
+near(zin.glass.wash._gradient[3].a, 0.14, "...enabled: the theme's")
+zin:Click("LeftButton")
+near(zout.glass.wash._gradient[3].a, 0.14, "enabled again: the theme's")
+GMM.Settings.SetTheme("clear")
 
 -- The day/night disc: sun by day, moon by night, from Forever's event.
 local sun = GMM.Ring.Sun()

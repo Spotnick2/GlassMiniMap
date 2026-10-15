@@ -150,7 +150,9 @@ function Methods.GetCenter(w) return w._cx, w._cy end
 function Methods.GetEffectiveScale(w) return w._effScale or 1 end
 function Methods.SetScale(w, s) w._scale = s end
 function Methods.GetScale(w) return w._scale end
-function Methods.SetAlpha(w, a) w._alpha = a end
+-- A gradient texture ignores SetAlpha on this client (70374, porting guide §3):
+-- kept here, or a test of a wash's strength passes against that bug.
+function Methods.SetAlpha(w, a) if not w._gradient then w._alpha = a end end
 function Methods.GetAlpha(w) return w._alpha end
 function Methods.GetFrameLevel(w) return w._level end
 function Methods.SetFrameLevel(w, l) w._level = l end
@@ -304,6 +306,7 @@ function Methods.RemoveMaskTexture(t, m)
 end
 function Methods.SetGradient(t, orientation, c1, c2)
     assert(type(c1) == "table" and type(c2) == "table", "SetGradient takes color objects on this API")
+    t._gradient = { orientation, c1, c2 }
 end
 function Methods.SetFont(fs, file, size, flags) fs._font = { file, size, flags }; return true end
 
