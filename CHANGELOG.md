@@ -7,10 +7,13 @@
   vapor, glow intensity, and orbit speed. Enable it in the settings dialog to
   reveal its controls. Defaults are Glowing, Sway, Vapor On, and 100% intensity
   and speed. All choices persist and follow clear, smoked, or class-colour glass.
-- **New mail shows as a glass disc** at the bottom right of the ring, with the latest senders on
+- **New mail shows as an envelope in the zone pill**, by the zone name, with the latest senders on
   hover. Blizzard's mail icon used to float over the zone pill.
-- **The instance size shows as a glass disc** on the right of the ring in dungeons and raids (5 to
-  40, with Blizzard's tooltip). Blizzard's instance flag used to float over the zone pill.
+- **The instance size shows in the coordinates pill** in dungeons and raids, where there are no
+  coordinates: "Dungeon · 5", "Raid · 40", with Blizzard's tooltip. It shows even with Blizzard's
+  coordinates turned off. Blizzard's instance flag used to float over the zone pill.
+- **Or both as glass discs on the ring**: Options > AddOns > Glass MiniMap, "New mail and the
+  instance's size".
 - **Smoked glass gets its softer top sheen**, as designed: the game ignored the setting, so smoked
   surfaces drew the clear glass's brighter sheen. Uses LibGlass r7.
 

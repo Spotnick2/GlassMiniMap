@@ -12,7 +12,8 @@
 --   /fp mm discs      the mail disc (#19) and the instance disc (#21), and what they mirror
 --   /fp mm restore    put back the theme and zoom a procedure changed
 --
--- Procedures (/fp steps mm <name>): wash, mail, instance.
+-- Procedures (/fp steps mm <name>): wash, mail, instance. The mail and instance checks
+-- follow GlassMiniMap's placement setting (#27): its indicator shows, the other doesn't.
 
 local ADDON = ...
 local MAX_LOG = 3000
@@ -275,14 +276,29 @@ local function alphaOf(f)
 end
 
 -- Senders are other players' names: only their count is logged.
+-- Where mail and the instance size show (#27): "pills" or "ring". The one
+-- placed there must show, and the other must not (no duplicates).
+local function placement()
+    local g = gmm()
+    return g and g.Settings and g.Settings.Indicators and g.Settings.Indicators() or nil
+end
+
 local function mailCheck()
     local g = gmm()
+    local where = placement()
     local disc = g and g.Mail and g.Mail.Disc()
-    if not disc then return false, "mail disc: MISSING (the mail-notification game rule on?)" end
+    local envelope = g and g.Header and g.Header.MailButton and g.Header.MailButton()
+    if not (disc and envelope and where) then
+        return false, "mail disc, envelope or placement: MISSING (the mail-notification game rule on?)"
+    end
     local okM, has = pcall(HasNewMail)
     if not okM or secret(has) then return false, "HasNewMail: " .. (okM and "<secret>" or "ERROR") end
-    local on, why = shownState(disc)
-    if on == nil then return false, "disc shown: " .. why end
+    local discOn, why = shownState(disc)
+    if discOn == nil then return false, "disc shown: " .. why end
+    local envOn, whyE = shownState(envelope)
+    if envOn == nil then return false, "envelope shown: " .. whyE end
+    local placed, on, other = envelope, envOn, discOn
+    if where == "ring" then placed, on, other = disc, discOn, envOn end
     local senders = #g.Mail.Senders()
     -- Blizzard's icon must be faded (alpha 0): missing or unreadable fails.
     local blizz = MinimapCluster.IndicatorFrame and MinimapCluster.IndicatorFrame.MailFrame
@@ -293,9 +309,10 @@ local function mailCheck()
     else
         blizzAlpha = "MISSING"
     end
-    local detail = ("HasNewMail %s; disc shown %s alpha %s; %d sender(s) readable; Blizzard's mail icon alpha %s")
-        :format(str(has), str(on), str(alphaOf(disc)), senders, str(blizzAlpha))
-    return has == true and on == true and blizzAlpha == 0, detail
+    local detail = ("HasNewMail %s; placement %s: %s shown %s alpha %s, the other shown %s; %d sender(s) readable;"
+        .. " Blizzard's mail icon alpha %s"):format(str(has), where, where == "ring" and "disc" or "envelope",
+        str(on), str(alphaOf(placed)), str(other), senders, str(blizzAlpha))
+    return has == true and on == true and other == false and blizzAlpha == 0, detail
 end
 
 -- Which Blizzard flag shows and its text (Difficulty.lua reads the same).
@@ -315,7 +332,8 @@ local function flagState()
     return s
 end
 
--- inside: the disc shows Blizzard's size in a party or raid instance;
+-- inside: Blizzard's size shows in a party or raid instance, in its placement only
+-- (the disc, or the coords pill's text);
 -- outside: no instance and no disc. The flag stays faded either way.
 local function instanceCheck(inside)
     local g = gmm()
@@ -326,19 +344,29 @@ local function instanceCheck(inside)
     local on, why = shownState(disc)
     if on == nil then return false, "disc shown: " .. why end
     local label = textOf(g.Difficulty.Label())
+    local where = placement()
+    local pill = g.Footer and g.Footer._test and g.Footer._test.coords()
+    local pillText = pill and textOf(pill)
+    local sizeText = g.Difficulty.Text and g.Difficulty.Text()
     local s = flagState()
-    local detail = ("instance %s, %s players; flag %s %s alpha %s; disc shown %s label %s")
-        :format(str(kind), str(maxPlayers), str(s.which or "none"), str(s.text), str(s.alpha), str(on), str(label))
+    local detail = ("instance %s, %s players; flag %s %s alpha %s; placement %s; disc shown %s label %s; pill %s")
+        :format(str(kind), str(maxPlayers), str(s.which or "none"), str(s.text), str(s.alpha), str(where), str(on),
+            str(label), str(pillText))
+    if not (where and type(pillText) == "string") then return false, detail .. "; placement or pill text: MISSING" end
     if s.err then return false, detail .. "; " .. s.err end
     if s.alpha ~= 0 then return false, detail .. "; Blizzard's flag isn't faded" end
     local flagShows = s.which ~= nil and type(s.text) == "string" and s.text ~= ""
     if inside then
         if kind ~= "party" and kind ~= "raid" then return false, detail .. "; not in a dungeon or raid" end
         if not flagShows then return false, detail .. "; Blizzard shows no size (yet?): go Back and Check again" end
-        return on == true and label == s.text, detail
+        -- The size in its place and only there.
+        local inPill = type(sizeText) == "string" and pillText == sizeText
+            and pillText:sub(-#s.text) == s.text
+        if where == "ring" then return on == true and label == s.text and not inPill, detail end
+        return on == false and inPill, detail
     end
     if kind ~= "none" then return false, detail .. "; still in an instance" end
-    return on == false and not flagShows, detail
+    return on == false and not flagShows and sizeText == nil, detail
 end
 
 --------------------------------------------------------------------------------
@@ -456,7 +484,7 @@ end
 local function RESTORE() return { text = "Put your theme and zoom back.", button = "Restore", run = restore } end
 
 Probe:Steps("wash", {
-    rev = 2,
+    rev = 3,
     title = "Smoked's softer wash (#22)",
     SAVE(),
     { text = "Switch to clear glass.", button = "Clear", run = setTheme("clear"), check = washCheck,
@@ -474,7 +502,7 @@ Probe:Steps("wash", {
 })
 
 Probe:Steps("mail", {
-    rev = 2,
+    rev = 3,
     title = "The mail disc (#19)",
     SAVE(),
     { text = "Have mail sent to this character (an alt or a friend) and wait for it. Press Done if you already have unread mail.",
@@ -484,8 +512,8 @@ Probe:Steps("mail", {
     { text = "Clear glass.", button = "Clear", run = setTheme("clear"), screenshot = "mail: clear" },
     { text = "Smoked glass.", button = "Smoked", run = setTheme("smoked"), screenshot = "mail: smoked" },
     { text = "Class colour glass.", button = "Class", run = setTheme("class"), screenshot = "mail: class" },
-    { text = "Was the mail disc (bottom right of the ring) easy to read in all three?", ask = true },
-    { text = "Press Shoot, then hover the mail disc and hold still until the shutter (" .. SHOT_DELAY .. " s).",
+    { text = "Was the mail indicator (the envelope by the zone name, or the disc on the ring) easy to read in all three?", ask = true },
+    { text = "Press Shoot, then hover the envelope (or the mail disc) and hold still until the shutter (" .. SHOT_DELAY .. " s).",
       button = "Shoot", run = armShot("mail: tooltip") },
     { text = "After the shutter: did the tooltip list the senders? (No if it only said you have unread mail.)",
       ask = true, check = shotCheck("mail: tooltip") },
@@ -493,12 +521,12 @@ Probe:Steps("mail", {
 })
 
 Probe:Steps("instance", {
-    rev = 2,
+    rev = 3,
     title = "The instance disc (#21)",
     { text = "Enter a dungeon or a raid.", event = "PLAYER_ENTERING_WORLD" },
     { text = "When loading has finished (wait a few seconds), press Check.", button = "Check", run = function() end,
       check = function() return instanceCheck(true) end, screenshot = "instance: inside" },
-    { text = "Press Shoot, then hover the instance disc (right of the ring) and hold still until the shutter ("
+    { text = "Press Shoot, then hover the size (in the coords pill, or the disc) and hold still until the shutter ("
         .. SHOT_DELAY .. " s).", button = "Shoot", run = armShot("instance: tooltip") },
     { text = "After the shutter: did the tooltip match this instance's type and size (Dungeon / 5 Player, Raid / 40 Player...)?",
       ask = true, check = shotCheck("instance: tooltip") },

@@ -11,6 +11,11 @@
 -- not two (owner, 70374). Zoom goes
 -- through Minimap:SetZoom within GetZoomLevels(), and the buttons follow
 -- MINIMAP_UPDATE_ZOOM (the mouse wheel zooms too).
+--
+-- In an instance there are no coordinates, and with the pills placement (the
+-- default, #27) the text shows the instance's size instead of the dash, in
+-- gold with Blizzard's tooltip: "Dungeon · 5". Even with Blizzard's
+-- coordinates off: the pill then widens for it.
 
 GlassMiniMap = GlassMiniMap or {}
 local GMM = GlassMiniMap
@@ -25,8 +30,16 @@ Footer.WIDTH = 158
 Footer.ZOOM_SIZE = 18
 Footer.INTERVAL = 0.2
 
-local pill, coords, zoomIn, zoomOut
+local pill, coords, hit, zoomIn, zoomOut
 local since = 0
+local COORD_COLOR, SIZE_COLOR = { 0.92, 0.94, 0.97 }, { 1, 0.82, 0 }
+
+-- The instance's size, when the pill shows it (Difficulty.lua takes it after
+-- Blizzard's Update), else nil.
+local function instanceText()
+    if GMM.Settings.Indicators() == "ring" then return nil end
+    return GMM.Difficulty and GMM.Difficulty.Text()
+end
 
 -- "43.2, 24.8" (tenths) or "43, 25", or nil when there is no position.
 function Footer.CoordText(x, y, tenths)
@@ -48,6 +61,10 @@ end
 
 function Footer.UpdateCoords()
     if not coords then return end
+    local size = instanceText()
+    local c = size and SIZE_COLOR or COORD_COLOR
+    coords:SetTextColor(c[1], c[2], c[3])
+    if size then return coords:SetText(size) end
     local x, y = Footer.PlayerXY()
     coords:SetText(Footer.CoordText(x, y, API.CVarBool("coordsByTenths")) or "\226\128\148")   -- em dash
 end
@@ -104,14 +121,22 @@ local function zoomButton(symbol, step)
     return b
 end
 
--- Lay the pill out for the coordinates setting: text and buttons, or buttons only.
+-- Lay the pill out: text and buttons, or buttons only. The text shows the
+-- coordinates (Blizzard's setting, ticking) or the instance's size (static,
+-- hoverable). Called on the coordinates CVars and from Difficulty.Sync, and
+-- calls UpdateCoords, never the other way round.
 function Footer.Layout()
     if not pill then return end
-    local show = API.CVarBool("minimapShowPlayerCoords")
+    local size = instanceText()
+    local show = size ~= nil or API.CVarBool("minimapShowPlayerCoords")
     local zoomW = 2 * Footer.ZOOM_SIZE + 3 + 8
     pill:SetWidth(show and Footer.WIDTH or (zoomW + 4))
     coords:SetShown(show)
-    pill:SetScript("OnUpdate", show and onUpdate or nil)
+    pill:SetScript("OnUpdate", (show and not size) and onUpdate or nil)
+    hit:EnableMouse(size ~= nil)
+    if GameTooltip:IsOwned(hit) then
+        if size then API.Try("difficulty:tooltip", GMM.Difficulty.Tooltip, hit) else GameTooltip:Hide() end
+    end
     if show then Footer.UpdateCoords() end
 end
 
@@ -134,7 +159,18 @@ function Footer.Build()
     coords = Glass.Font(pill, 14, "CENTER")
     coords:SetPoint("LEFT", pill, "LEFT", 8, 0)
     coords:SetPoint("RIGHT", zoomOut, "LEFT", -4, 0)
-    coords:SetTextColor(0.92, 0.94, 0.97)
+    coords:SetTextColor(COORD_COLOR[1], COORD_COLOR[2], COORD_COLOR[3])
+    -- Over the text only (never the zoom buttons), mouse on while the size shows.
+    hit = CreateFrame("Frame", nil, pill)
+    hit:SetPoint("TOPLEFT", pill, "TOPLEFT", 8, 0)
+    hit:SetPoint("BOTTOM", pill, "BOTTOM", 0, 0)
+    hit:SetPoint("RIGHT", zoomOut, "LEFT", -4, 0)
+    hit:SetFrameLevel(Glass.ContentLevel(pill))
+    hit:EnableMouse(false)
+    hit:SetScript("OnEnter", function(self)
+        if instanceText() then API.Try("difficulty:tooltip", GMM.Difficulty.Tooltip, self) end
+    end)
+    hit:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
     pill:SetScript("OnEvent", function(_, event, name)
         if event == "MINIMAP_UPDATE_ZOOM" then
@@ -153,5 +189,5 @@ function Footer.Pill() return pill end
 
 Footer._test = {
     coords = function() return coords end, zoomIn = function() return zoomIn end,
-    zoomOut = function() return zoomOut end, tick = onUpdate,
+    zoomOut = function() return zoomOut end, tick = onUpdate, hit = function() return hit end,
 }

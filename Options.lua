@@ -142,6 +142,11 @@ function Options.RefreshRunicControls()
     API.Try("options:refresh", refreshControls)
 end
 
+-- Every control shows the saved settings again (a radio's click only sets).
+function Options.Refresh()
+    API.Try("options:refresh", refreshControls)
+end
+
 local function buildRunicSettings()
     local enable = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
     enable:SetSize(24, 24)
@@ -204,9 +209,16 @@ local function build()
     local c4 = checkbox(c3, "Glass tracking menu (off: Blizzard's menu)",
         function() return GMM.db.glassTracking end, function(on) GMM.Settings.Set("glassTracking", on) end)
     Options._test.checks = { c3, c4 }
+    local where = label(panel, "New mail and the instance's size:", "GameFontHighlight")
+    where:SetPoint("TOPLEFT", c4, "BOTTOMLEFT", 0, -10)
+    local lastWhere, whereGroup = radios(where, {
+        { "pills", "In the pills (envelope by the zone, size by the coordinates)" },
+        { "ring", "On the ring, as discs" },
+    }, GMM.Settings.Indicators, GMM.Settings.SetIndicators)
+    Options._test.indicatorRadios = whereGroup
     local cnote = label(panel, "Coordinates: Options > Interface, \"Player Minimap Coordinates\" and "
         .. "\"Coordinates by Tenths\".", "GameFontHighlightSmall")
-    cnote:SetPoint("TOPLEFT", c4, "BOTTOMLEFT", 0, -8)
+    cnote:SetPoint("TOPLEFT", lastWhere, "BOTTOMLEFT", 0, -8)
     cnote:SetWidth(295)
 
     -- The drawer: Glass MiniMap Bar's, when it's installed.

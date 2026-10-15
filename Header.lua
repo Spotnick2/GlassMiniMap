@@ -1,7 +1,9 @@
 -- Header.lua: the zone pill above the ring.
 --
---   [ magnifier |  Zone Name  | calendar ]
+--   [ magnifier |  Zone Name  (envelope) calendar ]
 --
+-- The envelope shows while there's new mail, with the pills placement (the
+-- default; Mail.lua decides, #27): the zone name gives it room.
 -- The magnifier opens the glass tracking menu (right-click: Blizzard's own,
 -- Tracking.lua's fallback). The zone name is coloured by the zone's PvP state
 -- as Blizzard colours it (Minimap.lua, Minimap_Update) and opens the world map.
@@ -30,7 +32,7 @@ Header.PVP_COLORS = {
 }
 Header.DEFAULT_COLOR = { 1.0, 0.82, 0.0 }   -- NORMAL_FONT_COLOR
 
-local pill, zoneButton, zoneText, tracking, calendar, invites
+local pill, zoneButton, zoneText, tracking, calendar, invites, mail
 
 local function pvpInfo()
     if not (C_PvP and C_PvP.GetZonePVPInfo) then return nil end
@@ -146,6 +148,35 @@ local function openCalendar()
 end
 
 --------------------------------------------------------------------------------
+-- Mail
+--------------------------------------------------------------------------------
+
+-- The right end of the pill, right to left: the calendar (unless its game
+-- rule hides it), the envelope while shown, then the zone name.
+local function layoutRight()
+    local edge, point = pill, "RIGHT"
+    if calendar:IsShown() then edge, point = calendar, "LEFT" end
+    mail:ClearAllPoints()
+    mail:SetPoint("RIGHT", edge, point, edge == pill and -3 or 0, 0)
+    if mail:IsShown() then edge, point = mail, "LEFT" end
+    zoneButton:ClearAllPoints()
+    zoneButton:SetPoint("TOPLEFT", tracking, "TOPRIGHT", 4, 0)
+    if edge == pill then
+        zoneButton:SetPoint("BOTTOMRIGHT", pill, "BOTTOMRIGHT", -6, 0)
+    else
+        zoneButton:SetPoint("BOTTOMRIGHT", edge, "BOTTOMLEFT", -2, 0)
+    end
+end
+
+function Header.ShowMail(on)
+    if not mail or mail:IsShown() == (on == true) then return end
+    mail:SetShown(on == true)
+    layoutRight()
+end
+
+function Header.MailButton() return mail end
+
+--------------------------------------------------------------------------------
 -- Build
 --------------------------------------------------------------------------------
 
@@ -220,10 +251,23 @@ function Header.Build()
     if API.GameRule("IngameCalendarDisabled") then calendar:Hide() end
     if API.GameRule("IngameTrackingDisabled") then tracking:Hide() end
 
+    -- The envelope: Mail.lua shows it and gives it Blizzard's tooltip.
+    mail = iconButton(pill, Header.BUTTON)
+    mail:SetFrameLevel(content)
+    mail.icon:SetTexture(GMM.Mail.ICON)
+    mail.icon:SetSize(15, 15)
+    mail.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    local mask = mail:CreateMaskTexture()
+    mask:SetTexture(GMM.MEDIA .. "orb_mask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+    mask:SetAllPoints(mail.icon)
+    mail.icon:AddMaskTexture(mask)
+    mail:SetScript("OnEnter", function(self) API.Try("mail:tooltip", GMM.Mail.Tooltip, self) end)
+    mail:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    mail:Hide()
+
     zoneButton = CreateFrame("Button", nil, pill)
-    zoneButton:SetPoint("TOPLEFT", tracking, "TOPRIGHT", 4, 0)
-    zoneButton:SetPoint("BOTTOMRIGHT", calendar, "BOTTOMLEFT", -2, 0)
     zoneButton:SetFrameLevel(content)
+    layoutRight()
     zoneText = Glass.Font(zoneButton, 14, "CENTER")
     zoneText:SetAllPoints(zoneButton)
     zoneButton:SetScript("OnClick", function()
@@ -253,5 +297,5 @@ function Header.TrackingButton() return tracking end
 Header._test = {
     zoneText = function() return zoneText end, tracking = function() return tracking end,
     calendar = function() return calendar end, invites = function() return invites end,
-    zoneButton = function() return zoneButton end,
+    zoneButton = function() return zoneButton end, mail = function() return mail end,
 }

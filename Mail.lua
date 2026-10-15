@@ -1,9 +1,10 @@
--- Mail.lua: the new-mail disc, on the ring at the bottom right (#18).
+-- Mail.lua: new mail, as an envelope in the zone pill (the default) or a disc
+-- on the ring at the bottom right (#18; where: GMM.Settings.Indicators(), #27).
 --
 -- Blizzard's mail icon (MinimapCluster.IndicatorFrame.MailFrame) hangs under
 -- the tracking button, which we fade, so it floated over the zone pill. It is
--- faded too (Blizzard.lua) and keeps doing its own work; this disc shows the
--- same thing in glass: shown while HasNewMail(), Blizzard's tooltip (the last
+-- faded too (Blizzard.lua) and keeps doing its own work; ours shows the same
+-- thing in glass: shown while HasNewMail(), Blizzard's tooltip (the last
 -- three senders) on hover. Like Blizzard's, it has no click, and it follows
 -- Blizzard's own gate, the IngameMailNotificationDisabled game rule
 -- (Minimap.lua:446-452).
@@ -38,11 +39,11 @@ function Mail.Senders()
     return list
 end
 
--- Blizzard's MinimapMailFrameUpdate (Minimap.lua:485-490), on our disc. The
--- names can come a moment after the mail (a second UPDATE_PENDING_MAIL), so a
--- tooltip still showing is redrawn on each one.
-local function tooltip(self)
-    GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+-- Blizzard's MinimapMailFrameUpdate (Minimap.lua:485-490), on the disc or the
+-- envelope. The names can come a moment after the mail (a second
+-- UPDATE_PENDING_MAIL), so a tooltip still showing is redrawn on each one.
+function Mail.Tooltip(owner)
+    GameTooltip:SetOwner(owner, "ANCHOR_LEFT")
     local senders = Mail.Senders()
     local header = #senders >= 1 and (rawget(_G, "HAVE_MAIL_FROM") or "Unread mail from:")
         or (rawget(_G, "HAVE_MAIL") or "You have unread mail")
@@ -50,17 +51,26 @@ local function tooltip(self)
     GameTooltip:Show()
 end
 
+-- On each UPDATE_PENDING_MAIL and when the placement changes: the disc with
+-- the ring placement, the zone pill's envelope with the pills. A tooltip
+-- whose owner went away is closed; one whose owner stays is redrawn.
 function Mail.Update()
     if not disc then return end
     local on = hasMail()
-    disc:SetShown(on)
-    if on and GameTooltip:IsOwned(disc) then API.Try("mail:tooltip", tooltip, disc) end
+    local ring = GMM.Settings.Indicators() == "ring"
+    disc:SetShown(on and ring)
+    GMM.Header.ShowMail(on and not ring)
+    for _, owner in ipairs({ disc, GMM.Header.MailButton() }) do
+        if GameTooltip:IsOwned(owner) then
+            if owner:IsShown() then API.Try("mail:tooltip", Mail.Tooltip, owner) else GameTooltip:Hide() end
+        end
+    end
 end
 
 function Mail.Build()
     if API.GameRule("IngameMailNotificationDisabled") then return false end
     disc = GMM.Ring.AddDisc(Mail.ANGLE, { icon = Mail.ICON, iconCrop = true })
-    disc:SetScript("OnEnter", function(self) API.Try("mail:tooltip", tooltip, self) end)
+    disc:SetScript("OnEnter", function(self) API.Try("mail:tooltip", Mail.Tooltip, self) end)
     disc:SetScript("OnLeave", function() GameTooltip:Hide() end)
     disc:SetScript("OnEvent", Mail.Update)
     API.RegisterEvent(disc, "UPDATE_PENDING_MAIL", "mail disc")

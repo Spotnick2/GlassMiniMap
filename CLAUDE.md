@@ -55,11 +55,11 @@ and a taint minefield (`..\References\PORTING-TBC-TO-FOREVER.md`, "Edit Mode sys
 | `Theme.lua` | clear / smoked / class; every surface registers (`Theme.Register(g, kind)`), `Theme.Refresh()` repaints live, `Theme.OnChange` listeners |
 | `Blizzard.lua` | fades stock art, opens Blizzard's tracking menu |
 | `Ring.lua` | the ring (one `Glass.Disc` behind the map), the north tab, `Ring.AddDisc`, the day/night disc |
-| `Header.lua` | zone pill: magnifier, zone name (PvP colours), calendar |
-| `Footer.lua` | coordinates pill (Blizzard's coords CVars), zoom − / + |
+| `Header.lua` | zone pill: magnifier, zone name (PvP colours), the new-mail envelope (pills placement), calendar |
+| `Footer.lua` | coordinates pill (Blizzard's coords CVars), or the instance size there (pills placement), zoom − / + |
 | `Queue.lua` | Blizzard's LFG eye (`QueueStatusButton`) mirrored to the top left while in its default position (base methods, deferred, out of Edit Mode and combat), with a glass disc behind it |
-| `Mail.lua` | the new-mail disc (bottom right, 135°) while `HasNewMail()`, Blizzard's tooltip; Blizzard's `IndicatorFrame.MailFrame` is faded |
-| `Difficulty.lua` | the instance size disc (right, 90°), mirrored from Blizzard's faded `InstanceDifficulty` after each of its `Update`s, with its own tooltip method |
+| `Mail.lua` | new mail while `HasNewMail()`: the zone pill's envelope, or with `indicators = "ring"` a disc (bottom right, 135°); Blizzard's tooltip; Blizzard's `IndicatorFrame.MailFrame` is faded |
+| `Difficulty.lua` | the instance size, mirrored from Blizzard's faded `InstanceDifficulty` after each of its `Update`s (with its own tooltip method): the coords pill's text ("Dungeon · 5"), or with `indicators = "ring"` a disc (right, 90°) |
 | `Tracking.lua` | the glass tracking menu, a copy of Blizzard's menu logic (`Minimap.lua:636-772`) |
 | `Drawer.lua` | the bottom-left disc as Glass MiniMap Bar's launcher, through its public API |
 | `Options.lua` | Esc > Options > AddOns > Glass MiniMap ("Drawer options" opens Glass MiniMap Bar's page) |

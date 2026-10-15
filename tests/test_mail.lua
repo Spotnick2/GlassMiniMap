@@ -4,7 +4,7 @@
 dofile("tests/wow_stubs.lua")
 dofile("tests/harness.lua")
 
-local GMM = loadAddon()
+local GMM = loadAddon({ db = { indicators = "ring" } })   -- the discs; the pills: test_indicators
 local blizz = MinimapCluster.IndicatorFrame.MailFrame
 local disc = GMM.Mail.Disc()
 
@@ -63,11 +63,11 @@ eq(disc._shown, false, "mail read: the disc goes")
 eq(#GMM.failures, 0, "no failures")
 
 -- Mail at login: shown from the start.
-GMM = loadAddon({ before = function() WoW.mail = true end })
+GMM = loadAddon({ db = { indicators = "ring" }, before = function() WoW.mail = true end })
 eq(GMM.Mail.Disc()._shown, true, "mail waiting at login: shown at once")
 
 -- Blizzard's game rule off-switch: no disc, as Blizzard shows no icon.
-GMM = loadAddon({ before = function()
+GMM = loadAddon({ db = { indicators = "ring" }, before = function()
     Enum.GameRule = { IngameMailNotificationDisabled = 7 }
     C_GameRules.IsGameRuleActive = function(id) return id == 7 end
 end })
