@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## v0.2.0
+
+Released 2026-10-15.
 
 - **Optional runic mode**, off by default: stationary etched runes beneath a
   sparse moving layer, with glowing/etched styles, sway/orbit motion, exterior
