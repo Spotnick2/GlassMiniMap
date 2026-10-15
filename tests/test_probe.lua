@@ -55,7 +55,7 @@ eq(#WoW.chat, 0, "nothing in chat")
 
 -- glass: as built (clear, zoom 0: the minus button disabled).
 fp("mm glass")
-check(logged("glass as expected: theme clear; zoom 0; ring peak 0.180 undimmed"), "glass: clear, as built")
+check(logged("glass as expected: theme clear; zoom 0 of 6; ring peak 0.180 undimmed"), "glass: clear, as built")
 check(logged("minus peak 0%.180 dim 0%.25"), "...the minus button dimmed at zoom 0")
 -- A wash painted the old way (SetAlpha, so its peak stayed) is caught.
 GMM.Settings.SetTheme("smoked")
@@ -80,6 +80,23 @@ fp("mm glass")
 check(logged("glass NOT as expected.*plus peak 0%.180 dim 0%.25 %(want 0%.180 undimmed%) BAD"),
     "glass: an enabled button dimmed fails")
 plusWash.glassDim = nil
+-- A hidden wash fails (hidden is a reading); an unreadable one fails too.
+plusWash:Hide()
+fp("mm glass")
+check(logged("glass NOT as expected.*plus peak 0%.180 undimmed HIDDEN"), "glass: a hidden wash fails")
+plusWash:Show()
+issecretvalue = function(v) return v == true end      -- IsShown answers a secret
+fp("mm glass")
+check(logged("glass NOT as expected.*ring shown <secret>"), "glass: a secret visibility fails")
+issecretvalue = issecret
+-- Fully zoomed in: the plus button is the disabled one, and that's right.
+Minimap._zoom = Minimap:GetZoomLevels() - 1
+WoW.fire("MINIMAP_UPDATE_ZOOM")
+fp("mm glass")
+check(logged("glass as expected: theme clear; zoom 5 of 6.*plus peak 0%.180 dim 0%.25.*minus peak 0%.180 undimmed"),
+    "glass: fully zoomed in, plus dimmed and minus not")
+Minimap._zoom = 0
+WoW.fire("MINIMAP_UPDATE_ZOOM")
 
 -- discs: outside an instance, no mail.
 fp("mm discs")
@@ -157,6 +174,18 @@ S.Run()
 eq(result("mail", 3).check, "PASS", "mail: the disc shows")
 check(result("mail", 3).checkDetail:find("1 sender%(s%) readable"), "...the senders counted")
 check(not result("mail", 3).checkDetail:find("Alt"), "...never named")
+-- Blizzard's own icon must be faded: unfaded or missing fails.
+local mailCheck = FP.procedures["MinimapProbe/mail"].steps[3].check
+local blizzMail = MinimapCluster.IndicatorFrame.MailFrame
+blizzMail._alpha = 1
+local okMail, why = mailCheck()
+check(okMail == false and why:find("Blizzard's mail icon alpha 1"), "Blizzard's icon unfaded: FAIL")
+blizzMail._alpha = 0
+MinimapCluster.IndicatorFrame.MailFrame = false
+okMail, why = mailCheck()
+check(okMail == false and why:find("Blizzard's mail icon alpha MISSING"), "Blizzard's icon missing: FAIL")
+MinimapCluster.IndicatorFrame.MailFrame = blizzMail
+eq(select(1, mailCheck()), true, "...and faded again: PASS")
 S.Run(); settle(); S.Run(); settle(); S.Run(); settle()
 eq(GlassMiniMapDB.theme, "class", "the three themes, in turn")
 S.Answer(true)
@@ -212,6 +241,26 @@ eq(record("instance").status, "done", "instance: done")
 GMM.Difficulty.Disc():Show()
 local ok = select(1, FP.procedures["MinimapProbe/instance"].steps[6].check())
 eq(ok, false, "a disc left showing outside: FAIL")
+GMM.Difficulty.Disc():Hide()
+
+-- Restarted: the last run's tooltip shot doesn't count for this one.
+fp("steps mm instance")
+S.DoneByHand(); S.Run(); settle()
+S.Skip()                                               -- Shoot skipped
+S.Answer(true)
+eq(result("instance", 4).check, "FAIL", "a restart, Shoot skipped: the old shot doesn't count")
+check(result("instance", 4).checkDetail:find("no shot in this run"), "...says so")
+-- Armed, then restarted before the shutter: the old run's shot is never taken.
+S.Back(); S.Back()
+S.Run()                                                -- Shoot: armed
+local shotsBefore = WoW.shots
+fp("steps stop")
+fp("steps mm instance")
+WoW.flushTimers(); settle()
+eq(WoW.shots, shotsBefore, "the old run's shot not taken")
+S.DoneByHand(); S.Run(); settle(); S.Skip(); S.Answer(true)
+eq(result("instance", 4).check, "FAIL", "...and doesn't count for the new run")
+fp("steps stop")
 
 eq(#WoW.chat, 0, "nothing in chat, all along")
 done("test_probe")

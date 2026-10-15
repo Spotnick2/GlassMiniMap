@@ -196,8 +196,15 @@ local function wash(g)
         local dim, whyDim = plainNumber(w.glassDim)
         r.dim, r.err = dim, r.err or (whyDim and ("dim " .. whyDim))
     end
+    -- Hidden is a reading (it fails the check); unreadable is an error.
     local ok, shown = pcall(w.IsShown, w)
-    r.shown = ok and not secret(shown) and shown or nil
+    if not ok then
+        r.err = r.err or "shown ERROR"
+    elseif secret(shown) then
+        r.err = r.err or "shown <secret>"
+    else
+        r.shown = shown == true
+    end
     return r
 end
 
@@ -213,8 +220,9 @@ local function surfaces()
     return g and g.Ring and g.Ring.Glass(), f and f.zoomIn(), f and f.zoomOut()
 end
 
--- The ring and the plus button undimmed at the theme's peak; the minus button
--- at that peak too, dimmed by LibGlass's disabledAlpha exactly when zoom is 0.
+-- The ring undimmed at the theme's peak; the zoom buttons at that peak too,
+-- dimmed by LibGlass's disabledAlpha exactly at their end of the zoom range
+-- (minus at 0, plus at the last level), as Footer.UpdateZoomButtons does.
 local function washCheck()
     local name = theme()
     local want = WASH[name or ""]
@@ -224,9 +232,12 @@ local function washCheck()
     local g = gmm()
     local disabled = g.Glass and g.Glass.STYLE and g.Glass.STYLE.disabledAlpha
     local z = zoom()
-    local ok, parts = true, { "theme " .. name, "zoom " .. str(z) }
+    local okL, levels = pcall(Minimap.GetZoomLevels, Minimap)
+    levels = okL and plainNumber(levels) or nil
+    local ok, parts = true, { "theme " .. name, "zoom " .. str(z) .. " of " .. str(levels) }
+    if z == nil or levels == nil then return false, table.concat(parts, "; ") .. "; zoom unreadable" end
     local function one(label, r, wantDim)
-        local good = not r.err and r.shown ~= false and math.abs(r.peak - want) < TOLERANCE
+        local good = not r.err and r.shown == true and math.abs(r.peak - want) < TOLERANCE
         if wantDim then
             good = good and r.dim ~= nil and math.abs(r.dim - wantDim) < TOLERANCE
         else
@@ -237,9 +248,8 @@ local function washCheck()
             wantDim and ("dim %.2f"):format(wantDim) or "undimmed", good and "" or " BAD")
     end
     one("ring", wash(ring))
-    one("plus", wash(zin.glass))
+    one("plus", wash(zin.glass), z >= levels - 1 and disabled or nil)
     one("minus", wash(zout.glass), z == 0 and disabled or nil)
-    if z == nil then ok = false end
     return ok, table.concat(parts, "; ")
 end
 
@@ -274,10 +284,18 @@ local function mailCheck()
     local on, why = shownState(disc)
     if on == nil then return false, "disc shown: " .. why end
     local senders = #g.Mail.Senders()
+    -- Blizzard's icon must be faded (alpha 0): missing or unreadable fails.
     local blizz = MinimapCluster.IndicatorFrame and MinimapCluster.IndicatorFrame.MailFrame
+    local blizzAlpha
+    if blizz then
+        local okA, a = pcall(blizz.GetAlpha, blizz)
+        if not okA then blizzAlpha = "ERROR" else blizzAlpha = select(2, plainNumber(a)) or a end
+    else
+        blizzAlpha = "MISSING"
+    end
     local detail = ("HasNewMail %s; disc shown %s alpha %s; %d sender(s) readable; Blizzard's mail icon alpha %s")
-        :format(str(has), str(on), str(alphaOf(disc)), senders, str(blizz and alphaOf(blizz)))
-    return has == true and on == true, detail
+        :format(str(has), str(on), str(alphaOf(disc)), senders, str(blizzAlpha))
+    return has == true and on == true and blizzAlpha == 0, detail
 end
 
 -- Which Blizzard flag shows and its text (Difficulty.lua reads the same).
@@ -367,18 +385,25 @@ end
 
 -- A screenshot a few seconds after the button, so the owner can hover a disc
 -- and hold its tooltip open: a run step completes at once, so the shot is
--- recorded here and the next step's check reads it.
+-- recorded here and the next step's check reads it. A shot belongs to the
+-- procedure run that armed it (its record: a new one on every start), so a
+-- restarted procedure never passes on an earlier run's picture.
 local SHOT_DELAY = 3
-local shots = {}   -- label -> { pending } | { file } | { why }
+local shots = {}   -- label -> { rec, pending | file | why }
+
+local function currentRecord() return select(2, ForeverProbe.Steps.Active()) end
 
 local function armShot(label)
     return function()
-        local s = { pending = true }
+        local s = { rec = currentRecord(), pending = true }
         shots[label] = s
         C_Timer.After(SHOT_DELAY, function()
+            if shots[label] ~= s or currentRecord() ~= s.rec then
+                s.pending, s.why = nil, "the procedure moved on before the shot"
+                return say(label .. ": no shot, the procedure moved on")
+            end
             Probe:Screenshot(label, function(file, why)
-                if shots[label] ~= s then return end
-                shots[label] = file and { file = file } or { why = why or "failed" }
+                s.pending, s.file, s.why = nil, file, not file and (why or "failed") or nil
                 say(label .. ": " .. (file and ("shot " .. file) or ("no shot: " .. str(why))))
             end)
         end)
@@ -389,7 +414,7 @@ end
 local function shotCheck(label)
     return function()
         local s = shots[label]
-        if not s then return false, "no shot armed: go Back and press Shoot" end
+        if not s or s.rec ~= currentRecord() then return false, "no shot in this run: go Back and press Shoot" end
         if s.pending then return false, "the shot wasn't taken yet: go Back and press Shoot again" end
         if s.file then return true, s.file end
         return false, "the shot failed: " .. str(s.why)
@@ -431,7 +456,7 @@ end
 local function RESTORE() return { text = "Put your theme and zoom back.", button = "Restore", run = restore } end
 
 Probe:Steps("wash", {
-    rev = 1,
+    rev = 2,
     title = "Smoked's softer wash (#22)",
     SAVE(),
     { text = "Switch to clear glass.", button = "Clear", run = setTheme("clear"), check = washCheck,
@@ -449,7 +474,7 @@ Probe:Steps("wash", {
 })
 
 Probe:Steps("mail", {
-    rev = 1,
+    rev = 2,
     title = "The mail disc (#19)",
     SAVE(),
     { text = "Have mail sent to this character (an alt or a friend) and wait for it. Press Done if you already have unread mail.",
@@ -468,7 +493,7 @@ Probe:Steps("mail", {
 })
 
 Probe:Steps("instance", {
-    rev = 1,
+    rev = 2,
     title = "The instance disc (#21)",
     { text = "Enter a dungeon or a raid.", event = "PLAYER_ENTERING_WORLD" },
     { text = "When loading has finished (wait a few seconds), press Check.", button = "Check", run = function() end,
