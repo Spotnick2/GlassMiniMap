@@ -254,6 +254,22 @@ GMM.Difficulty.Label():SetText("5")
 pillCoords:SetText(GMM.Difficulty.Text())
 eq(select(1, insideCheck()), false, "ring, the size in the pill too: FAIL")
 GMM.Settings.SetIndicators("pills")
+-- Blizzard's coordinates off: the pill's text shows only for the size. Switched
+-- to the ring, it hides and keeps the size as text: not a duplicate.
+WoW.cvars.minimapShowPlayerCoords = false
+WoW.fire("CVAR_UPDATE", "minimapShowPlayerCoords")
+eq(select(1, insideCheck()), true, "pills, coordinates off: the size in the widened pill")
+GMM.Settings.SetIndicators("ring")
+eq(pillCoords._shown, false, "ring, coordinates off: the pill's text hidden")
+eq(pillCoords._text, GMM.Difficulty.Text(), "...still holding the size")
+local okHidden, whyHidden = insideCheck()
+check(okHidden and whyHidden:find("pill hidden"), "...not a duplicate: PASS")
+-- A hidden text never set (logged in on the ring with coordinates off).
+pillCoords._text = nil
+eq(select(1, insideCheck()), true, "ring, a hidden text never set: PASS")
+GMM.Settings.SetIndicators("pills")
+WoW.cvars.minimapShowPlayerCoords = true
+WoW.fire("CVAR_UPDATE", "minimapShowPlayerCoords")
 S.Run(); WoW.flushTimers(); settle()
 S.Answer(true)
 eq(result("instance", 4).check, "PASS", "the tooltip shot")

@@ -345,14 +345,19 @@ local function instanceCheck(inside)
     if on == nil then return false, "disc shown: " .. why end
     local label = textOf(g.Difficulty.Label())
     local where = placement()
+    -- The pill's text counts only while shown: with Blizzard's coordinates
+    -- off it's hidden, and may keep a stale size or never have had a text.
     local pill = g.Footer and g.Footer._test and g.Footer._test.coords()
-    local pillText = pill and textOf(pill)
+    local pillShown, whyPill = shownState(pill)
+    local pillText = pillShown and textOf(pill) or nil
     local sizeText = g.Difficulty.Text and g.Difficulty.Text()
     local s = flagState()
     local detail = ("instance %s, %s players; flag %s %s alpha %s; placement %s; disc shown %s label %s; pill %s")
         :format(str(kind), str(maxPlayers), str(s.which or "none"), str(s.text), str(s.alpha), str(where), str(on),
-            str(label), str(pillText))
-    if not (where and type(pillText) == "string") then return false, detail .. "; placement or pill text: MISSING" end
+            str(label), pillShown and str(pillText) or "hidden")
+    if not where then return false, detail .. "; placement: MISSING" end
+    if pillShown == nil then return false, detail .. "; pill text shown: " .. str(whyPill) end
+    if pillShown and type(pillText) ~= "string" then return false, detail .. "; pill text: unreadable" end
     if s.err then return false, detail .. "; " .. s.err end
     if s.alpha ~= 0 then return false, detail .. "; Blizzard's flag isn't faded" end
     local flagShows = s.which ~= nil and type(s.text) == "string" and s.text ~= ""
