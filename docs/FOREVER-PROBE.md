@@ -53,8 +53,13 @@ The pills placement (#27), `instance` at rev 3, on 1.60.1.70374, 2026-10-15, Rag
 - Unread mail at the time: the envelope sat in the zone pill beside "Ragefire Chasm", the name
   still whole.
 - Outside: the pill back to coordinates (52.1, 49.4) in their colour.
-- Not seen yet: the mail tooltip on the envelope, a long zone name beside it, the switch to "On
-  the ring" in game.
+
+`mail` at rev 3, pills placement, same day, Cleft of Shadow: **passed**. The envelope shown
+(`HasNewMail()` true), no disc, Blizzard's icon alpha 0, one sender readable; the envelope easy to
+read in clear, smoked and class (owner, and the shots); its tooltip, "Unread mail from:" and the
+sender, caught in the delayed shot, above the zone pill.
+
+Not seen yet: a long zone name beside the envelope, the switch to "On the ring" in game.
 
 ## In-game checklist
 
