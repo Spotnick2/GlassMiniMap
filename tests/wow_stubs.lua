@@ -15,7 +15,7 @@
 --   on buttons whose own SetPoint/Show/... it has replaced.
 
 WoW = {}
-WoW.DUMP = os.getenv("GLASSMM_API_DUMP") or "C:/Projects/WoW/References/forever-api-1.60.1.70374.md"
+WoW.DUMP = os.getenv("GLASSMM_API_DUMP") or "C:/Projects/WoW/References/forever-api-1.60.1.70450.md"
 
 --------------------------------------------------------------------------------
 -- Known events (from the dump when present)
@@ -42,7 +42,7 @@ do
                              "CALENDAR_UPDATE_PENDING_INVITES", "MINIMAP_UPDATE_ZOOM", "MINIMAP_UPDATE_TRACKING",
                              "SPELLS_CHANGED", "CVAR_UPDATE", "DIEL_CYCLE_CHANGED", "EDIT_MODE_LAYOUTS_UPDATED",
                              "PLAYER_REGEN_ENABLED", "UPDATE_PENDING_MAIL",
-                             "SCREENSHOT_SUCCEEDED", "SCREENSHOT_FAILED" }) do
+                             "SCREENSHOT_SUCCEEDED", "SCREENSHOT_FAILED", "PLAYER_LOGOUT" }) do
             WoW.KNOWN_EVENTS[e] = true
         end
     end
