@@ -12,7 +12,7 @@
 --   /fp mm discs      the mail disc (#19) and the instance disc (#21), and what they mirror
 --   /fp mm restore    put back the theme and zoom a procedure changed
 --
--- Procedures (/fp steps mm <name>): wash, mail, instance. The mail and instance checks
+-- Procedures (/fp steps mm <name>): wash, mail, instance, edges. The mail and instance checks
 -- follow GlassMiniMap's placement setting (#27): its indicator shows, the other doesn't.
 
 local ADDON = ...
@@ -421,6 +421,22 @@ end
 -- recorded here and the next step's check reads it. A shot belongs to the
 -- procedure run that armed it (its record: a new one on every start), so a
 -- restarted procedure never passes on an earlier run's picture.
+-- The ring's edges (#39, #40): the coords pill drawn under the ring (so its
+-- rim stays closed), and the dark well under the day/night glyph.
+local function edgesCheck()
+    local g = gmm()
+    local host = g and g.Ring and g.Ring.Host()
+    local pill = g and g.Footer and g.Footer.Pill()
+    local sun = g and g.Ring and g.Ring.Sun()
+    if not (host and pill and sun) then return false, "the ring, the coords pill or the sun: MISSING" end
+    local hl, pl = host:GetFrameLevel(), pill:GetFrameLevel()
+    local well = sun.backing
+    local wellShown = well and well:IsShown() and well:GetAlpha() > 0
+    return pl < hl and wellShown == true,
+        ("ring level %s, coords pill level %s (want under); sun's well %s; Minimap level %s"):format(
+            str(hl), str(pl), well and (wellShown and "shown" or "HIDDEN") or "MISSING", str(Minimap:GetFrameLevel()))
+end
+
 local SHOT_DELAY = 3
 local shots = {}   -- label -> { rec, pending | file | why }
 
@@ -522,6 +538,23 @@ Probe:Steps("mail", {
       button = "Shoot", run = armShot("mail: tooltip") },
     { text = "After the shutter: did the tooltip list the senders? (No if it only said you have unread mail.)",
       ask = true, check = shotCheck("mail: tooltip") },
+    RESTORE(),
+})
+
+Probe:Steps("edges", {
+    rev = 1,
+    title = "The ring's edges: the sun's contrast (#40), the coords pill under the rim (#39)",
+    SAVE(),
+    { text = "Go somewhere bright (a desert, snow) with the sun or moon disc over it, then press Check.",
+      button = "Check", run = setTheme("clear"), check = edgesCheck, screenshot = "edges: bright, clear" },
+    { text = "Is the sun (or moon) as easy to see as the drawer's disc and the mail envelope?", ask = true },
+    { text = "At the bottom of the ring: is the rim a closed circle, with the coordinates pill tucked behind it (not cutting it)?",
+      ask = true },
+    { text = "Is the coordinates text still crisp, not dimmed by the ring's shadow?", ask = true },
+    { text = "Smoked glass.", button = "Smoked", run = setTheme("smoked"), screenshot = "edges: bright, smoked" },
+    { text = "Go somewhere dark (a cave, a forest at night), then press Shoot.", button = "Shoot",
+      run = setTheme("clear"), screenshot = "edges: dark, clear" },
+    { text = "Does the sun's dark well read as part of the glass, not a black hole?", ask = true },
     RESTORE(),
 })
 

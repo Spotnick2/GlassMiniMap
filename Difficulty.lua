@@ -106,7 +106,7 @@ end
 function Difficulty.Build()
     local f = flag()
     if not (f and type(f.Update) == "function") then return false end
-    disc = GMM.Ring.AddDisc(Difficulty.ANGLE)
+    disc = GMM.Ring.AddDisc(Difficulty.ANGLE, { backing = true })   -- gold text on glass (#40)
     label = Glass.Font(disc, 11, "CENTER")
     label:SetPoint("CENTER", disc, "CENTER", 0, 0)
     label:SetTextColor(1, 0.82, 0)

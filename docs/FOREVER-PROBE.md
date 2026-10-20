@@ -29,6 +29,7 @@ another module's.
 |---|---|---|
 | `wash` (#22) | clear then smoked: the wash's gradient peak 0.18 / 0.14 on the ring and the zoom buttons; zoomed fully out, the minus button dimmed (LibGlass's `disabledAlpha`) in both; the owner judges the sheen | **passed** (70374): peaks 0.18 / 0.14, minus dimmed 0.25 in both. The sheen change is too small to judge by eye (owner skipped the question); measured on the shots instead, below |
 | `mail` (#19) | after new mail and its senders: the disc shows with `HasNewMail()`, Blizzard's icon faded; a shot in each theme; the tooltip held for a delayed shot | **passed** (70374): disc shown, Blizzard's icon alpha 0, readable in all three themes (owner), tooltip lists the sender (owner) |
+| `edges` (#39, #40) | the coords pill under the ring (frame levels) and the sun's dark well shown; shots on bright ground (clear, smoked) and dark; the owner judges the sun's contrast against the drawer's disc, the closed rim over the pill, the coordinates' crispness, the well on dark ground | not run |
 | `instance` (#21) | in a dungeon or raid, once loading has finished: the disc shows the shown Blizzard flag's size, the flag faded; the tooltip shot; outside, no disc | **passed** (70374), Ragefire Chasm: "5" from Blizzard's Default flag (alpha 0), tooltip matched (owner); outside, no disc. **Pills placement (#27, rev 3): passed**, below |
 
 `wash` and `mail` change the theme and zoom: they save both first (`MinimapProbeDB.restore`, never

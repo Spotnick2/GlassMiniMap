@@ -337,10 +337,18 @@ end
 -- Discs on the ring
 --------------------------------------------------------------------------------
 
+-- The dark well under a glyph (#40): the sun and the instance size are light
+-- shapes on light glass, and over bright terrain they faded out, where an
+-- Interface icon (the drawer's, the mail's) brings its own dark background.
+-- Glass UI's backing colour, at half its density.
+Ring.ICON_BACKING = { 0.04, 0.05, 0.07, 0.55 }
+
 -- A round glass button centred on the ring at `angle` degrees clockwise from
 -- the top. opts: size (Ring.DISC_SIZE), icon (texture, atlas or file),
--- iconCrop (true for Interface\Icons squares), radius (the ring's middle).
--- Returns the button; its glass is button.glass, its icon button.icon.
+-- iconCrop (true for Interface\Icons squares), radius (the ring's middle),
+-- backing (true: the dark well under a glyph, Ring.ICON_BACKING).
+-- Returns the button; its glass is button.glass, its icon button.icon, its
+-- well button.backing.
 function Ring.AddDisc(angle, opts)
     opts = opts or {}
     local size = opts.size or Ring.DISC_SIZE
@@ -350,6 +358,16 @@ function Ring.AddDisc(angle, opts)
     b:RegisterForClicks("AnyUp")
     local g = Glass.Disc(b, size >= 96 and "disc" or "disc_small")
     b.glass = g
+    if opts.backing then
+        local well = math.floor(size * 0.12 + 0.5)
+        local bk = b:CreateTexture(nil, "BORDER")
+        bk:SetPoint("TOPLEFT", b, "TOPLEFT", well, -well)
+        bk:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -well, well)
+        local c = Ring.ICON_BACKING
+        bk:SetColorTexture(c[1], c[2], c[3], c[4])
+        bk:AddMaskTexture(Glass.Mask(b, "disc_mask_small", nil, well))
+        b.backing = bk
+    end
     local icon = b:CreateTexture(nil, "ARTWORK")
     local inset = math.floor(size * 0.18 + 0.5)
     icon:SetPoint("TOPLEFT", b, "TOPLEFT", inset, -inset)
@@ -414,7 +432,7 @@ local function sunTooltip(self)
 end
 
 local function buildSun()
-    sun = Ring.AddDisc(45)
+    sun = Ring.AddDisc(45, { backing = true })
     sun:SetScript("OnEnter", sunTooltip)
     sun:SetScript("OnLeave", function() GameTooltip:Hide() end)
     sun:SetScript("OnClick", function()

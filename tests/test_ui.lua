@@ -156,5 +156,33 @@ WoW.cvars.rotateMinimap = false
 WoW.fire("CVAR_UPDATE", "rotateMinimap", "0")
 near(notch._points[1][4], 0, "fixed again: back at the top")
 
+-- The sun's dark well (#40): a light glyph on light glass faded out over
+-- bright terrain. Under the icon, over the glass, round, Glass UI's dark.
+local well = sun.backing
+check(well ~= nil, "the sun has a dark well under its glyph")
+eq(well._layer, "BORDER", "...above the glass body, under the ARTWORK icon")
+eq(well._color[4], GMM.Ring.ICON_BACKING[4], "...at the well's density")
+near(well._color[1], 0.04, "...dark")
+check(well._masks and #well._masks == 1, "...round (the disc's mask)")
+check(GMM.Difficulty.Disc().backing ~= nil, "the instance disc's gold size has one too")
+-- Interface icons bring their own dark background: no well on theirs.
+local G2 = loadAddon({ gmb = true })
+eq(G2.Drawer.Disc().backing, nil, "the drawer's icon: no well")
+eq(G2.Mail.Disc().backing, nil, "the mail envelope: no well")
+
+-- The coords pill under the ring (#39): over it, it cut the rim open. Its
+-- rim (LibGlass's top frame, +10) stays under the ring's rim; its text and
+-- zoom buttons, clear of the ring, stay above the ring's body.
+local host, pill = G2.Ring.Host(), G2.Footer.Pill()
+check(pill._level < host._level, "the coords pill under the ring")
+local ringTop = G2.Ring.Glass().top
+local pillTop
+for _, s in ipairs(G2.Theme._test.surfaces) do
+    if s.g.top and s.g.top._parent == pill then pillTop = s.g.top end
+end
+check(pillTop and pillTop._level < ringTop._level, "...its rim under the ring's rim")
+check(G2.Footer._test.zoomIn()._level >= host._level, "...its zoom buttons above the ring's body")
+eq(pill._points[1][5], 4, "...still tucked 4 px into the ring (the quest tracker's room)")
+
 eq(next(GMM.failures), nil, "no failures")
 done("test_ui")
