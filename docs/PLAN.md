@@ -23,7 +23,7 @@ The bottom-left gold disc in the mockup is GlassMiniMapBar's launcher orb (confi
 - Themes are **Clear / Smoked / Class colour**, repainted live.
 - Releases go to GitHub and to CurseForge project **1744024** (https://www.curseforge.com/wow/addons/glassminimap).
 
-**Ground rules** (`References\PORTING-TBC-TO-FOREVER.md:443-484`): `MinimapCluster` is an Edit Mode system and a taint minefield.
+**Ground rules** (`References\Docs\PORTING-TBC-TO-FOREVER.md:443-484`): `MinimapCluster` is an Edit Mode system and a taint minefield.
 - Never reparent or move `Minimap`/`MinimapCluster`, never `Hide()` Blizzard system frames, and never reassign Blizzard globals or methods.
 - Fade stock art (alpha 0, mouse off) the way GlassMail's `Skin.lua` does. For frames that must disappear, use GlassPanel's `API.Suppressor` / `API.SystemHider` (`GlassPanel\Compat.lua:112-283`).
 - Position and scale come from Blizzard Edit Mode. All our frames anchor to `Minimap`, so they follow.
@@ -43,7 +43,7 @@ The bottom-left gold disc in the mockup is GlassMiniMapBar's launcher orb (confi
 | `GlassMiniMapBar\{Collector,Bar,Orb,Options}.lua`, `Media\orb_*`, `Tools\make_orb_textures.py`, its tests | The drawer: collector, bar layout and animation, orb skin, dual-list options |
 | `PortalRoulette\UI\Skin.lua:65-116` (`Skin:Disc`), `UI\Wheel\Node.lua:27-155`, `UI\Anim.lua` (`ApproachHover`), `Tools\make_art.py` (`disc_rim`, `node_ring`, `specular`) | Glass discs (sun, launcher), hover glow, and rim art for the big ring |
 | `GuildSpy\Minimap.lua` | Compartment entry for GlassMiniMap itself (`GlassMiniMap_OnAddonCompartmentClick`) |
-| `References\RELEASING.md`, `LIBGLASS-MIGRATION.md` | Release flow, pkgmeta gotchas |
+| `References\Docs\RELEASING.md`, `LIBGLASS-MIGRATION.md` | Release flow, pkgmeta gotchas |
 
 LibGlass is an external at **r6** with `preset = "clean"`. The ring uses `Glass.Disc(host,"disc")`. Pills use `Glass.Apply(host,"small")` / `Glass.Pill`.
 
@@ -206,7 +206,7 @@ The user asked for a glass tracking dialog. It ships in v0.1.0 only if it matche
 
 ## Verification
 - **Offline:** `pwsh tests\run.ps1` runs `luac -p` on every TOC file and all `tests\test_*.lua`.
-  - Strict-globals stubs catch globals the dump doesn't have; `test_methods` checks recorded widget calls against `References\forever-api-1.60.1.70374.md`.
+  - Strict-globals stubs catch globals the dump doesn't have; `test_methods` checks recorded widget calls against `References\Forever\api\forever-api-1.60.1.70374.md`.
   - Neither proves argument contracts, event behaviour or protection rules. That needs the in-game pass.
   - Unit tests cover:
     - compartment reconcile (bulk add, single add, LibDBIcon removal, `compartmentData` dedupe, click args);

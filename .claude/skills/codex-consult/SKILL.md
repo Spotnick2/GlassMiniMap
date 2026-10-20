@@ -85,9 +85,9 @@ For Glass MiniMap, good things to hand Codex:
 - any plan that grows scope beyond the mockup (docs/mockups/glass-minimap.png).
 
 **Always hand it `CLAUDE.md` and `docs/PLAN.md` alongside the diff or plan**, plus
-`C:/Projects/WoW/References/PORTING-TBC-TO-FOREVER.md` and `docs/FOREVER-PROBE.md`. Without them, a
+`C:/Projects/WoW/References/Docs/PORTING-TBC-TO-FOREVER.md` and `docs/FOREVER-PROBE.md`. Without them, a
 cold reviewer argues from Classic-era or Retail behaviour that doesn't hold here.
-`C:/Projects/WoW/References/forever-api-1.60.1.70374.md` is the full API surface, and
+`C:/Projects/WoW/References/Forever/api/forever-api-1.60.1.70374.md` is the full API surface, and
 `C:/Projects/WoW/wow-ui-source` (branch `forever`) is the client's own FrameXML (`Blizzard_Minimap`).
 
 Say what you have already established and ask it not to repeat that work. A clean "no defect found"

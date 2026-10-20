@@ -30,7 +30,7 @@ the in-game checklist in docs/FOREVER-PROBE.md is #2.
 ## The UI contract (non-negotiable)
 
 **Reskin Blizzard's minimap; never replace or move it.** `MinimapCluster` is an Edit Mode system
-and a taint minefield (`..\References\PORTING-TBC-TO-FOREVER.md`, "Edit Mode systems").
+and a taint minefield (`..\References\Docs\PORTING-TBC-TO-FOREVER.md`, "Edit Mode systems").
 - Never reparent, move, `Hide()` or resize `Minimap` / `MinimapCluster`. Edit Mode positions and
   scales them; our frames are children of `MinimapCluster.MinimapContainer` (the frame Edit Mode
   scales) and follow.
@@ -82,10 +82,10 @@ From `..\wow-ui-source` (branch `forever`, 70338) and the 70374 API dump:
 
 ## References
 
-- `..\References\PORTING-TBC-TO-FOREVER.md`: Edit Mode systems, options-page recipe, packaging.
-- `..\References\forever-api-1.60.1.70374.md`: does an API exist?
-- `..\References\RELEASING.md`, `..\References\LIBGLASS-MIGRATION.md`.
-- `..\References\SexyMap-v12.1.2`: a full minimap addon (borders, rotating ring textures, HUD, button
+- `..\References\Docs\PORTING-TBC-TO-FOREVER.md`: Edit Mode systems, options-page recipe, packaging.
+- `..\References\Forever\api\forever-api-1.60.1.70374.md`: does an API exist?
+- `..\References\Docs\RELEASING.md`, `..\References\Docs\LIBGLASS-MIGRATION.md`.
+- `..\References\Addons\MapMinimap\SexyMap`: a full minimap addon (borders, rotating ring textures, HUD, button
   handling). "All Rights Reserved": ideas only, never its code.
 - `..\LibGlass\docs\GLASS-MATERIAL.md`: the material, discs, region fields.
 
@@ -124,7 +124,7 @@ client's data: that's the probe's procedures and the in-game checklist.
 - **The owner merges and closes PRs and launches reviews.**
 - **Plans** get an adversarial review before coding: Codex via the `codex-consult` skill,
   `gpt-6-astra` at high effort, looping until consensus, without overengineering.
-- Releases: `..\References\RELEASING.md`. CurseForge project **1744024**
+- Releases: `..\References\Docs\RELEASING.md`. CurseForge project **1744024**
   (https://www.curseforge.com/wow/addons/glassminimap) builds from the tag webhook through
   `.pkgmeta`; the `release` job publishes a GitHub Release from the tag's `## vX.Y.Z` section of
   `CHANGELOG.md`.
