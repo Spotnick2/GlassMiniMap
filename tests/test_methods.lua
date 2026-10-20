@@ -98,6 +98,17 @@ for _, cmd in ipairs({ "failures", "options", "version", "theme smoked",
     GMM._test.slash(cmd)
 end
 WoW.flushTimers()
+eq(next(GMM.failures), nil, "no failures recorded while exercising everything")
+
+-- Following Glass UI's suite (#37): its options, a live tint change.
+local ui
+GMM, ui = loadAddon({ suite = true, gmb = true })
+GMM.Options._test.panel:Show()
+for _, w in ipairs(WoW.frames) do
+    if w._parent == GMM.Options._test.panel and w._scripts.OnClick then w._scripts.OnClick(w, "LeftButton") end
+end
+ui.SetTint("smoked")
+for _, cmd in ipairs({ "suite", "material clean", "theme suite", "help" }) do GMM._test.slash(cmd) end
 
 local n = 0
 for name in pairs(WoW.methodsCalled) do

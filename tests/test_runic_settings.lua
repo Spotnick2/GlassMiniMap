@@ -36,7 +36,7 @@ eq(GMM.db.runeMotion, "orbit", "motion survives reload")
 eq(GMM.db.runeFog, false, "vapor survives reload")
 eq(GMM.db.runeIntensity, 35, "intensity survives reload")
 eq(GMM.db.runeSpeed, 150, "speed survives reload")
-eq(GMM.db.theme, "smoked", "theme survives reload")
+eq(GMM.Theme.Name(), "smoked", "theme survives reload")
 panel = GMM.Options._test.panel; panel:Show()
 ui = GMM.Options._test.runic
 check(ui.motion[2]:GetChecked(), "settings show saved choices")

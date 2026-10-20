@@ -81,12 +81,17 @@ end
 -- registration runs there, as Blizzard's does).
 -- opts.db: saved variables. opts.gmb: a fake Glass MiniMap Bar API (true, or
 -- its PUBLIC_API_VERSION), loaded before us as OptionalDeps makes it.
+-- opts.suite: a fake Glass UI (WoW.FakeGlassUI's options, or true), loaded
+-- before us too, and returned second; opts.glassUI: a GlassUI of your own.
 -- opts.before(): runs after the files load and before ADDON_LOADED.
 function loadAddon(opts)
     opts = opts or {}
-    GlassMiniMap, GlassMiniMapDB, GlassMiniMapBar, LibStub = nil, nil, nil, nil
+    GlassMiniMap, GlassMiniMapDB, GlassMiniMapBar, LibStub, GlassUI = nil, nil, nil, nil, nil
     WoW.reset()
     if opts.gmb then WoW.FakeGlassMiniMapBar(opts.gmb ~= true and opts.gmb or nil) end
+    local fakeUI
+    if opts.suite then fakeUI = WoW.FakeGlassUI(opts.suite ~= true and opts.suite or nil) end
+    if opts.glassUI ~= nil then GlassUI = opts.glassUI end
     local ns = {}
     for _, line in ipairs(tocLines()) do
         local files
@@ -108,7 +113,7 @@ function loadAddon(opts)
     WoW.fire("PLAYER_LOGIN")
     WoW.fire("PLAYER_ENTERING_WORLD", true, false)
     WoW.flushTimers(0)
-    return GlassMiniMap
+    return GlassMiniMap, fakeUI
 end
 
 function disc() return GlassMiniMap.Drawer.Disc() end

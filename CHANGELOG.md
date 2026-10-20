@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Glass UI's suite.** With Glass UI installed and "Use Glass UI appearance" on for Glass MiniMap,
+  the minimap wears the suite's Pearl glass and follows its tint (clear, smoked or class) live. A
+  tint you pick in Glass MiniMap overrides the suite's for the minimap only, and "Glass UI" goes
+  back to following it. Without Glass UI, nothing changes but the default material below.
+- **Pearl glass by default**: softer gloss, frost and top sheen than before. The old look is
+  Material: Clean (Options > AddOns > Glass MiniMap, or `/gmm material clean`, after a `/reload`).
+- Your glass theme carries over. Uses LibGlass r11.
 - **The sun and moon stand out on bright ground**: the day/night disc (and the instance size's)
   gets a dark well under its glyph, as an addon icon has. Over a desert they used to fade out.
 - **The ring stays a closed circle**: the coordinates pill now tucks behind the ring's bottom

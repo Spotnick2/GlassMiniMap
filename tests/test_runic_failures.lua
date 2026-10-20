@@ -94,7 +94,7 @@ slider.SetValue = function(self, value)
 end
 check(pcall(GMM.Settings.SetTheme, "smoked"), "theme command contains control refresh error")
 check(GMM.failures["options:refresh"] ~= nil, "control error recorded")
-eq(GMM.db.theme, "smoked", "theme remains saved after UI failure")
+eq(GMM.Theme.Name(), "smoked", "theme remains saved after UI failure")
 check(pcall(GMM.Settings.SetRunicMode, false), "mode toggle contains control error")
 check(not GMM.Options._test.runic.controls:IsShown(), "other controls refresh after one fails")
 GMM.Settings.SetRunicMode(true)

@@ -9,9 +9,10 @@ local say = API.Print
 
 -- GlassMiniMapDB, account-wide. Only what the player SET is saved: the rest
 -- falls through to DEFAULTS, so a changed default reaches everyone (GlassMail's
--- rule). The drawer's settings are Glass MiniMap Bar's own.
+-- rule). The drawer's settings are Glass MiniMap Bar's own. The tint is not
+-- here: it's GlassMiniMapDB.look.tint, never pruned (Theme.lua, #37).
 local DEFAULTS = {
-    theme = "clear",          -- "clear" | "smoked" | "class"
+    material = "pearl",       -- "pearl" | "clean", built at load (Glass UI's while following)
     sun = true,               -- the day/night disc
     glassTracking = true,     -- the magnifier opens the glass menu (off: Blizzard's)
     runicMode = false,
@@ -38,13 +39,27 @@ local function steppedRuneNumber(key, value)
     return lo + math.floor((value - lo) / 5 + 0.5) * 5
 end
 
+-- The player's own tint, kept apart (#37): look.tint, an override while
+-- following Glass UI. A saved `theme` from before moves in once, unless a
+-- look.tint is already there; the old prune never saved "clear", so no
+-- default turns into an override. Junk is dropped.
+local function migrateLook(db)
+    local look = db.look
+    local tint = type(look) == "table" and look.tint or nil
+    if not GMM.Theme.IsValid(tint) then tint = nil end
+    if tint == nil and GMM.Theme.IsValid(db.theme) then tint = db.theme end
+    db.theme = nil
+    db.look = tint and { tint = tint } or nil
+end
+
 local function ensureDefaults()
     if type(GlassMiniMapDB) ~= "table" then GlassMiniMapDB = {} end
     local db = setmetatable(GlassMiniMapDB, nil)
+    migrateLook(db)
     for k, v in pairs(DEFAULTS) do
         if db[k] == v then db[k] = nil end
     end
-    if db.theme ~= nil and not GMM.Theme.IsValid(db.theme) then db.theme = nil end
+    if db.material ~= nil and not GMM.MATERIALS[db.material] then db.material = nil end
     for k in pairs(BOOLEANS) do
         if db[k] ~= nil and type(db[k]) ~= "boolean" then db[k] = nil end
     end
@@ -106,12 +121,47 @@ function Settings.SetRuneTuning(key, value)
     return true
 end
 
--- False for a name that isn't a theme; the setting is left as it was.
-function Settings.SetTheme(name)
-    if not GMM.Theme.IsValid(name) then return false end
-    store("theme", name)
+local function tintChanged()
     GMM.Theme.Refresh()
     GMM.Options.RefreshRunicControls()
+    GMM.Suite.Report()
+end
+
+-- The player's own tint (an override while following Glass UI's look), or
+-- "suite": follow Glass UI's again (only while following it). False for
+-- anything else; the setting is left as it was.
+function Settings.SetTheme(name)
+    if name == "suite" then
+        if not GMM.Suite.LookFollowing() then return false end
+        return Settings.ClearTheme()
+    end
+    if not GMM.Theme.IsValid(name) then return false end
+    GMM.db.look = { tint = name }
+    tintChanged()
+    return true
+end
+
+-- No tint of the player's own: the suite's while following, else clear (the
+-- probe's restore puts back "none" this way).
+function Settings.ClearTheme()
+    GMM.db.look = nil
+    tintChanged()
+    return true
+end
+
+-- Our own material, built at load: Glass UI's replaces it while following.
+function Settings.Material()
+    local m = GMM.db and GMM.db.material
+    return GMM.MATERIALS[m] and m or DEFAULTS.material
+end
+
+-- Saved for the next /reload. Refused while following Glass UI (it stays as
+-- saved, unused): false, "set in Glass UI". False for an unknown material.
+function Settings.SetMaterial(name)
+    if GMM.Suite.Following() then return false, "set in Glass UI" end
+    if not GMM.MATERIALS[name] then return false end
+    store("material", name)
+    GMM.Options.Refresh()
     return true
 end
 
@@ -173,7 +223,10 @@ local function onoff(v) return v and "on" or "off" end
 -- The command list: /gmm help prints it.
 local function helpLines()
     local lines = {
-        "/gmm theme clear/smoked/class - the glass (" .. GMM.db.theme .. ")",
+        "/gmm theme clear/smoked/class" .. (GMM.Suite.LookFollowing() and "/suite" or "")
+            .. " - the glass's tint (" .. GMM.Theme.Name() .. ")",
+        "/gmm material pearl/clean - the glass, after /reload (" .. tostring(GMM.GlassPreset) .. ")",
+        "/gmm suite - following Glass UI's look, or not",
         "/gmm sun on/off - the day and night disc (" .. onoff(GMM.db.sun) .. ")",
         "/gmm options - open the options page",
         "/gmm failures - what failed to build or register",
@@ -195,7 +248,16 @@ local function slash(msg)
     local cmd, arg = (msg or ""):lower():match("^%s*(%S*)%s*(.-)%s*$")
     if cmd == "theme" or cmd == "glass" then
         if Settings.SetTheme(arg) then say("theme " .. arg)
-        else say("/gmm theme " .. table.concat(GMM.Theme.NAMES, "/")) end
+        else say("/gmm theme " .. table.concat(GMM.Theme.NAMES, "/") .. (GMM.Suite.LookFollowing() and "/suite" or "")) end
+    elseif cmd == "material" then
+        local ok, why = Settings.SetMaterial(arg)
+        if ok then say("material " .. arg .. ": applies after /reload")
+        elseif why then say("material: " .. why)
+        else say("/gmm material pearl/clean") end
+        local status = GMM.Suite.MaterialStatus()
+        if status then say(status) end
+    elseif cmd == "suite" then
+        say(GMM.Suite.Status())
     elseif cmd == "sun" then
         if ONOFF[arg] == nil then return say("/gmm " .. cmd .. " on/off") end
         Settings.Set(cmd, ONOFF[arg])
@@ -241,10 +303,15 @@ end
 local boot = CreateFrame("Frame")
 boot:SetScript("OnEvent", function(_, event, arg1)
     if event == "ADDON_LOADED" then
-        if arg1 == ADDON then GMM.db = ensureDefaults() end
+        if arg1 == ADDON then
+            GMM.db = ensureDefaults()
+            -- Before any glass: Glass UI's answer picks the material (#37).
+            start("suite", GMM.Suite.Start)
+        end
     elseif event == "PLAYER_LOGIN" then
         -- SavedVariables are read here at the latest (porting guide: not at file scope).
         if not GMM.db then GMM.db = ensureDefaults() end
+        if not GMM.Glass then start("suite", GMM.Suite.Start) end
         start("options", GMM.Options.Register)
         start("blizzard", GMM.Blizzard.Start)
         if start("ring", GMM.Ring.Build) and GMM.Ring.Host() then

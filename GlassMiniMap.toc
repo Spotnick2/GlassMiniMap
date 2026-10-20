@@ -7,12 +7,13 @@
 ## X-Curse-Project-ID: 1744024
 ## IconTexture: Interface\Icons\misc_arrowleft
 ## SavedVariables: GlassMiniMapDB
-## OptionalDeps: GlassMiniMapBar
+## OptionalDeps: GlassMiniMapBar, GlassUI
 
 Libs\LibGlass-1.0\LibGlass-1.0.xml
 Compat.lua
 Glass.lua
 Theme.lua
+Suite.lua
 Blizzard.lua
 Ring.lua
 Header.lua

@@ -5,6 +5,10 @@ dofile("tests/harness.lua")
 
 local GMM = loadAddon()
 local ring = GMM.Ring.Glass()
+-- The wash as built: Pearl's, our default material (#37). Smoked multiplies it.
+local WASH = GMM.Glass.STYLE.wash
+near(WASH, 0.10, "Pearl's wash, our default")
+local SMOKED = WASH * 0.14 / 0.18
 
 -- Theme: clear is the material as built; smoked AltStable's body; class the
 -- class colour shaded by 0.6, at the surface's own alpha. Live, everywhere.
@@ -19,15 +23,15 @@ eq(orbTint._color[4], 0.62, "smoked reaches the north tab too")
 -- gradient on this client (#22).
 local orbWash
 for _, s in ipairs(GMM.Theme._test.surfaces) do if s.kind == "orb" and s.g.wash ~= nil then orbWash = s.g.wash end end
-near(ring.wash._gradient[3].a, 0.14, "smoked: the softer wash")
-near(orbWash._gradient[3].a, 0.14, "...on the north tab too")
+near(ring.wash._gradient[3].a, SMOKED, "smoked: the softer wash")
+near(orbWash._gradient[3].a, SMOKED, "...on the north tab too")
 check(ring.wash._shown ~= false and orbWash._shown ~= false, "...still drawn")
 GMM.Settings.SetTheme("class")
 near(ring.tint._color[1], 0.25 * 0.6, "class: the class colour, shaded (r)")
 near(ring.tint._color[3], 0.92 * 0.6, "class: (b)")
 eq(ring.tint._color[4], built[4], "class: the surface's own alpha")
 check(not GMM.Settings.SetTheme("neon"), "an unknown theme is refused")
-eq(GlassMiniMapDB.theme, "class", "...and the setting kept")
+eq(GlassMiniMapDB.look.tint, "class", "...and the setting kept")
 -- The class colour unreadable at login: clear now, painted at PLAYER_ENTERING_WORLD.
 local get = C_ClassColor.GetClassColor
 C_ClassColor.GetClassColor = function() return nil end
@@ -37,8 +41,8 @@ C_ClassColor.GetClassColor = get
 WoW.fire("PLAYER_ENTERING_WORLD", false, false)
 near(ring.tint._color[1], 0.25 * 0.6, "painted once it can be read")
 GMM.Settings.SetTheme("clear")
-near(ring.wash._gradient[3].a, 0.18, "clear: the wash as built")
-near(orbWash._gradient[3].a, 0.18, "...on the north tab too")
+near(ring.wash._gradient[3].a, WASH, "clear: the wash as built")
+near(orbWash._gradient[3].a, WASH, "...on the north tab too")
 
 -- Zone pill: the minimap's zone name, Blizzard's PvP colours, world map on click.
 local zt = GMM.Header._test.zoneText()
@@ -119,10 +123,10 @@ eq(Minimap._zoom, 4, "minus zooms out")
 Minimap._zoom = 0
 WoW.fire("MINIMAP_UPDATE_ZOOM")
 GMM.Settings.SetTheme("smoked")
-near(zout.glass.wash._gradient[3].a, 0.14 * GMM.Glass.STYLE.disabledAlpha, "smoked, disabled: dimmed")
-near(zin.glass.wash._gradient[3].a, 0.14, "...enabled: the theme's")
+near(zout.glass.wash._gradient[3].a, SMOKED * GMM.Glass.STYLE.disabledAlpha, "smoked, disabled: dimmed")
+near(zin.glass.wash._gradient[3].a, SMOKED, "...enabled: the theme's")
 zin:Click("LeftButton")
-near(zout.glass.wash._gradient[3].a, 0.14, "enabled again: the theme's")
+near(zout.glass.wash._gradient[3].a, SMOKED, "enabled again: the theme's")
 GMM.Settings.SetTheme("clear")
 
 -- The day/night disc: sun by day, moon by night, from Forever's event.

@@ -126,9 +126,10 @@ is wrapped in `pcall` (`API.Try`). We never read `GlassUIDB` and never touch `Gl
 
   Otherwise it uses `Theme.PRESETS` as today. The class colour's retry at `PLAYER_ENTERING_WORLD`
   is unchanged.
-  - **A visible difference:** our Clear is "as built", with no tint. Glass UI's Clear body is
-    {0.13, 0.16, 0.22, 0.24} under an opaque backing. Following Clear paints that tint on our
-    clear (unbacked) ring. That is the suite's tint by design, and it is an in-game check (G.3).
+  - **Clear, compared:** our Clear is "as built", with no tint. Glass UI's Clear body is
+    {0.13, 0.16, 0.22, 0.24}, which is LibGlass's own built tint (`LibGlass.lua:133`), so on our
+    unbacked ring the two look the same. Smoked and class are the same numbers too: the difference
+    is only that the numbers are Glass UI's, so a later change there reaches us.
 - **`LookChanged`** (in or out of combat):
   - copy a valid `tint`, then `Theme.Refresh()`;
   - our surfaces are our own unprotected textures, so it is combat-safe as is;
@@ -140,6 +141,7 @@ is wrapped in `pcall` (`API.Try`). We never read `GlassUIDB` and never touch `Gl
     (`Suite.lua:128`).
 - **Setters:**
   - `Settings.SetTheme(name)` writes `look.tint` and re-reports;
+  - `Settings.ClearTheme()` removes it (the probe's restore of "none" uses it too);
   - `Settings.SetTheme("suite")` clears the override; it is valid only while following with
     `Look`;
   - `/gmm theme clear|smoked|class|suite`.
@@ -226,7 +228,7 @@ rebases, and r11 wins.
 - **Stubs:** a fake `GlassUI.Suite` in `tests/wow_stubs.lua`, in the same spirit as the fake GMMB
   API; `EventRegistry` callbacks.
 
-## 7. In game (`/fp steps mm suite`, MinimapProbe)
+## 7. In game (`/fp steps mm suite` and `suiteoff`, MinimapProbe)
 
 **The existing procedures move first.** MinimapProbe reads and restores `g.db.theme`
 (`MinimapProbe.lua:171`, `:383`), which the migration deletes. Its snapshot keeps the **source**:

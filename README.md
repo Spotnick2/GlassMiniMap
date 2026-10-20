@@ -5,7 +5,9 @@ A liquid-glass minimap for **World of Warcraft: Forever**.
 ![The look (mockup)](https://raw.githubusercontent.com/Spotnick2/GlassMiniMap/main/docs/mockups/glass-minimap.png)
 
 - **A glass ring** around the map, with a north tab that follows north when the minimap rotates.
-- **Clear, smoked or class-coloured glass**, switched live.
+- **Clear, smoked or class-coloured glass**, switched live, in Pearl (the default) or Clean.
+- **Glass UI's suite**: with Glass UI, the minimap can follow the suite's glass and tint (its "Use
+  Glass UI appearance" switch).
 - **Optional runic mode:** stationary engraved runes beneath a moving layer,
   with etched/glowing styles, sway/orbit motion, and exterior vapor. Effects
   follow the glass theme; glow intensity and orbit speed are adjustable.
@@ -28,7 +30,9 @@ it, and everything glass follows.
 
 ## Commands
 
-- `/gmm theme clear|smoked|class`: the glass
+- `/gmm theme clear|smoked|class`: the glass's tint (`suite`: follow Glass UI's again)
+- `/gmm material pearl|clean`: the glass itself, after a `/reload`
+- `/gmm suite`: whether the minimap follows Glass UI
 - `/gmm sun on|off`: the day and night disc
 - `/gmm options`: Esc > Options > AddOns > Glass MiniMap
 - `/gmm runes on|off`: enable or disable runic mode; `/gmm runes` opens settings

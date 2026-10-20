@@ -21,7 +21,6 @@
 GlassMiniMap = GlassMiniMap or {}
 local GMM = GlassMiniMap
 local API = GMM.API
-local Glass = GMM.Glass
 local Theme = GMM.Theme
 local Tracking = {}
 GMM.Tracking = Tracking
@@ -200,10 +199,10 @@ end
 local function makeRow(i)
     local row = CreateFrame("Button", nil, popup)
     row:SetHeight(Tracking.ROW)
-    local inset = Glass.Inset("large") + 2
+    local inset = GMM.Glass.Inset("large") + 2
     row:SetPoint("TOPLEFT", popup, "TOPLEFT", inset, -inset - (i - 1) * Tracking.ROW)
     row:SetPoint("TOPRIGHT", popup, "TOPRIGHT", -inset, -inset - (i - 1) * Tracking.ROW)
-    row:SetFrameLevel(Glass.ContentLevel(popup))
+    row:SetFrameLevel(GMM.Glass.ContentLevel(popup))
     row:RegisterForClicks("AnyUp")
     local hl = row:CreateTexture(nil, "HIGHLIGHT")
     hl:SetAllPoints(row)
@@ -212,7 +211,7 @@ local function makeRow(i)
     local box = CreateFrame("Frame", nil, row)
     box:SetSize(14, 14)
     row.box = box
-    local g = Glass.Apply(box, "small")
+    local g = GMM.Glass.Apply(box, "small")
     g.shadow:SetAlpha(0)
     Theme.Register(g)
     local check = row:CreateTexture(nil, "OVERLAY")
@@ -224,7 +223,7 @@ local function makeRow(i)
     icon:SetSize(18, 18)
     icon:SetPoint("RIGHT", row, "RIGHT", -2, 0)
     row.icon = icon
-    local label = Glass.Font(row, 13, "LEFT")
+    local label = GMM.Glass.Font(row, 13, "LEFT")
     row.label = label
     row:SetScript("OnClick", function(self)
         local d = self.data
@@ -247,7 +246,7 @@ function Tracking.Refresh()
         row:Show()
     end
     for i = #rows + 1, #rowFrames do rowFrames[i]:Hide() end
-    local inset = Glass.Inset("large") + 2
+    local inset = GMM.Glass.Inset("large") + 2
     popup:SetHeight(inset * 2 + math.max(1, #rows) * Tracking.ROW)
 end
 
@@ -275,7 +274,7 @@ function Tracking.Build()
     popup:SetClampedToScreen(true)
     popup:EnableMouse(true)
     popup:Hide()
-    local g = Glass.Apply(popup, "large")
+    local g = GMM.Glass.Apply(popup, "large")
     Theme.Register(g)
     -- An opaque backing under the glass (GlassPanel's dialogs): the glass is
     -- made for the world, and over the map and the quest tracker their text

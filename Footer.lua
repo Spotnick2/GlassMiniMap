@@ -20,7 +20,6 @@
 GlassMiniMap = GlassMiniMap or {}
 local GMM = GlassMiniMap
 local API = GMM.API
-local Glass = GMM.Glass
 local Theme = GMM.Theme
 local Footer = {}
 GMM.Footer = Footer
@@ -97,19 +96,19 @@ function Footer.UpdateZoomButtons()
     if type(z) ~= "number" or type(levels) ~= "number" then return end
     zoomIn:SetEnabled(z < levels - 1)
     zoomOut:SetEnabled(z > 0)
-    Glass.SetSurfaceEnabled(zoomIn.glass, z < levels - 1)
-    Glass.SetSurfaceEnabled(zoomOut.glass, z > 0)
+    GMM.Glass.SetSurfaceEnabled(zoomIn.glass, z < levels - 1)
+    GMM.Glass.SetSurfaceEnabled(zoomOut.glass, z > 0)
 end
 
 local function zoomButton(symbol, step)
     local b = CreateFrame("Button", nil, pill)
     b:SetSize(Footer.ZOOM_SIZE, Footer.ZOOM_SIZE)
-    b:SetFrameLevel(Glass.ContentLevel(pill))
-    b.glass = Glass.Disc(b, "disc_small")
+    b:SetFrameLevel(GMM.Glass.ContentLevel(pill))
+    b.glass = GMM.Glass.Disc(b, "disc_small")
     b.glass.grain:SetAlpha(0)
     b.glass.shadow:SetAlpha(0)
     Theme.Register(b.glass)
-    local fs = Glass.Font(b.glass.top, 15, "CENTER")
+    local fs = GMM.Glass.Font(b.glass.top, 15, "CENTER")
     fs:SetPoint("CENTER", b, "CENTER", 0, 1)
     fs:SetText(symbol)
     fs:SetTextColor(0.92, 0.95, 1)
@@ -152,14 +151,14 @@ function Footer.Build()
     -- the ring: its text and zoom buttons (a few levels up) are clear of it.
     pill:SetPoint("TOP", host, "BOTTOM", 0, 4)
     pill:SetFrameLevel(math.max(0, host:GetFrameLevel() - 1))
-    Theme.Register(Glass.Apply(pill, "small"))
+    Theme.Register(GMM.Glass.Apply(pill, "small"))
 
     zoomIn = zoomButton("+", 1)
     zoomIn:SetPoint("RIGHT", pill, "RIGHT", -4, 0)
     zoomOut = zoomButton("\226\136\146", -1)   -- minus sign
     zoomOut:SetPoint("RIGHT", zoomIn, "LEFT", -3, 0)
 
-    coords = Glass.Font(pill, 14, "CENTER")
+    coords = GMM.Glass.Font(pill, 14, "CENTER")
     coords:SetPoint("LEFT", pill, "LEFT", 8, 0)
     coords:SetPoint("RIGHT", zoomOut, "LEFT", -4, 0)
     coords:SetTextColor(COORD_COLOR[1], COORD_COLOR[2], COORD_COLOR[3])
@@ -168,7 +167,7 @@ function Footer.Build()
     hit:SetPoint("TOPLEFT", pill, "TOPLEFT", 8, 0)
     hit:SetPoint("BOTTOM", pill, "BOTTOM", 0, 0)
     hit:SetPoint("RIGHT", zoomOut, "LEFT", -4, 0)
-    hit:SetFrameLevel(Glass.ContentLevel(pill))
+    hit:SetFrameLevel(GMM.Glass.ContentLevel(pill))
     hit:EnableMouse(false)
     hit:SetScript("OnEnter", function(self)
         if instanceText() then API.Try("difficulty:tooltip", GMM.Difficulty.Tooltip, self) end

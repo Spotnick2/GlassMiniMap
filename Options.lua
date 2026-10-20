@@ -51,6 +51,7 @@ local function radioButton(parent, text)
     rb:GetHighlightTexture():SetBlendMode("ADD")
     local fs = label(parent, text)
     fs:SetPoint("LEFT", rb, "RIGHT", 4, 0)
+    rb.text = fs
     return rb
 end
 
@@ -196,14 +197,53 @@ local function build()
         version:SetText("Version " .. GMM.VersionText() .. " for World of Warcraft: Forever, by Spotnick")
     end
 
+    -- The tint. While following Glass UI's look, "Glass UI" comes first: the
+    -- suite's tint, until the player picks one of their own (an override).
+    -- Selected by source: "Glass UI" while there is no override.
     local look = heading("The glass", version)
+    local Suite = GMM.Suite
     local opts = {}
+    if Suite.LookFollowing() then opts[1] = { "suite", "Glass UI" } end
     for _, name in ipairs(GMM.Theme.NAMES) do opts[#opts + 1] = { name, GMM.Theme.LABELS[name] } end
-    local last, group = radios(look, opts, function() return GMM.db.theme end, GMM.Settings.SetTheme)
+    local last, group = radios(look, opts, function()
+        return GMM.Theme.Own() or (Suite.LookFollowing() and "suite") or "clear"
+    end, GMM.Settings.SetTheme)
     Options._test.themeRadios = group
+    if Suite.LookFollowing() then
+        local suiteRadio = group[1]
+        refreshers[#refreshers + 1] = function()
+            local text = "Glass UI (" .. GMM.Theme.LABELS[Suite.Tint() or "clear"] .. ")"
+            if suiteRadio.text then suiteRadio.text:SetText(text) end
+        end
+    end
+
+    -- The material, built at load. Glass UI's while following: ours is kept,
+    -- shown, and can't be changed here ("Set in Glass UI" opens its page).
+    local mlabel = label(panel, "Material (applies after /reload):", "GameFontHighlight")
+    mlabel:SetPoint("TOPLEFT", last, "BOTTOMLEFT", 0, -10)
+    local lastMaterial, materials = radios(mlabel, { { "pearl", "Pearl" }, { "clean", "Clean" } },
+        GMM.Settings.Material, function(name)
+            if GMM.Settings.SetMaterial(name) then API.Print("material " .. name .. ": applies after /reload") end
+            Options.Refresh()
+        end)
+    local suiteButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+    suiteButton:SetSize(120, 22)
+    suiteButton:SetText("Set in Glass UI")
+    suiteButton:SetPoint("LEFT", materials[1], "RIGHT", 110, 0)
+    suiteButton:SetScript("OnClick", function() Suite.Open() end)
+    local mstatus = label(panel, "", "GameFontHighlightSmall")
+    mstatus:SetPoint("TOPLEFT", lastMaterial, "BOTTOMLEFT", 0, -4)
+    mstatus:SetWidth(295)
+    refreshers[#refreshers + 1] = function()
+        local following = Suite.Following()
+        for _, rb in ipairs(materials) do rb:SetEnabled(not following) end
+        suiteButton:SetShown(following and Suite.CanOpen())
+        mstatus:SetText(Suite.MaterialStatus() or "")
+    end
+    Options._test.material = { radios = materials, button = suiteButton, status = mstatus }
     buildRunicSettings()
 
-    local map = heading("Around the map", last)
+    local map = heading("Around the map", mstatus)
     local c3 = checkbox(map, "Show the day and night disc",
         function() return GMM.db.sun end, function(on) GMM.Settings.Set("sun", on) end)
     local c4 = checkbox(c3, "Glass tracking menu (off: Blizzard's menu)",

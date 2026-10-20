@@ -17,7 +17,6 @@
 GlassMiniMap = GlassMiniMap or {}
 local GMM = GlassMiniMap
 local API = GMM.API
-local Glass = GMM.Glass
 local Theme = GMM.Theme
 local Ring = {}
 GMM.Ring = Ring
@@ -264,7 +263,7 @@ local function buildNotch()
     local m = f:CreateMaskTexture()
     m:SetTexture(GMM.MEDIA .. "notch_mask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
     m:SetAllPoints(f)
-    local st = Glass.STYLE
+    local st = GMM.Glass.STYLE
     local tint = f:CreateTexture(nil, "BACKGROUND", nil, -6)
     tint:SetAllPoints(f)
     tint:SetColorTexture(st.tint[1], st.tint[2], st.tint[3], math.max(st.tint[4], 0.35))
@@ -278,7 +277,7 @@ local function buildNotch()
     rim:SetTexture(GMM.MEDIA .. "notch_rim")
     rim:SetAllPoints(f)
     rim:SetAlpha(0.9)
-    local n = Glass.Font(f, 10, "CENTER")
+    local n = GMM.Glass.Font(f, 10, "CENTER")
     n:SetPoint("CENTER", f, "CENTER", 0, -3)
     n:SetText("N")
     n:SetTextColor(0.92, 0.95, 1)
@@ -356,7 +355,7 @@ function Ring.AddDisc(angle, opts)
     b:SetSize(size, size)
     b:SetFrameLevel(Ring.AboveMap(6))
     b:RegisterForClicks("AnyUp")
-    local g = Glass.Disc(b, size >= 96 and "disc" or "disc_small")
+    local g = GMM.Glass.Disc(b, size >= 96 and "disc" or "disc_small")
     b.glass = g
     if opts.backing then
         local well = math.floor(size * 0.12 + 0.5)
@@ -365,14 +364,14 @@ function Ring.AddDisc(angle, opts)
         bk:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -well, well)
         local c = Ring.ICON_BACKING
         bk:SetColorTexture(c[1], c[2], c[3], c[4])
-        bk:AddMaskTexture(Glass.Mask(b, "disc_mask_small", nil, well))
+        bk:AddMaskTexture(GMM.Glass.Mask(b, "disc_mask_small", nil, well))
         b.backing = bk
     end
     local icon = b:CreateTexture(nil, "ARTWORK")
     local inset = math.floor(size * 0.18 + 0.5)
     icon:SetPoint("TOPLEFT", b, "TOPLEFT", inset, -inset)
     icon:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -inset, inset)
-    icon:AddMaskTexture(Glass.Mask(b, "disc_mask_small", nil, inset))
+    icon:AddMaskTexture(GMM.Glass.Mask(b, "disc_mask_small", nil, inset))
     if opts.icon then API.SetIcon(icon, opts.icon) end
     if opts.iconCrop then icon:SetTexCoord(0.08, 0.92, 0.08, 0.92) end
     b.icon = icon
@@ -466,7 +465,7 @@ function Ring.Build()
     host:SetSize(w + 2 * Ring.RING_WIDTH, w + 2 * Ring.RING_WIDTH)
     host:SetPoint("CENTER", Minimap, "CENTER", 0, 0)
     host:SetFrameLevel(math.max(0, Minimap:GetFrameLevel() - 1))
-    glass = Glass.Disc(host, "disc")
+    glass = GMM.Glass.Disc(host, "disc")
     glass.rim:SetTexture(GMM.MEDIA .. "ring_rim")
     glass.dark:SetTexture(GMM.MEDIA .. "ring_dark")
     Theme.Register(glass)
