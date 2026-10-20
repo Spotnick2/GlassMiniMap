@@ -15,7 +15,7 @@
 --   on buttons whose own SetPoint/Show/... it has replaced.
 
 WoW = {}
-WoW.DUMP = os.getenv("GLASSMM_API_DUMP") or "C:/Projects/WoW/References/forever-api-1.60.1.70374.md"
+WoW.DUMP = os.getenv("GLASSMM_API_DUMP") or "C:/Projects/WoW/References/Forever/api/forever-api-1.60.1.70374.md"
 
 --------------------------------------------------------------------------------
 -- Known events (from the dump when present)
