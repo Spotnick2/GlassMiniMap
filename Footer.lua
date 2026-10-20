@@ -146,9 +146,12 @@ function Footer.Build()
     pill:SetSize(Footer.WIDTH, Footer.HEIGHT)
     -- Tucked 4 px into the ring's bottom: the quest tracker starts at the
     -- cluster's bottom edge, 14 px under the ring (measured on 70374), and a
-    -- pill hanging lower sat on its header.
+    -- pill hanging lower sat on its header. Drawn under the ring (#39): over
+    -- it, the pill cut the ring's rim open; under it, the rim stays a closed
+    -- circle and the pill tucks behind. Only the pill's top middle is under
+    -- the ring: its text and zoom buttons (a few levels up) are clear of it.
     pill:SetPoint("TOP", host, "BOTTOM", 0, 4)
-    pill:SetFrameLevel(GMM.Ring.AboveMap(4))
+    pill:SetFrameLevel(math.max(0, host:GetFrameLevel() - 1))
     Theme.Register(Glass.Apply(pill, "small"))
 
     zoomIn = zoomButton("+", 1)

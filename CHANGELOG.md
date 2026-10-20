@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- **The sun and moon stand out on bright ground**: the day/night disc (and the instance size's)
+  gets a dark well under its glyph, as an addon icon has. Over a desert they used to fade out.
+- **The ring stays a closed circle**: the coordinates pill now tucks behind the ring's bottom
+  edge instead of cutting into it.
+
 ## v0.2.0
 
 Released 2026-10-15.

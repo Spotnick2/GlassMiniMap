@@ -304,5 +304,34 @@ S.DoneByHand(); S.Run(); settle(); S.Skip(); S.Answer(true)
 eq(result("instance", 4).check, "FAIL", "...and doesn't count for the new run")
 fp("steps stop")
 
+--------------------------------------------------------------------------------
+-- edges (#39, #40)
+--------------------------------------------------------------------------------
+GMM.Settings.SetTheme("class")
+fp("steps mm edges")
+S.Run(); settle()
+eq(result("edges", 2).check, "PASS", "edges: the pill under the ring, the sun's well shown")
+check(result("edges", 2).checkDetail:find("want under"), "...the levels logged")
+check(result("edges", 2).screenshots, "...with a screenshot")
+S.Back()
+local pill = GMM.Footer.Pill()
+local level = pill:GetFrameLevel()
+pill:SetFrameLevel(GMM.Ring.Host():GetFrameLevel() + 1)
+S.Run(); settle()
+eq(result("edges", 2).check, "FAIL", "the pill over the ring: FAIL")
+pill:SetFrameLevel(level)
+S.Back()
+GMM.Ring.Sun().backing:SetAlpha(0)
+S.Run(); settle()
+eq(result("edges", 2).check, "FAIL", "the sun's well invisible: FAIL")
+GMM.Ring.Sun().backing:SetAlpha(1)
+S.Answer(true); S.Answer(true); S.Answer(true)
+S.Run(); settle()                                      -- smoked
+S.Run(); settle()                                      -- dark
+S.Answer(true)
+S.Run()                                                -- restore
+eq(GlassMiniMapDB.theme, "class", "edges: the theme put back")
+eq(record("edges").status, "done", "edges: done")
+
 eq(#WoW.chat, 0, "nothing in chat, all along")
 done("test_probe")
