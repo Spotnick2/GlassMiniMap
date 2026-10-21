@@ -30,7 +30,7 @@ it, and everything glass follows.
 
 ## Commands
 
-- `/gmm theme clear|smoked|class`: the glass's tint (`suite`: follow Glass UI's again)
+- `/gmm theme clear|smoked|class`: the glass's tint (Glass UI's while the minimap follows it)
 - `/gmm material pearl|clean`: the glass itself, after a `/reload`
 - `/gmm suite`: whether the minimap follows Glass UI
 - `/gmm sun on|off`: the day and night disc

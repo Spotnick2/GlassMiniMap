@@ -7,10 +7,11 @@
 -- before any glass is built. While following:
 --   - the material is Glass UI's Pearl; our own `material` stays saved and
 --     unused ("set in Glass UI");
---   - the tint is the player's own (GlassMiniMapDB.look.tint, an override) if
---     they set one, else the suite's, live through EventRegistry
---     "GlassUI.Suite.LookChanged"; Suite.Body gives its numbers (tint and
---     wash; its opaque backing is never ours: a ring over terrain).
+--   - the tint is the suite's, live through EventRegistry
+--     "GlassUI.Suite.LookChanged"; our own (GlassMiniMapDB.look.tint) stays
+--     saved and unused, as GlassPanel's and GUF's do (the owner, 70450).
+--     Suite.Body gives its numbers (tint and wash; its opaque backing is
+--     never ours: a ring over terrain).
 -- Not following, no Glass UI, or one without Suite: our own material and tint.
 --
 -- Everything read from Glass UI goes through rawget, every call through
@@ -148,7 +149,7 @@ function Suite.Report()
         minor = GMM.GlassMinor,
         options = function() GMM.Options.Open() end,
         look = { tint = GMM.Theme.Name() },
-        own = { tint = GMM.Theme.Own() ~= nil or nil, backing = true },
+        own = { backing = true },
     }
     pcall(rawget(S, "Report"), Suite.ADDON, state)
 end
@@ -164,6 +165,12 @@ function Suite.Open()
     return ok and opened == true
 end
 
+-- The tint line for the options page and /gmm theme.
+function Suite.TintStatus()
+    if not lookFollowing then return nil end
+    return "Following Glass UI (" .. GMM.Theme.LABELS[GMM.Theme.Name()] .. "): set in Glass UI"
+end
+
 -- The material line for the options page and /gmm material.
 function Suite.MaterialStatus()
     if following and not failure then return "Following Glass UI (Pearl): set in Glass UI" end
@@ -175,7 +182,7 @@ end
 -- /gmm suite: this session's answer and what we built.
 function Suite.Status()
     local tint = GMM.Theme.Name()
-    local source = GMM.Theme.Own() and "yours" or (Suite.Tint() and "Glass UI's" or "the default")
+    local source = lookFollowing and "Glass UI's" or (GMM.Theme.Own() and "yours" or "the default")
     local glass = "glass " .. tostring(GMM.GlassPreset) .. ", tint " .. tint .. " (" .. source .. ")"
     if not S then return "Glass UI: not loaded, or without the suite API; " .. glass end
     if following then

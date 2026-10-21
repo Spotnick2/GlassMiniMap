@@ -7,10 +7,11 @@
 --         in game). The class colour may be unreadable early in a login; the
 --         surface then stays clear and PLAYER_ENTERING_WORLD paints it again.
 --
--- The tint in effect (#37): the player's own (GlassMiniMapDB.look.tint, an
--- override while following Glass UI), else Glass UI's suite tint, else clear.
--- While following, the numbers are Glass UI's (Suite.Body: its clear has a
--- tint of its own); otherwise ours, below. Every consumer (Register, Current,
+-- The tint in effect (#37): Glass UI's suite tint while we follow its look,
+-- else the player's own (GlassMiniMapDB.look.tint, kept and unused while
+-- following, like the material), else clear. While following, the numbers
+-- are Glass UI's (Suite.Body: its clear has a tint of its own); otherwise
+-- ours, below. Every consumer (Register, Current,
 -- Refresh) goes through recipe(), so they can't disagree.
 --
 -- Every glass surface this addon builds registers here: LibGlass surfaces
@@ -41,7 +42,7 @@ Theme.pending = false
 function Theme.IsValid(name) return Theme.PRESETS[name] ~= nil end
 
 -- The player's own tint, or nil. Read raw: GlassMiniMapDB.look is never
--- pruned against a default, so an override equal to ours survives.
+-- pruned against a default, so a chosen clear survives.
 function Theme.Own()
     local look = GMM.db and rawget(GMM.db, "look")
     local v = type(look) == "table" and rawget(look, "tint") or nil
@@ -50,7 +51,8 @@ end
 
 -- The tint in effect.
 function Theme.Name()
-    return Theme.Own() or GMM.Suite.Tint() or "clear"
+    if GMM.Suite.LookFollowing() then return GMM.Suite.Tint() or "clear" end
+    return Theme.Own() or "clear"
 end
 
 -- A tint's numbers: Glass UI's while following, else ours.

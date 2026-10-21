@@ -388,7 +388,8 @@ end
 -- What a procedure changes, saved to put back: in MinimapProbeDB, so a Stop,
 -- a skip or a relog in between doesn't lose it. Never overwritten while one
 -- is outstanding. The tint is saved by its source (#37): the player's own
--- (look.tint) or "none", so a run never leaves an override that wasn't there.
+-- (look.tint) or "none". While Glass MiniMap follows Glass UI's look its own
+-- tint can't be set (putting it back is refused), and no procedure changes it.
 --------------------------------------------------------------------------------
 
 local function ownTint()
@@ -423,16 +424,12 @@ end
 local function setTheme(name)
     return function()
         local g = gmm()
+        if g and g.Suite.LookFollowing() then
+            error("Glass MiniMap follows Glass UI's tint: turn that off (then /reload), or type /glassui look tint " .. name)
+        end
         if not (g and g.Settings.SetTheme(name)) then error("couldn't set the theme " .. name) end
         return name
     end
-end
-
-local function clearOwnTint()
-    local g = gmm()
-    if not g then error("Glass MiniMap isn't loaded") end
-    g.Settings.ClearTheme()
-    return "no tint of Glass MiniMap's own"
 end
 
 -- Glass UI's suite (#37), read from Glass MiniMap's own state: following, the
@@ -457,21 +454,36 @@ local function followingCheck()
     return st.following and st.lookFollowing and st.built == "pearl" and st.washOk, detail
 end
 
--- The tint in effect is `want`; `source` "suite" (no override) or "own".
-local function tintCheck(want, source)
+-- The tint in effect is the suite's, and it is `want`.
+local function tintCheck(want)
     return function()
         local st, detail = suiteState()
         if not st then return false, detail end
-        local fromRight = (source == "own") and st.own == want or (source == "suite" and st.own == nil and st.suiteTint == want)
-        return st.tint == want and fromRight and st.washOk, detail
+        return st.tint == want and st.suiteTint == want and st.washOk, detail
     end
 end
 
+-- While following, our own tint can't be set or cleared ("set in Glass UI"),
+-- and the one saved stays as it was.
+local function tintRefusedCheck()
+    local g = gmm()
+    if not (g and g.Suite) then return false, "Glass MiniMap: MISSING" end
+    local before = g.Theme.Own()
+    local okSet, why = g.Settings.SetTheme(before == "class" and "smoked" or "class")
+    local okClear = g.Settings.ClearTheme()
+    local st, detail = suiteState()
+    local kept = g.Theme.Own() == before
+    return st.lookFollowing and not okSet and not okClear and kept and st.tint == (st.suiteTint or "clear"),
+        ("set %s (%s), clear %s, own %s kept %s; %s"):format(str(okSet), str(why), str(okClear), str(before),
+        str(kept), detail)
+end
+
+-- Our own look back: the material saved and the tint saved (or clear).
 local function ownLookCheck()
     local st, detail = suiteState()
     if not st then return false, detail end
     local g = gmm()
-    return not st.following and st.built == g.Settings.Material() and st.washOk, detail
+    return not st.following and st.built == g.Settings.Material() and st.tint == (st.own or "clear") and st.washOk, detail
 end
 
 local function zoomOut()
@@ -640,34 +652,34 @@ Probe:Steps("instance", {
 })
 
 Probe:Steps("suite", {
-    rev = 1,
+    rev = 2,
     title = "Following Glass UI's suite (#37)",
     SAVE(),
     { text = "With Glass UI loaded and \"Use Glass UI appearance\" on for Glass MiniMap (then /reload), press Check: Pearl, following the suite's look.",
       button = "Check", run = function() end, check = followingCheck, screenshot = "suite: following" },
-    { text = "Drop any tint of Glass MiniMap's own, so it follows the suite's.", button = "Follow", run = clearOwnTint },
-    { text = "Type /glassui look tint smoked, then press Check.", button = "Check", run = function() end,
-      check = tintCheck("smoked", "suite"), screenshot = "suite: smoked" },
+    { text = "Press Check: Glass MiniMap's own tint can't be set while following, and the one saved is kept.",
+      button = "Check", run = function() end, check = tintRefusedCheck },
+    { text = "Open Esc > Options > AddOns > Glass MiniMap. Press Shoot.", button = "Shoot", run = armShot("suite: options") },
+    { text = "After the shutter: are the tint and the material choices grayed out, with \"Following Glass UI\" and a Set in Glass UI button, as GlassPanel's are?",
+      ask = true, check = shotCheck("suite: options") },
+    { text = "Close the options. Type /glassui look tint smoked, then press Check.", button = "Check", run = function() end,
+      check = tintCheck("smoked"), screenshot = "suite: smoked" },
     { text = "Type /glassui look tint class, then press Check.", button = "Check", run = function() end,
-      check = tintCheck("class", "suite"), screenshot = "suite: class" },
+      check = tintCheck("class"), screenshot = "suite: class" },
     { text = "Type /glassui look tint clear, then press Check.", button = "Check", run = function() end,
-      check = tintCheck("clear", "suite"), screenshot = "suite: clear" },
+      check = tintCheck("clear"), screenshot = "suite: clear" },
     { text = "Did the ring, the pills, the discs and the north tab (and the drawer's bar) repaint at each change, with no lag?", ask = true },
-    { text = "Give Glass MiniMap its own tint: smoked.", button = "Smoked", run = setTheme("smoked") },
-    { text = "Type /glassui look tint class, then press Check: Glass MiniMap keeps its smoked.", button = "Check",
-      run = function() end, check = tintCheck("smoked", "own"), screenshot = "suite: override" },
-    { text = "Back to Glass UI's tint (class).", button = "Glass UI", run = clearOwnTint, check = tintCheck("class", "suite") },
     { text = "Start a fight (a training dummy), and while in combat type /glassui look tint smoked. After the fight, press Check.",
-      button = "Check", run = function() end, check = tintCheck("smoked", "suite"), screenshot = "suite: after combat" },
+      button = "Check", run = function() end, check = tintCheck("smoked"), screenshot = "suite: after combat" },
     { text = "Did the minimap repaint during the fight, with no error or blocked action (scriptErrors, BugSack)?", ask = true },
     { text = "Put Glass MiniMap's tint and zoom back. Put Glass UI's tint back yourself (/glassui look tint ...).",
       button = "Restore", run = restore },
 })
 
 Probe:Steps("suiteoff", {
-    rev = 1,
+    rev = 2,
     title = "Not following Glass UI (#37)",
-    { text = "Turn \"Use Glass UI appearance\" off for Glass MiniMap in Glass UI (or disable Glass UI), /reload, start this again, and press Check: our own material and tint.",
+    { text = "Turn \"Use Glass UI appearance\" off for Glass MiniMap in Glass UI (or disable Glass UI), /reload, start this again, and press Check: our own material and tint (the one saved, or clear).",
       button = "Check", run = function() end, check = ownLookCheck, screenshot = "suite: own look" },
     { text = "Are the material and the tint the ones you had before following (Glass MiniMap's options page)?", ask = true },
 })

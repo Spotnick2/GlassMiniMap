@@ -27,8 +27,8 @@ The same API is how GlassMaps (the next addon, replacing Leatrix Maps) will inte
 **Glass UI** (`## OptionalDeps`) is the optional suite orchestrator: its `GlassUI.Suite`, API 1
 (its `docs/SUITE.md`, `docs/SUITE-LOOK.md`), spoken by `Suite.lua` as
 [docs/PLAN-suite.md](docs/PLAN-suite.md) says (#37). While following: its Pearl material (our
-own `material` suspended but kept) and its tint (the player's `GlassMiniMapDB.look.tint`
-overrides it). Asked once, at our `ADDON_LOADED`, so **the LibGlass instance is built there,
+own `material` suspended but kept) and its tint (our `GlassMiniMapDB.look.tint` suspended but
+kept too, grayed out on the page like GlassPanel's: the owner, 70450). Asked once, at our `ADDON_LOADED`, so **the LibGlass instance is built there,
 never at file scope**: read `GMM.Glass` at build or paint time. Contract questions go to Glass
 UI's own session.
 
@@ -60,7 +60,7 @@ and a taint minefield (`..\References\Docs\PORTING-TBC-TO-FOREVER.md`, "Edit Mod
 |---|---|
 | `Compat.lua` | `API.*`: failures, events, version, `Fade`, `GameRule`, `ClassColor`, `SetIcon`, Settings registration |
 | `Glass.lua` | `GMM.BuildGlass(preset)`: our LibGlass instance (Pearl by default, or clean), built once at `ADDON_LOADED`; `GMM.MEDIA` |
-| `Theme.lua` | clear / smoked / class: the tint in effect (`Theme.Name`: the player's own, else Glass UI's, else clear) and its numbers (Glass UI's `Body` while following); every surface registers (`Theme.Register(g, kind)`), `Theme.Refresh()` repaints live, `Theme.OnChange` listeners |
+| `Theme.lua` | clear / smoked / class: the tint in effect (`Theme.Name`: Glass UI's while following its look, else the player's own, else clear) and its numbers (Glass UI's `Body` while following); every surface registers (`Theme.Register(g, kind)`), `Theme.Refresh()` repaints live, `Theme.OnChange` listeners |
 | `Suite.lua` | Glass UI's suite: the once-per-session decision, the build, `LookChanged`, `Body` without its backing, `Report`, `Open` (all `rawget` + `pcall`) |
 | `Blizzard.lua` | fades stock art, opens Blizzard's tracking menu |
 | `Ring.lua` | the ring (one `Glass.Disc` behind the map), the north tab, `Ring.AddDisc`, the day/night disc |

@@ -127,23 +127,20 @@ local function tintChanged()
     GMM.Suite.Report()
 end
 
--- The player's own tint (an override while following Glass UI's look), or
--- "suite": follow Glass UI's again (only while following it). False for
--- anything else; the setting is left as it was.
+-- The player's own tint. Refused while following Glass UI's look (it stays
+-- as saved, unused): false, "set in Glass UI". False for an unknown tint.
 function Settings.SetTheme(name)
-    if name == "suite" then
-        if not GMM.Suite.LookFollowing() then return false end
-        return Settings.ClearTheme()
-    end
+    if GMM.Suite.LookFollowing() then return false, "set in Glass UI" end
     if not GMM.Theme.IsValid(name) then return false end
     GMM.db.look = { tint = name }
     tintChanged()
     return true
 end
 
--- No tint of the player's own: the suite's while following, else clear (the
--- probe's restore puts back "none" this way).
+-- No tint of the player's own: clear (the probe's restore puts back "none"
+-- this way). Refused while following, as SetTheme is.
 function Settings.ClearTheme()
+    if GMM.Suite.LookFollowing() then return false, "set in Glass UI" end
     GMM.db.look = nil
     tintChanged()
     return true
@@ -223,8 +220,7 @@ local function onoff(v) return v and "on" or "off" end
 -- The command list: /gmm help prints it.
 local function helpLines()
     local lines = {
-        "/gmm theme clear/smoked/class" .. (GMM.Suite.LookFollowing() and "/suite" or "")
-            .. " - the glass's tint (" .. GMM.Theme.Name() .. ")",
+        "/gmm theme clear/smoked/class - the glass's tint (" .. GMM.Theme.Name() .. ")",
         "/gmm material pearl/clean - the glass, after /reload (" .. tostring(GMM.GlassPreset) .. ")",
         "/gmm suite - following Glass UI's look, or not",
         "/gmm sun on/off - the day and night disc (" .. onoff(GMM.db.sun) .. ")",
@@ -247,8 +243,10 @@ local ONOFF = { on = true, off = false }
 local function slash(msg)
     local cmd, arg = (msg or ""):lower():match("^%s*(%S*)%s*(.-)%s*$")
     if cmd == "theme" or cmd == "glass" then
-        if Settings.SetTheme(arg) then say("theme " .. arg)
-        else say("/gmm theme " .. table.concat(GMM.Theme.NAMES, "/") .. (GMM.Suite.LookFollowing() and "/suite" or "")) end
+        local ok, why = Settings.SetTheme(arg)
+        if ok then say("theme " .. arg)
+        elseif why then say(GMM.Suite.TintStatus() or ("theme: " .. why))
+        else say("/gmm theme " .. table.concat(GMM.Theme.NAMES, "/")) end
     elseif cmd == "material" then
         local ok, why = Settings.SetMaterial(arg)
         if ok then say("material " .. arg .. ": applies after /reload")

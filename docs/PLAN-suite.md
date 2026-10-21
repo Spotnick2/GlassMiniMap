@@ -6,7 +6,8 @@ accent), on its `main` at 75013df. Glass MiniMap is on its roster as "not yet in
 
 This plan follows the answers of Glass UI's session (2026-10-20):
 - the material: GUF and GRF's rule;
-- the tint: GAB and GlassChat's override model;
+- the tint: GAB and GlassChat's override model, **revised after the first in-game run** to GUF and
+  GRF's rule (§3);
 - the body's tint and wash, with no backing;
 - no accent.
 
@@ -19,7 +20,7 @@ default material becomes Pearl (below).
 | Contract | What we do |
 |---|---|
 | `Suite.Theme(ADDON)` | asked once, at our `ADDON_LOADED`, before any glass is built |
-| `Suite.Report(ADDON, state)` | after the build, and again when a tint override changes |
+| `Suite.Report(ADDON, state)` | after the build, and again when the tint in effect changes |
 | `Suite.Look()`, `GlassUI.Suite.LookChanged` | the `tint` key only; `hover`, `press`, `emptySlots` and `accent` ignored |
 | `Suite.Body(tint)` | its `tint`/`classShade` and `wash` on our surfaces; its `backing` skipped (`own.backing = true`) |
 | `Suite.Accent` | not used: the zone text's PvP colours carry information, and the north tab and the day/night disc are art |
@@ -98,12 +99,20 @@ is wrapped in `pcall` (`API.Try`). We never read `GlassUIDB` and never touch `Gl
   `db.material` is untouched, so stopping following brings it back after a reload.
 - After a failed build, the options page and `/gmm material` say "own look: <reason>".
 
-## 3. The tint (`theme` → `look.tint`, GAB's override model)
+## 3. The tint (`theme` → `look.tint`, suspended while following)
+
+**Revised (the owner, 2026-10-20, after `/fp steps mm suite` rev 1 on 70450).** The plan first took
+GAB and GlassChat's override model: a "Glass UI (…)" choice first, and a tint of the player's own
+overriding the suite's for the minimap. The owner's verdict: the tint should be grayed out like
+the others' (GlassPanel, GUF, GRF), with no choice at the addon level to follow Glass UI. So the
+tint now follows the material's rule (§2): **suspended but kept**. While following with `Look`,
+the suite's tint is the one in effect; ours stays saved and unused, the setters refuse ("set in
+Glass UI"), and the page shows our tint grayed out with "Following Glass UI (<Smoked glass>): set
+in Glass UI". The bullets below are amended to match.
 
 - **Storage:** `GlassMiniMapDB.look = { tint = name }`.
   - It is sparse and read with `rawget`.
-  - `ensureDefaults` never prunes it against `DEFAULTS`: an override equal to our default must
-    survive a reload while following.
+  - `ensureDefaults` never prunes it against `DEFAULTS`: a chosen Clear survives a reload.
   - A junk value is dropped.
 - **The one-time move**, in `ensureDefaults` before the prune and before the defaults metatable:
   - a raw, valid `db.theme` moves into `db.look.tint`, unless `look.tint` is already set (a saved
@@ -111,7 +120,7 @@ is wrapped in `pcall` (`API.Try`). We never read `GlassUIDB` and never touch `Gl
   - `theme` is then deleted, so the move is idempotent with no version stamp;
   - `theme = "clear"` can't be in a saved file, because the old prune removed it.
 - **The effective tint:**
-  - while following with `Look`: `look.tint`, else the suite's tint, else `"clear"`;
+  - while following with `Look`: the suite's tint, else `"clear"` (`look.tint` unused);
   - otherwise: `look.tint`, else `"clear"`.
 - **One resolution path.** `Theme.Resolve()` returns the effective name, the tint (nil = as built)
   and the wash factor. `Theme.Register` (which paints at once, and runs after startup too: the
@@ -135,22 +144,19 @@ is wrapped in `pcall` (`API.Try`). We never read `GlassUIDB` and never touch `Gl
   - our surfaces are our own unprotected textures, so it is combat-safe as is;
   - it is idempotent;
   - an unknown tint value clears the cached suite tint, so the effective tint falls back to our
-    default (Clear) unless we have an override (SUITE-LOOK.md: "keeps its own default for that
-    key"; GAB's `Look.lua:83`);
+    default (Clear) (SUITE-LOOK.md: "keeps its own default for that key"; GAB's `Look.lua:83`);
   - it then re-reports with fresh tables, since Glass UI's `copyReport` keeps a snapshot
     (`Suite.lua:128`).
 - **Setters:**
   - `Settings.SetTheme(name)` writes `look.tint` and re-reports;
   - `Settings.ClearTheme()` removes it (the probe's restore of "none" uses it too);
-  - `Settings.SetTheme("suite")` clears the override; it is valid only while following with
-    `Look`;
-  - `/gmm theme clear|smoked|class|suite`.
-- **The options radio:**
-  - while following with `Look`, it gains "Glass UI (<Smoked>)" as the first choice;
-  - selection goes by source: "Glass UI" while there is no override, even when an override would
-    equal the suite's value.
-- **Report:** `look.tint` is the effective name; `own.tint = true` while there is an override.
-  Re-reported whenever the effective tint changes: an override set or cleared, or a `LookChanged`.
+  - while following with `Look`, both refuse: false, "set in Glass UI";
+  - `/gmm theme clear|smoked|class` (while following it prints the tint line).
+- **The options radio:** our three tints, our own selected. While following with `Look` they are
+  disabled and seen to be (alpha 0.5, gray labels: the radio art has no disabled look, GRF
+  measured), as the material's are, with "Following Glass UI (<Smoked glass>): set in Glass UI".
+- **Report:** `look.tint` is the effective name; `own = { backing = true }`, with no `own.tint`
+  (we never override the suite's tint). Re-reported whenever the effective tint changes.
 
 ## 4. Glass MiniMap Bar: one driver
 
@@ -163,8 +169,7 @@ GMMB is its own roster member. It doesn't speak the suite yet: it is at LibGlass
   - Until then GMMB's glass wears our effective tint, which while following is the suite's.
 - Glass UI's session suggested "forward only when Suite is absent". That would leave GMMB
   untinted until it integrates, so this plan replaces it with the GMMB opt-out above.
-  - Under the opt-out, the bar wears our effective tint, so a Glass MiniMap override reaches the
-    bar too. That's intended: it is drawn as part of the minimap.
+  - Under the opt-out, the bar wears our effective tint, which is the suite's while we follow.
 - **The wash:** GMMB used to apply the forwarded wash with `SetAlpha` on gradient textures, which
   has no effect on this client (our `Theme.lua:56`). GMMB fixed that in its #36/#38 (v1.1.1), so
   the forwarded wash now applies too.
@@ -173,9 +178,8 @@ GMMB is its own roster member. It doesn't speak the suite yet: it is at LibGlass
   - It's true only while GMMB follows and paints the suite look itself (Theme answered Pearl, and
     Look and Body exist).
   - While it's true, a `SetGlassTint` call from an older Glass MiniMap is accepted but not painted.
-  - The trade-off: while GMMB follows, a Glass MiniMap override tint no longer reaches the bar. The
-    bar wears the suite's tint, and only the minimap wears the override. One driver wins over a
-    matching drawer.
+  - With the tint suspended while following (§3), the bar and the minimap wear the same suite tint
+    either way.
 - Glass UI's session agreed (2026-10-20):
   - `FollowsSuite` is read with `rawget` and called under pcall; anything but `true` means "not
     following";
@@ -214,11 +218,11 @@ rebases, and r11 wins.
 - **Tint:**
   - the migration: an empty profile; a legacy `theme = "smoked"`; legacy and `look.tint` in
     conflict; junk;
-  - an override equal to the default surviving a reload;
-  - an unknown suite tint: Clear without an override, the override with one;
-  - the effective value: following with or without an override, not following, and `Look`
+  - a chosen Clear surviving a reload;
+  - an unknown suite tint: Clear, never ours;
+  - the effective value: following (a saved tint of ours unused), not following, and `Look`
     absent;
-  - `"suite"` clears the override;
+  - the setters refused while following, and the saved tint kept;
   - `LookChanged`: a fresh table repaints and re-reports; mutating it afterwards changes nothing;
     it is applied in combat (`WoW.combat`) with no protected call;
   - a late registrant pulls `Look()` at once.
@@ -226,12 +230,11 @@ rebases, and r11 wins.
   the tracking menu's), `Current` and `Refresh` alike, under suite Clear; `classShade` at the built alpha; the class colour
   unreadable, then the retry; the backing never painted; `Body` absent or returning nil falls back
   to our presets.
-- **Report:** its fields; `own.tint` after an override and after clearing it; a re-report on
-  each override change; `Report` throwing is harmless.
+- **Report:** its fields; no `own.tint`; a re-report on each change of the tint in effect;
+  `Report` throwing is harmless.
 - **GMMB:** the tint is forwarded without `FollowsSuite`, and not forwarded when it returns true.
-- **The options page:** the material radio is disabled while following; "Set in Glass UI" calls
-  `Open` under pcall and is hidden without `Open`; the tint radio's "Glass UI" choice shows only
-  while following.
+- **The options page:** the material and tint radios are disabled and dimmed while following,
+  with the tint line; "Set in Glass UI" calls `Open` under pcall and is hidden without `Open`.
 - **Stubs:** a fake `GlassUI.Suite` in `tests/wow_stubs.lua`, in the same spirit as the fake GMMB
   API; `EventRegistry` callbacks.
 
@@ -239,9 +242,9 @@ rebases, and r11 wins.
 
 **The existing procedures move first.** MinimapProbe reads and restores `g.db.theme`
 (`MinimapProbe.lua:171`, `:383`), which the migration deletes. Its snapshot keeps the **source**:
-whether `look.tint` was set and to what, apart from the effective tint. Restoring sets that
-override back or clears it (`SetTheme("suite")` or a direct clear while not following), so a run
-never creates an override that wasn't there, after a reload too. Its wash expectations stop being
+whether `look.tint` was set and to what, apart from the effective tint. Restoring sets it back
+or clears it, so a run never leaves a tint that wasn't there, after a reload too (while following
+the setters refuse, and no procedure changes it). Its wash expectations stop being
 absolute (`0.18`/`0.14`, `:168`) and become the built `STYLE.wash` times the effective factor.
 `test_probe` follows.
 
@@ -251,9 +254,9 @@ absolute (`0.18`/`0.14`, `:168`) and become the built `STYLE.wash` times the eff
   own backing".
 - **G.3:** change the suite tint live (Clear, Smoked, Class): the ring, pills, discs, north tab and
   drawer repaint; screenshots on bright and dark terrain. With GMMB's PR #41 deployed too, the
-  drawer takes the tint from Glass UI, not from us (an override set here stays off the bar).
-- **G.4:** an override in Glass MiniMap: the override holds while the suite changes; "Glass UI"
-  clears it.
+  drawer takes the tint from Glass UI, not from us.
+- **G.4:** our tint while following: the setters refuse and the saved one is kept; the page shows
+  the tint and the material grayed out, with "Set in Glass UI" (a screenshot; suite rev 2).
 - **G.5:** follow off, then reload: our own material and tint come back.
 - **G.6:** a tint change in combat: no `ADDON_ACTION_BLOCKED`, and `scriptErrors 1` is clean.
 

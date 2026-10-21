@@ -1,9 +1,9 @@
 -- Following Glass UI's suite (#37; Glass UI's docs/SUITE.md and
 -- docs/SUITE-LOOK.md, API 1; docs/PLAN-suite.md): asked once at ADDON_LOADED
--- before any glass, Pearl built, our material suspended but kept, the suite's
--- tint live with the player's override winning, Glass UI's body numbers (no
--- backing) on every surface, the report, Glass MiniMap Bar's single driver,
--- the options by source, and a reload with following off.
+-- before any glass, Pearl built, our material and tint suspended but kept,
+-- the suite's tint live, Glass UI's body numbers (no backing) on every
+-- surface, the report, Glass MiniMap Bar's single driver, the options grayed
+-- out, and a reload with following off.
 dofile("tests/wow_stubs.lua")
 dofile("tests/harness.lua")
 
@@ -114,40 +114,44 @@ eq(ring.tint._color[4], 0.62, "in combat: repainted at once")
 eq(next(GMM.failures), nil, "...nothing failed")
 WoW.combat = false
 
--- The player's override wins, and "suite" clears it.
-check(GMM.Settings.SetTheme("class"), "an override")
-eq(GMM.db.look.tint, "class", "...saved in look")
-check(ui.LastReport().own.tint == true and ui.LastReport().look.tint == "class", "...reported as our own")
-ui.SetTint("clear")
-eq(GMM.Theme.Name(), "class", "...it holds while the suite changes")
-GMM.Settings.SetTheme("smoked")
-ui.SetTint("neon")
-eq(GMM.Theme.Name(), "smoked", "an unknown suite tint: the override still wins")
-ui.SetTint("clear")
-check(GMM.Settings.SetTheme("suite"), "\"suite\": follow Glass UI's tint again")
-eq(rawget(GMM.db, "look"), nil, "...the override cleared")
-eq(GMM.Theme.Name(), "clear", "...the suite's")
-eq(ui.LastReport().own.tint, nil, "...reported")
-GMM._test.slash("theme suite")
-check(WoW.chat[#WoW.chat]:find("theme suite", 1, true), "/gmm theme suite")
+-- Our own tint is suspended but kept, as the material is (the owner, 70450).
+ok, why = GMM.Settings.SetTheme("class")
+check(not ok and why == "set in Glass UI", "setting a tint: refused, set in Glass UI")
+check(not GMM.Settings.ClearTheme(), "...clearing it too")
+eq(rawget(GMM.db, "look"), nil, "...nothing saved")
+eq(GMM.Theme.Name(), "smoked", "...the suite's tint still")
+eq(ui.LastReport().own.tint, nil, "...and no tint of our own reported")
+GMM._test.slash("theme class")
+check(WoW.chat[#WoW.chat]:find("Following Glass UI (Smoked glass): set in Glass UI", 1, true), "/gmm theme says so")
 GMM._test.slash("suite")
 check(WoW.chat[#WoW.chat]:find("following Glass UI", 1, true), "/gmm suite says so")
+GMM, ui = loadAddon({ suite = { tint = "class" }, db = { look = { tint = "smoked" }, material = "clean" } })
+eq(GMM.Theme.Name(), "class", "a saved tint of our own: the suite's wins")
+eq(GMM.db.look.tint, "smoked", "...ours kept")
+ui.SetTint("neon")
+eq(GMM.Theme.Name(), "clear", "an unknown suite tint: clear, not ours")
 
--- The options: "Glass UI" first, selected by source; the material suspended.
-ui.SetTint("smoked")
+-- The options: the tint and the material grayed out, ours shown, and why.
+ui.SetTint("clear")
 local panel = GMM.Options._test.panel
 panel:Show()
 local radios = GMM.Options._test.themeRadios
-eq(radios[1].value, "suite", "the tint choices start with Glass UI")
-eq(radios[1].text._text, "Glass UI (Smoked glass)", "...naming the suite's tint")
-check(radios[1]:GetChecked(), "...selected while there's no override")
-GMM.Settings.SetTheme("smoked")
-panel:Hide(); panel:Show()
-check(not radios[1]:GetChecked() and radios[3]:GetChecked(), "an override equal to the suite's shows as our own")
+eq(#radios, 3, "the tint choices: ours only, no Glass UI choice")
+eq(radios[1].value, "clear", "...clear first")
+check(radios[2]:GetChecked(), "...our own kept tint shown (smoked)")
+for i, rb in ipairs(radios) do
+    eq(rb:IsEnabled(), false, "tint choice " .. i .. " disabled")
+    eq(rb._alpha, 0.5, "...and seen to be")
+    eq(rb.text._textColor and rb.text._textColor[1], 0.5, "...its label gray")
+end
+eq(GMM.Options._test.tintStatus._text, "Following Glass UI (Clear glass): set in Glass UI", "...and why, naming the suite's")
+ui.SetTint("class")
+eq(GMM.Options._test.tintStatus._text, "Following Glass UI (Class colour glass): set in Glass UI", "...live")
 radios[1]:Click("LeftButton")
-eq(rawget(GMM.db, "look"), nil, "clicking Glass UI clears it")
+eq(GMM.db.look.tint, "smoked", "a click on a grayed choice changes nothing")
 local m = GMM.Options._test.material
 eq(m.radios[1]:IsEnabled(), false, "the material choices are disabled")
+eq(m.radios[1]._alpha, 0.5, "...and seen to be")
 check(m.radios[2]:GetChecked(), "...showing our own, kept")
 eq(m.status._text, "Following Glass UI (Pearl): set in Glass UI", "...and why")
 eq(m.button._shown, true, "a Set in Glass UI button")
@@ -182,8 +186,12 @@ eq(GMM.GlassPreset, "clean", "...our own Clean again")
 eq(GMM.Theme.Name(), "smoked", "...our own tint")
 eq(ui.LastReport().built, nil, "...reported as our own look")
 eq(ui.LastReport().look.tint, "smoked", "...with our tint")
-check(not GMM.Settings.SetTheme("suite"), "\"suite\" is refused while not following")
-check(GMM.Settings.SetMaterial("pearl"), "our material can be set again")
+check(GMM.Settings.SetTheme("class"), "our tint can be set again")
+check(GMM.Settings.SetMaterial("pearl"), "...and our material")
+GMM.Options._test.panel:Show()
+eq(GMM.Options._test.themeRadios[1]:IsEnabled(), true, "...on the page too")
+eq(GMM.Options._test.themeRadios[1]._alpha, 1, "...not dimmed")
+eq(GMM.Options._test.tintStatus._text, "", "...no Glass UI line")
 
 -- An older API 1 without Look, Body or Open.
 GMM, ui = loadAddon({ suite = { noLook = true, noBody = true, noOpen = true, tint = "smoked" } })
@@ -191,9 +199,10 @@ check(GMM.Suite.Following() and not GMM.Suite.LookFollowing(), "no Look: Pearl, 
 eq(GMM.GlassPreset, "pearl", "...Pearl built")
 eq(GMM.Theme.Name(), "clear", "...our default tint")
 eq(GMM.Ring.Glass().tint._color[1], GMM.Ring.Glass().tint.glassColor[1], "no Body: our clear, as built")
-check(not GMM.Settings.SetTheme("suite"), "...no Glass UI choice")
+check(GMM.Settings.SetTheme("smoked"), "...ours can be set")
+eq(GMM.Theme.Name(), "smoked", "...and is painted")
 GMM.Options._test.panel:Show()
-eq(GMM.Options._test.themeRadios[1].value, "clear", "...nor on the page")
+eq(GMM.Options._test.themeRadios[1]:IsEnabled(), true, "...its choices enabled")
 eq(GMM.Options._test.material.button._shown, false, "no Open: no Set in Glass UI button")
 eq(GMM.Options._test.material.radios[1]:IsEnabled(), false, "...the material still suspended")
 

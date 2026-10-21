@@ -19,7 +19,7 @@ local function own(glassUI, msg, suite)
     eq(GMM.Theme.Name(), "smoked", msg .. ": our own tint")
     eq(next(GMM.failures), nil, msg .. ": nothing failed")
     same(GlassMiniMapDB, msg)
-    check(not GMM.Settings.SetTheme("suite"), msg .. ": no Glass UI tint choice")
+    check(GMM.Settings.SetTheme("smoked"), msg .. ": our tint can be set")
     return GMM, ui
 end
 
@@ -42,7 +42,7 @@ own(nil, "the answer's lookup throws", { answer = function()
 end })
 local GMM, ui = own(nil, "not-following", { answer = function() return nil, "not-following" end })
 eq(ui.LastReport().built, nil, "not-following: reported, our own look")
-eq(ui.LastReport().own.tint, true, "...with our own tint")
+eq(ui.LastReport().look.tint, "smoked", "...with our own tint")
 GMM, ui = own(nil, "not-ready", { answer = function() return nil, "not-ready" end })
 eq(GMM.Suite._test.answer(), "not-ready", "not-ready: recorded")
 GMM._test.slash("suite")
@@ -60,7 +60,8 @@ check(GMM.Suite.Following(), "a throwing Report: still following")
 eq(next(GMM.failures), nil, "...nothing failed")
 eq(GMM.Theme.Name(), "clear", "a junk Look tint: our default")
 eq(GMM.Ring.Glass().tint._color[1], GMM.Ring.Glass().tint.glassColor[1], "a junk Body: our own clear")
-check(GMM.Settings.SetTheme("smoked"), "...and a setter still works")
+check(not GMM.Settings.SetTheme("smoked"), "...the tint still Glass UI's to set")
+check(GMM.Settings.Set("sun", false), "...and another setter still works")
 
 -- A LibGlass older than r11 won LibStub: Pearl can't be built.
 -- New refuses a copy whose ready isn't its MINOR: an old copy has both at 10.

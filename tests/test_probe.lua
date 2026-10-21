@@ -384,39 +384,52 @@ S.Back()
 GMM.GlassPreset = "pearl"
 S.Run(); settle()
 eq(result("suite", 2).check, "PASS", "following: Pearl and the suite's look")
-S.Run()                                                -- Follow: no own tint
-eq(rawget(GlassMiniMapDB, "look"), nil, "...the own tint dropped")
-GMM.Settings.SetTheme("smoked")
+-- The refusal: a Settings that took the tint would fail it.
+local setTheme = GMM.Settings.SetTheme
+GMM.Settings.SetTheme = function() return true end
 S.Run(); settle()
-eq(result("suite", 4).check, "FAIL", "smoked, but our own: FAIL (the suite's was asked)")
+eq(result("suite", 3).check, "FAIL", "our tint accepted while following: FAIL")
+GMM.Settings.SetTheme = setTheme
 S.Back()
-GMM.Settings.ClearTheme()
 S.Run(); settle()
-eq(result("suite", 4).check, "PASS", "smoked: the suite's")
+eq(result("suite", 3).check, "PASS", "our tint refused while following, and kept")
+eq(GlassMiniMapDB.look.tint, "class", "...still class")
+S.Run(); WoW.flushTimers(); settle()                   -- the options, shot
+S.Answer(true)
+eq(result("suite", 5).check, "PASS", "the options: shot and answered")
 S.Run(); settle()
-eq(result("suite", 5).check, "FAIL", "class asked, the suite still smoked: FAIL")
+eq(result("suite", 6).check, "PASS", "smoked: the suite's (our saved class unused)")
+S.Run(); settle()
+eq(result("suite", 7).check, "FAIL", "class asked, the suite still smoked: FAIL (ours is class)")
 S.Back()
 ui.SetTint("class")
 S.Run(); settle()
-eq(result("suite", 5).check, "PASS", "class: the suite's")
+eq(result("suite", 7).check, "PASS", "class: the suite's")
+-- Clear asked while the suite says class (class's wash is clear's, so only
+-- the tint tells): the tint in effect and the suite's must both be clear.
+local name, tintOf = GMM.Theme.Name, GMM.Suite.Tint
+GMM.Theme.Name = function() return "clear" end
+S.Run(); settle()
+eq(result("suite", 8).check, "FAIL", "clear in effect, the suite's class: FAIL")
+S.Back()
+GMM.Theme.Name = function() return "class" end
+GMM.Suite.Tint = function() return "clear" end
+S.Run(); settle()
+eq(result("suite", 8).check, "FAIL", "the suite's clear, class in effect: FAIL")
+GMM.Theme.Name, GMM.Suite.Tint = name, tintOf
+S.Back()
 ui.SetTint("clear")
 S.Run(); settle()
-eq(result("suite", 6).check, "PASS", "clear: the suite's")
+eq(result("suite", 8).check, "PASS", "clear: the suite's")
 S.Answer(true)
-S.Run()                                                -- an own smoked
-ui.SetTint("class")
-S.Run(); settle()
-eq(result("suite", 9).check, "PASS", "the override holds while the suite says class")
-S.Run()
-eq(result("suite", 10).check, "PASS", "back to Glass UI's: class")
 WoW.combat = true
 ui.SetTint("smoked")
 WoW.combat = false
 S.Run(); settle()
-eq(result("suite", 11).check, "PASS", "after combat: the suite's smoked")
+eq(result("suite", 10).check, "PASS", "after combat: the suite's smoked")
 S.Answer(true)
 S.Run()
-eq(GlassMiniMapDB.look.tint, "class", "suite: the own tint put back")
+eq(GlassMiniMapDB.look.tint, "class", "suite: our own tint untouched")
 eq(record("suite").status, "done", "suite: done")
 
 -- Not following: the probe's check fails while following, passes after.
@@ -430,6 +443,12 @@ S = FP.Steps
 loadProbe({ db = db })
 db = MinimapProbeDB
 fp("steps mm suiteoff")
+local name = GMM.Theme.Name
+GMM.Theme.Name = function() return "clear" end           -- class's wash: only the tint differs
+S.Run(); settle()
+eq(result("suiteoff", 1).check, "FAIL", "not following, but not our own tint: FAIL")
+GMM.Theme.Name = name
+S.Back()
 S.Run(); settle()
 eq(result("suiteoff", 1).check, "PASS", "not following: our own material and tint")
 check(result("suiteoff", 1).checkDetail:find("built pearl, tint class"), "...Pearl (ours) and our class")

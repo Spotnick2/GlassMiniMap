@@ -70,6 +70,16 @@ local function checkbox(anchor, text, get, set, parent)
     return cb
 end
 
+-- Off, and seen to be, or back on: the radio art has no disabled look and the
+-- label is a FontString of ours, so SetEnabled alone shows nothing (GRF
+-- measured both staying bright).
+local function dim(rb, off)
+    rb:SetEnabled(not off)
+    rb:SetAlpha(off and 0.5 or 1)
+    local c = off and 0.5 or 1
+    if rb.text then rb.text:SetTextColor(c, c, c) end
+end
+
 -- Mutually exclusive choices stacked under `anchor`: { {value, text}, ... }.
 local function radios(anchor, options, get, set, parent)
     parent = parent or panel
@@ -197,30 +207,26 @@ local function build()
         version:SetText("Version " .. GMM.VersionText() .. " for World of Warcraft: Forever, by Spotnick")
     end
 
-    -- The tint. While following Glass UI's look, "Glass UI" comes first: the
-    -- suite's tint, until the player picks one of their own (an override).
-    -- Selected by source: "Glass UI" while there is no override.
+    -- The tint and the material. Glass UI's while following, as GlassPanel's
+    -- and GUF's are: ours are kept, shown grayed out, and can't be changed
+    -- here ("Set in Glass UI" opens its page).
     local look = heading("The glass", version)
     local Suite = GMM.Suite
     local opts = {}
-    if Suite.LookFollowing() then opts[1] = { "suite", "Glass UI" } end
     for _, name in ipairs(GMM.Theme.NAMES) do opts[#opts + 1] = { name, GMM.Theme.LABELS[name] } end
-    local last, group = radios(look, opts, function()
-        return GMM.Theme.Own() or (Suite.LookFollowing() and "suite") or "clear"
-    end, GMM.Settings.SetTheme)
+    local last, group = radios(look, opts, function() return GMM.Theme.Own() or "clear" end, GMM.Settings.SetTheme)
     Options._test.themeRadios = group
-    if Suite.LookFollowing() then
-        local suiteRadio = group[1]
-        refreshers[#refreshers + 1] = function()
-            local text = "Glass UI (" .. GMM.Theme.LABELS[Suite.Tint() or "clear"] .. ")"
-            if suiteRadio.text then suiteRadio.text:SetText(text) end
-        end
+    local tstatus = label(panel, "", "GameFontHighlightSmall")
+    tstatus:SetPoint("TOPLEFT", last, "BOTTOMLEFT", 0, -4)
+    tstatus:SetWidth(295)
+    refreshers[#refreshers + 1] = function()
+        for _, rb in ipairs(group) do dim(rb, Suite.LookFollowing()) end
+        tstatus:SetText(Suite.TintStatus() or "")
     end
+    Options._test.tintStatus = tstatus
 
-    -- The material, built at load. Glass UI's while following: ours is kept,
-    -- shown, and can't be changed here ("Set in Glass UI" opens its page).
     local mlabel = label(panel, "Material (applies after /reload):", "GameFontHighlight")
-    mlabel:SetPoint("TOPLEFT", last, "BOTTOMLEFT", 0, -10)
+    mlabel:SetPoint("TOPLEFT", tstatus, "BOTTOMLEFT", 0, -10)
     local lastMaterial, materials = radios(mlabel, { { "pearl", "Pearl" }, { "clean", "Clean" } },
         GMM.Settings.Material, function(name)
             if GMM.Settings.SetMaterial(name) then API.Print("material " .. name .. ": applies after /reload") end
@@ -236,7 +242,7 @@ local function build()
     mstatus:SetWidth(295)
     refreshers[#refreshers + 1] = function()
         local following = Suite.Following()
-        for _, rb in ipairs(materials) do rb:SetEnabled(not following) end
+        for _, rb in ipairs(materials) do dim(rb, following) end
         suiteButton:SetShown(following and Suite.CanOpen())
         mstatus:SetText(Suite.MaterialStatus() or "")
     end
