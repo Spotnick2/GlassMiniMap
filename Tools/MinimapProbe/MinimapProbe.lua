@@ -432,6 +432,17 @@ local function setTheme(name)
     end
 end
 
+-- For a procedure whose tint is only scenery (edges): while following Glass
+-- UI's tint, keep it rather than stop the procedure.
+local function sceneryTheme(name)
+    local set = setTheme(name)
+    return function()
+        local g = gmm()
+        if g and g.Suite.LookFollowing() then return "kept Glass UI's " .. str(g.Theme.Name()) .. " (following)" end
+        return set()
+    end
+end
+
 -- Glass UI's suite (#37), read from Glass MiniMap's own state: following, the
 -- material built, the tint in effect, and the wash that goes with them.
 local function suiteState()
@@ -634,15 +645,16 @@ Probe:Steps("edges", {
     title = "The ring's edges: the coords pill under the rim (#39) and over the runic vapor (#42)",
     SAVE(),
     { text = "With the runic ring and its vapor on (/gmm runes on, /gmm runes fog on), go somewhere bright (a desert, snow), then press Check.",
-      button = "Check", run = setTheme("clear"), check = edgesCheck, screenshot = "edges: bright, clear" },
+      button = "Check", run = sceneryTheme("clear"), check = edgesCheck, screenshot = "edges: bright, clear" },
     { text = "Is the coordinates text crisp, with the vapor drifting behind it rather than over it?", ask = true },
     { text = "And the zoom buttons: drawn over the vapor too?", ask = true },
     { text = "At the bottom of the ring: is the rim a closed circle, with the pill tucked behind it?", ask = true },
     { text = "Does the vapor tinting the pill's top still bother you? (Yes asks for #42's option 2: keeping it off the pill.)",
       ask = true },
-    { text = "Smoked glass.", button = "Smoked", run = setTheme("smoked"), screenshot = "edges: bright, smoked" },
+    { text = "Smoked glass (following Glass UI's tint: type /glassui look tint smoked first).", button = "Smoked",
+      run = sceneryTheme("smoked"), screenshot = "edges: bright, smoked" },
     { text = "Go somewhere dark (a cave, a forest at night), then press Shoot.", button = "Shoot",
-      run = setTheme("clear"), screenshot = "edges: dark, clear" },
+      run = sceneryTheme("clear"), screenshot = "edges: dark, clear" },
     { text = "On dark ground: the coordinates still crisp over the vapor?", ask = true },
     RESTORE(),
 })

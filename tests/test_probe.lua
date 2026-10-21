@@ -471,6 +471,17 @@ S.Run()
 eq(GlassMiniMapDB.look.tint, "class", "suite: our own tint untouched")
 eq(record("suite").status, "done", "suite: done")
 
+-- edges while following: its tints are scenery, the suite's is kept.
+GMM.Settings.SetRunicMode(true)
+fp("steps mm edges")
+S.Run(); settle()
+eq(result("edges", 2).check, "PASS", "edges while following: runs, the suite's tint kept")
+eq(result("edges", 2).lastError, nil, "...with no error")
+check(result("edges", 2).detail:find("following", 1, true), "...and says so")
+eq(GMM.Theme.Name(), "smoked", "...the suite's smoked still in effect")
+fp("steps stop")
+GMM.Settings.SetRunicMode(false)
+
 -- Not following: the probe's check fails while following, passes after.
 fp("steps mm suiteoff")
 S.Run(); settle()
