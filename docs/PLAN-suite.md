@@ -165,10 +165,17 @@ GMMB is its own roster member. It doesn't speak the suite yet: it is at LibGlass
   untinted until it integrates, so this plan replaces it with the GMMB opt-out above.
   - Under the opt-out, the bar wears our effective tint, so a Glass MiniMap override reaches the
     bar too. That's intended: it is drawn as part of the minimap.
-- **A known limit:** GMMB applies the forwarded wash with `SetAlpha` on gradient textures
-  (`GlassMiniMapBar\Bar.lua:376`, `Orb.lua:122`), which has no effect on this client (our
-  `Theme.lua:56`). So the bar follows the tint but not the wash. That's for GMMB's own issue; G.3
-  checks the drawer for the tint only.
+- **The wash:** GMMB used to apply the forwarded wash with `SetAlpha` on gradient textures, which
+  has no effect on this client (our `Theme.lua:56`). GMMB fixed that in its #36/#38 (v1.1.1), so
+  the forwarded wash now applies too.
+- **GMMB's side (its PR #41, 2026-10-20):** `FollowsSuite()`, additive on its API version 1,
+  settled at its `ADDON_LOADED`, so it's answered before our `Drawer.Start` at `PLAYER_LOGIN`.
+  - It's true only while GMMB follows and paints the suite look itself (Theme answered Pearl, and
+    Look and Body exist).
+  - While it's true, a `SetGlassTint` call from an older Glass MiniMap is accepted but not painted.
+  - The trade-off: while GMMB follows, a Glass MiniMap override tint no longer reaches the bar. The
+    bar wears the suite's tint, and only the minimap wears the override. One driver wins over a
+    matching drawer.
 - Glass UI's session agreed (2026-10-20):
   - `FollowsSuite` is read with `rawget` and called under pcall; anything but `true` means "not
     following";
@@ -243,7 +250,8 @@ absolute (`0.18`/`0.14`, `:168`) and become the built `STYLE.wash` times the eff
 - **G.2:** with Glass UI, following: Pearl, and Glass UI's card says "Following (Pearl)" with "its
   own backing".
 - **G.3:** change the suite tint live (Clear, Smoked, Class): the ring, pills, discs, north tab and
-  drawer repaint; screenshots on bright and dark terrain.
+  drawer repaint; screenshots on bright and dark terrain. With GMMB's PR #41 deployed too, the
+  drawer takes the tint from Glass UI, not from us (an override set here stays off the bar).
 - **G.4:** an override in Glass MiniMap: the override holds while the suite changes; "Glass UI"
   clears it.
 - **G.5:** follow off, then reload: our own material and tint come back.
