@@ -133,10 +133,16 @@ client's data: that's the probe's procedures and the in-game checklist.
 - **The owner merges and closes PRs and launches reviews.**
 - **Plans** get an adversarial review before coding: Codex via the `codex-consult` skill,
   `gpt-6-astra` at high effort, looping until consensus, without overengineering.
-- Releases: `..\References\Docs\RELEASING.md`. CurseForge project **1744024**
-  (https://www.curseforge.com/wow/addons/glassminimap) builds from the tag webhook through
-  `.pkgmeta`; the `release` job publishes a GitHub Release from the tag's `## vX.Y.Z` section of
-  `CHANGELOG.md`.
+- Releases: `..\References\Docs\RELEASING.md`. A tag publishes three ways (#34):
+  - CurseForge project **1744024** (https://www.curseforge.com/wow/addons/glassminimap) builds
+    from the tag webhook through `.pkgmeta`;
+  - the `release` job publishes `check`'s zip as a GitHub Release, with `release.json` and the
+    tag's `## vX.Y.Z` section of `CHANGELOG.md` as the notes;
+  - the `wago` job uploads the same zip to Wago Addons project **5NRgYe63**
+    (https://addons.wago.io/addons/5NRgYe63; `## X-Wago-ID`, the `WAGO_API_TOKEN` secret).
+  An alpha tag (`vX.Y.Z-alpha1`) is a pre-release on GitHub and alpha on CurseForge and Wago, and
+  falls back to the `## vX.Y.Z` section, then `## Unreleased`. A failed target is published
+  again from Actions > Package check > Run workflow (from `main`: `tag`, `publish`).
 
 ## Conventions
 

@@ -5,6 +5,7 @@
 ## Version: @project-version@
 ## X-License: MIT
 ## X-Curse-Project-ID: 1744024
+## X-Wago-ID: 5NRgYe63
 ## IconTexture: Interface\Icons\misc_arrowleft
 ## SavedVariables: GlassMiniMapDB
 ## OptionalDeps: GlassMiniMapBar, GlassUI
