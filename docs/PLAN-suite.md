@@ -56,7 +56,8 @@ is wrapped in `pcall` (`API.Try`). We never read `GlassUIDB` and never touch `Gl
        shows "Reload to apply" itself.
   3. If following and `Look` exists: register for `GlassUI.Suite.LookChanged` (EventRegistry),
      then pull `Suite.Look()` at once. We copy only a valid `tint` name and never keep the table.
-     Nothing is replayed to a late registrant.
+     Nothing is replayed to a late registrant. A `Look` that throws counts as no `Look`: our own
+     tint, ours to set (Codex's PR review).
   4. Build the glass, choosing the preset:
      - following: `"pearl"`;
      - otherwise: `db.material` (`"pearl"` by default, or `"clean"`).
@@ -220,8 +221,8 @@ rebases, and r11 wins.
     conflict; junk;
   - a chosen Clear surviving a reload;
   - an unknown suite tint: Clear, never ours;
-  - the effective value: following (a saved tint of ours unused), not following, and `Look`
-    absent;
+  - the effective value: following (a saved tint of ours unused), not following, `Look`
+    absent, and `Look` throwing (our tint kept and settable, a later `LookChanged` ignored);
   - the setters refused while following, and the saved tint kept;
   - `LookChanged`: a fresh table repaints and re-reports; mutating it afterwards changes nothing;
     it is applied in combat (`WoW.combat`) with no protected call;

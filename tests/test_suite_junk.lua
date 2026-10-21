@@ -63,6 +63,23 @@ eq(GMM.Ring.Glass().tint._color[1], GMM.Ring.Glass().tint.glassColor[1], "a junk
 check(not GMM.Settings.SetTheme("smoked"), "...the tint still Glass UI's to set")
 check(GMM.Settings.Set("sun", false), "...and another setter still works")
 
+-- A Look that throws counts as no Look: Pearl, but our own tint, ours to set.
+GMM = loadAddon({ db = savedDB(), glassUI = { Suite = {
+    API = 1,
+    Theme = function() return { preset = "pearl" } end,
+    Report = function() end,
+    Look = function() error("boom") end,
+} } })
+check(GMM.Suite.Following(), "a throwing Look: still following the material")
+check(not GMM.Suite.LookFollowing(), "...but not the look")
+eq(GMM.Theme.Name(), "smoked", "...our saved tint")
+eq(GMM.Suite.TintStatus(), nil, "...no tint line")
+eq(next(GMM.failures), nil, "...nothing failed")
+EventRegistry:TriggerEvent(GMM.Suite.EVENT, { tint = "class" })
+eq(GMM.Theme.Name(), "smoked", "...a later LookChanged ignored")
+check(GMM.Settings.SetTheme("class"), "...and our tint can be set")
+eq(GMM.Theme.Name(), "class", "...and is in effect")
+
 -- A LibGlass older than r11 won LibStub: Pearl can't be built.
 -- New refuses a copy whose ready isn't its MINOR: an old copy has both at 10.
 local function libraryAt(minor)

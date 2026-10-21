@@ -81,13 +81,16 @@ function Suite.Decide()
     end
     local look = rawget(S, "Look")
     if following and type(look) == "function" then
-        lookFollowing = true
         -- Register first, then pull: nothing is replayed to a late follower.
         if EventRegistry and EventRegistry.RegisterCallback then
             EventRegistry:RegisterCallback(Suite.EVENT, onLookChanged, Suite)
         end
+        -- A Look that throws counts as no Look: our own tint, still ours to set.
         local okLook, payload = pcall(look)
-        if okLook then copyTint(payload) end
+        if okLook then
+            lookFollowing = true
+            copyTint(payload)
+        end
     end
     return following
 end
