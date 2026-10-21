@@ -40,10 +40,21 @@ local function setIcon(icon, coords)
     disc.icon:SetTexCoord(c[1], c[2], c[3], c[4])
 end
 
+-- True once Glass MiniMap Bar says it follows Glass UI's suite itself (a
+-- function it may add to its API): it then has one driver, Glass UI, and we
+-- stop forwarding (#37; agreed with Glass UI's session). Anything but true
+-- means it doesn't.
+local function barFollowsSuite(gmb)
+    local fn = rawget(gmb, "FollowsSuite")
+    if type(fn) ~= "function" then return false end
+    local ok, yes = pcall(fn)
+    return ok and yes == true
+end
+
 -- Our theme, on the bar's glass: tint nil is the look as built.
 local function pushTint(tint, wash)
     local gmb = Drawer.Bar()
-    if not (gmb and gmb.SetGlassTint) then return end
+    if not (gmb and gmb.SetGlassTint) or barFollowsSuite(gmb) then return end
     if tint then
         gmb.SetGlassTint(tint[1], tint[2], tint[3], tint[4], wash)
     elseif wash ~= 1 then

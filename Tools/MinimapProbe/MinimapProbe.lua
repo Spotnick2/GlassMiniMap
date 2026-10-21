@@ -8,12 +8,13 @@
 --   /fp mm tracking   every tracking type: name, filterID, spellID, subType, active
 --   /fp mm near       what draws near the map's bottom-left (the "72" over the launcher)
 --   /fp mm queue      QueueStatusButton: parent, anchor, size, shown
---   /fp mm glass      the theme and the wash of the ring and the zoom buttons (#22)
+--   /fp mm glass      the tint and the wash of the ring and the zoom buttons (#22)
 --   /fp mm discs      the mail disc (#19) and the instance disc (#21), and what they mirror
---   /fp mm restore    put back the theme and zoom a procedure changed
+--   /fp mm restore    put back the tint and zoom a procedure changed
 --
--- Procedures (/fp steps mm <name>): wash, mail, instance, edges. The mail and instance checks
--- follow GlassMiniMap's placement setting (#27): its indicator shows, the other doesn't.
+-- Procedures (/fp steps mm <name>): wash, mail, instance, edges, suite, suiteoff. The mail
+-- and instance checks follow GlassMiniMap's placement setting (#27): its indicator shows, the
+-- other doesn't. suite and suiteoff are Glass UI's suite (#37), followed and not.
 
 local ADDON = ...
 local MAX_LOG = 3000
@@ -165,12 +166,21 @@ end
 --------------------------------------------------------------------------------
 
 local TOLERANCE = 0.005
--- The wash's gradient peak per theme: LibGlass's 0.18, smoked's 0.14 (#22).
-local WASH = { clear = 0.18, smoked = 0.14, class = 0.18 }
-
+-- The tint in effect: the player's own, else Glass UI's, else clear (#37).
 local function theme()
     local g = gmm()
-    return g and g.db and g.db.theme or nil
+    return g and g.Theme and g.Theme.Name() or nil
+end
+
+-- The wash's gradient peak for the tint in effect: the material's as built
+-- (Clean 0.18, Pearl 0.10) times the tint's factor (smoked 0.14 / 0.18, #22;
+-- Glass UI's while following).
+local function wantedWash()
+    local g = gmm()
+    local base = g and g.Glass and g.Glass.STYLE and g.Glass.STYLE.wash
+    if type(base) ~= "number" then return nil end
+    local _, factor = g.Theme.Current()
+    return math.max(0, math.min(1, base * (factor or 1)))
 end
 
 local function zoom()
@@ -226,7 +236,7 @@ end
 -- (minus at 0, plus at the last level), as Footer.UpdateZoomButtons does.
 local function washCheck()
     local name = theme()
-    local want = WASH[name or ""]
+    local want = name and wantedWash()
     if not want then return false, "theme " .. str(name) .. ": unknown" end
     local ring, zin, zout = surfaces()
     if not (ring and zin and zout) then return false, "Glass MiniMap's ring or zoom buttons: MISSING" end
@@ -377,14 +387,21 @@ end
 --------------------------------------------------------------------------------
 -- What a procedure changes, saved to put back: in MinimapProbeDB, so a Stop,
 -- a skip or a relog in between doesn't lose it. Never overwritten while one
--- is outstanding.
+-- is outstanding. The tint is saved by its source (#37): the player's own
+-- (look.tint) or "none". While Glass MiniMap follows Glass UI's look its own
+-- tint can't be set (putting it back is refused), and no procedure changes it.
 --------------------------------------------------------------------------------
+
+local function ownTint()
+    local g = gmm()
+    return g and g.Theme and g.Theme.Own() or nil
+end
 
 local function snapshot()
     local db = MinimapProbeDB
-    if db.restore then return "kept the outstanding one", db.restore.theme, db.restore.zoom end
-    db.restore = { theme = theme(), zoom = zoom() }
-    return "saved", db.restore.theme, db.restore.zoom
+    if db.restore then return "kept the outstanding one", db.restore.tint, db.restore.zoom end
+    db.restore = { tint = ownTint() or "none", zoom = zoom() }
+    return "saved", db.restore.tint, db.restore.zoom
 end
 
 local function restore()
@@ -392,20 +409,81 @@ local function restore()
     local r = db and db.restore
     if not r then return "nothing to restore" end
     local g = gmm()
-    if r.theme and g then g.Settings.SetTheme(r.theme) end
+    -- A snapshot from before #37 kept the theme itself, always the player's.
+    local tint = r.tint or r.theme
+    if tint and g then
+        if tint == "none" then g.Settings.ClearTheme() else g.Settings.SetTheme(tint) end
+    end
     local z = zoom()
     if r.zoom and z and g then g.Footer.Zoom(r.zoom - z) end
     db.restore = nil
-    say("restored theme " .. str(r.theme) .. ", zoom " .. str(r.zoom))
-    return "restored", r.theme, r.zoom
+    say("restored tint " .. str(tint) .. ", zoom " .. str(r.zoom))
+    return "restored", tint, r.zoom
 end
 
 local function setTheme(name)
     return function()
         local g = gmm()
+        if g and g.Suite.LookFollowing() then
+            error("Glass MiniMap follows Glass UI's tint: turn that off (then /reload), or type /glassui look tint " .. name)
+        end
         if not (g and g.Settings.SetTheme(name)) then error("couldn't set the theme " .. name) end
         return name
     end
+end
+
+-- Glass UI's suite (#37), read from Glass MiniMap's own state: following, the
+-- material built, the tint in effect, and the wash that goes with them.
+local function suiteState()
+    local g = gmm()
+    if not (g and g.Suite) then return nil, "Glass MiniMap: MISSING" end
+    local okW, wdetail = washCheck()
+    return {
+        following = g.Suite.Following(), lookFollowing = g.Suite.LookFollowing(),
+        built = g.GlassPreset, own = g.Theme.Own(), suiteTint = g.Suite.Tint(), tint = g.Theme.Name(),
+        washOk = okW, failure = g.Suite.Failure(),
+    }, ("following %s (look %s), built %s, tint %s (own %s, suite's %s)%s; %s"):format(
+        str(g.Suite.Following()), str(g.Suite.LookFollowing()), str(g.GlassPreset), str(g.Theme.Name()),
+        str(g.Theme.Own()), str(g.Suite.Tint()), g.Suite.Failure() and (", failed: " .. g.Suite.Failure()) or "",
+        wdetail)
+end
+
+local function followingCheck()
+    local st, detail = suiteState()
+    if not st then return false, detail end
+    return st.following and st.lookFollowing and st.built == "pearl" and st.washOk, detail
+end
+
+-- The tint in effect is the suite's, and it is `want`.
+local function tintCheck(want)
+    return function()
+        local st, detail = suiteState()
+        if not st then return false, detail end
+        return st.tint == want and st.suiteTint == want and st.washOk, detail
+    end
+end
+
+-- While following, our own tint can't be set or cleared ("set in Glass UI"),
+-- and the one saved stays as it was.
+local function tintRefusedCheck()
+    local g = gmm()
+    if not (g and g.Suite) then return false, "Glass MiniMap: MISSING" end
+    local before = g.Theme.Own()
+    local okSet, why = g.Settings.SetTheme(before == "class" and "smoked" or "class")
+    local okClear = g.Settings.ClearTheme()
+    local st, detail = suiteState()
+    local kept = g.Theme.Own() == before
+    return st.lookFollowing and not okSet and not okClear and kept and st.tint == (st.suiteTint or "clear"),
+        ("set %s (%s), clear %s, own %s kept %s; %s"):format(str(okSet), str(why), str(okClear), str(before),
+        str(kept), detail)
+end
+
+-- Our own look back: the material saved and the tint saved (or clear).
+local function ownLookCheck()
+    local st, detail = suiteState()
+    if not st then return false, detail end
+    local g = gmm()
+    return not st.following and st.built == g.Settings.Material() and st.tint == (st.own or "clear") and st.washOk, detail
 end
 
 local function zoomOut()
@@ -482,7 +560,7 @@ Probe:Command("queue", queue, "QueueStatusButton's parent, anchor, size")
 Probe:Command("glass", function()
     local ok, detail = washCheck()
     say("glass " .. (ok and "as expected" or "NOT as expected") .. ": " .. detail)
-end, "the theme and the wash of the ring and zoom buttons")
+end, "the tint and the wash of the ring and zoom buttons")
 Probe:Command("discs", function()
     local _, m = mailCheck()
     say("mail: " .. m)
@@ -491,7 +569,7 @@ Probe:Command("discs", function()
     say("instance: " .. d)
 end, "the mail and instance discs")
 Probe:Command("restore", function() say(table.concat({ restore() }, " ")) end,
-    "put back the theme and zoom a procedure changed")
+    "put back the tint and zoom a procedure changed")
 Probe:Command("clear", function() Probe:ClearLog(); say("log cleared") end, "empty the saved log")
 
 --------------------------------------------------------------------------------
@@ -499,10 +577,10 @@ Probe:Command("clear", function() Probe:ClearLog(); say("log cleared") end, "emp
 --------------------------------------------------------------------------------
 
 local function SAVE()
-    return { text = "Saving your theme and zoom, to put them back at the end (/fp mm restore if you stop).",
+    return { text = "Saving your tint and zoom, to put them back at the end (/fp mm restore if you stop).",
         auto = true, run = snapshot }
 end
-local function RESTORE() return { text = "Put your theme and zoom back.", button = "Restore", run = restore } end
+local function RESTORE() return { text = "Put your tint and zoom back.", button = "Restore", run = restore } end
 
 Probe:Steps("wash", {
     rev = 3,
@@ -573,6 +651,39 @@ Probe:Steps("instance", {
       check = function() return instanceCheck(false) end, screenshot = "instance: outside" },
 })
 
+Probe:Steps("suite", {
+    rev = 2,
+    title = "Following Glass UI's suite (#37)",
+    SAVE(),
+    { text = "With Glass UI loaded and \"Use Glass UI appearance\" on for Glass MiniMap (then /reload), press Check: Pearl, following the suite's look.",
+      button = "Check", run = function() end, check = followingCheck, screenshot = "suite: following" },
+    { text = "Press Check: Glass MiniMap's own tint can't be set while following, and the one saved is kept.",
+      button = "Check", run = function() end, check = tintRefusedCheck },
+    { text = "Open Esc > Options > AddOns > Glass MiniMap. Press Shoot.", button = "Shoot", run = armShot("suite: options") },
+    { text = "After the shutter: are the tint and the material choices grayed out, with \"Following Glass UI\" and a Set in Glass UI button, as GlassPanel's are?",
+      ask = true, check = shotCheck("suite: options") },
+    { text = "Close the options. Type /glassui look tint smoked, then press Check.", button = "Check", run = function() end,
+      check = tintCheck("smoked"), screenshot = "suite: smoked" },
+    { text = "Type /glassui look tint class, then press Check.", button = "Check", run = function() end,
+      check = tintCheck("class"), screenshot = "suite: class" },
+    { text = "Type /glassui look tint clear, then press Check.", button = "Check", run = function() end,
+      check = tintCheck("clear"), screenshot = "suite: clear" },
+    { text = "Did the ring, the pills, the discs and the north tab (and the drawer's bar) repaint at each change, with no lag?", ask = true },
+    { text = "Start a fight (a training dummy), and while in combat type /glassui look tint smoked. After the fight, press Check.",
+      button = "Check", run = function() end, check = tintCheck("smoked"), screenshot = "suite: after combat" },
+    { text = "Did the minimap repaint during the fight, with no error or blocked action (scriptErrors, BugSack)?", ask = true },
+    { text = "Put Glass MiniMap's tint and zoom back. Put Glass UI's tint back yourself (/glassui look tint ...).",
+      button = "Restore", run = restore },
+})
+
+Probe:Steps("suiteoff", {
+    rev = 2,
+    title = "Not following Glass UI (#37)",
+    { text = "Turn \"Use Glass UI appearance\" off for Glass MiniMap in Glass UI (or disable Glass UI), /reload, start this again, and press Check: our own material and tint (the one saved, or clear).",
+      button = "Check", run = function() end, check = ownLookCheck, screenshot = "suite: own look" },
+    { text = "Are the material and the tint the ones you had before following (Glass MiniMap's options page)?", ask = true },
+})
+
 local boot = CreateFrame("Frame")
 Probe:RegisterEvents(boot, { "ADDON_LOADED" })
 boot:SetScript("OnEvent", function(_, _, name)
@@ -584,6 +695,6 @@ boot:SetScript("OnEvent", function(_, _, name)
     MinimapProbeDB.loads = (MinimapProbeDB.loads or 0) + 1
     say("loaded (" .. MinimapProbeDB.loads .. " loads). /fp mm for the commands, /fp steps for the procedures")
     if MinimapProbeDB.restore then
-        say("a procedure's theme and zoom are still to put back: /fp mm restore")
+        say("a procedure's tint and zoom are still to put back: /fp mm restore")
     end
 end)

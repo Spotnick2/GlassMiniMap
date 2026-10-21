@@ -666,6 +666,57 @@ function WoW.FakeGlassMiniMapBar(version)
 end
 
 --------------------------------------------------------------------------------
+-- A fake Glass UI suite (its docs/SUITE.md and docs/SUITE-LOOK.md, API 1; the
+-- numbers are its Suite.BODY, GlassUI 75013df). opts.answer: what Theme
+-- returns (default: following, Pearl); opts.tint: the suite look's tint;
+-- opts.noLook / noBody / noOpen leave those functions out (an older API 1).
+-- Every call is recorded; Report keeps each state it was given.
+--------------------------------------------------------------------------------
+
+function WoW.FakeGlassUI(opts)
+    opts = opts or {}
+    local fake = { reports = {}, asked = {}, bodies = {}, tint = opts.tint or "clear" }
+    local BODY = {
+        clear  = { tint = { 0.13, 0.16, 0.22, 0.24 }, wash = 1, backing = 0.35 },
+        smoked = { tint = { 0.05, 0.06, 0.08, 0.62 }, wash = 0.14 / 0.18, backing = 0.92 },
+        class  = { classShade = 0.6, wash = 1, backing = 0.35 },
+    }
+    fake.BODY = BODY
+    local S = { API = 1 }
+    function S.Theme(addon)
+        fake.asked[#fake.asked + 1] = addon
+        if opts.answer then return opts.answer() end
+        return { name = "pearl", preset = "pearl" }
+    end
+    function S.Report(addon, state) fake.reports[#fake.reports + 1] = { addon = addon, state = state } end
+    if not opts.noLook then
+        function S.Look() return { tint = fake.tint, hover = "glow", press = "flash", emptySlots = "frosted", accent = "gold" } end
+    end
+    if not opts.noBody then
+        function S.Body(tint)
+            fake.bodies[#fake.bodies + 1] = tint
+            local b = BODY[tint or fake.tint]
+            if not b then return nil end
+            return { tint = b.tint and { b.tint[1], b.tint[2], b.tint[3], b.tint[4] }, classShade = b.classShade,
+                     wash = b.wash, backing = { 0.04, 0.05, 0.07, b.backing } }
+        end
+    end
+    if not opts.noOpen then
+        function S.Open() fake.opened = (fake.opened or 0) + 1; return true end
+    end
+    fake.Suite = S
+    GlassUI = { Suite = S }
+    -- The suite look changes: Glass UI fires its event with a fresh table.
+    function fake.SetTint(tint)
+        fake.tint = tint
+        EventRegistry:TriggerEvent("GlassUI.Suite.LookChanged",
+            { tint = tint, hover = "glow", press = "flash", emptySlots = "frosted", accent = "gold" })
+    end
+    function fake.LastReport() local r = fake.reports[#fake.reports]; return r and r.state end
+    return fake
+end
+
+--------------------------------------------------------------------------------
 -- Driving
 --------------------------------------------------------------------------------
 
@@ -694,7 +745,7 @@ WoW.reset()
 
 -- Strict globals.
 -- LibStub: the embedded library's own loader reads _G.LibStub before creating it.
-local allowNil = { GlassMiniMap = true, GlassMiniMapDB = true, GlassMiniMapBar = true,
+local allowNil = { GlassMiniMap = true, GlassMiniMapDB = true, GlassMiniMapBar = true, GlassUI = true,
                    SLASH_GLASSMINIMAP1 = true, SLASH_GLASSMINIMAP2 = true, LibStub = true,
                    ForeverProbe = true, ForeverProbeDB = true, MinimapProbeDB = true }
 setmetatable(_G, { __index = function(_, k)

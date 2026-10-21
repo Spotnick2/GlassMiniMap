@@ -12,7 +12,9 @@ rawset(_G, "GetTime", function() return clock end)
 rawset(_G, "EnumerateFrames", function() return nil end)
 rawset(_G, "Screenshot", function() WoW.shots = (WoW.shots or 0) + 1 end)
 
-local GMM = loadAddon()
+-- Clean, the material the wash numbers below were measured with (r7, #22);
+-- Pearl's are checked at the end.
+local GMM = loadAddon({ db = { material = "clean" } })
 Minimap._cx, Minimap._cy, Minimap._effScale = 500, 400, 1
 local FP = loadForeverProbe()
 loadProbe()
@@ -112,7 +114,7 @@ WoW.fire("MINIMAP_UPDATE_ZOOM")
 GMM.Settings.SetTheme("class")
 fp("steps mm wash")
 eq(record("wash").status, "active", "wash: started")
-eq(db.restore.theme, "class", "the theme saved first")
+eq(db.restore.tint, "class", "the tint saved first")
 eq(db.restore.zoom, 2, "...and the zoom")
 S.Run(); settle()                                      -- clear
 eq(result("wash", 2).check, "PASS", "clear: the wash at 0.18")
@@ -128,7 +130,7 @@ S.Run(); settle()                                      -- clear, zoomed out
 eq(result("wash", 7).check, "PASS", "clear, zoomed out: still dimmed, at clear's peak")
 S.Answer(true)
 S.Run()                                                -- restore
-eq(GlassMiniMapDB.theme, "class", "the theme put back")
+eq(GlassMiniMapDB.look.tint, "class", "the tint put back")
 eq(Minimap._zoom, 2, "...and the zoom")
 eq(db.restore, nil, "nothing left to restore")
 eq(record("wash").status, "done", "wash: done")
@@ -140,15 +142,31 @@ fp("steps mm wash")
 S.Run(); settle()                                      -- clear
 fp("steps stop")
 fp("steps mm wash")
-eq(db.restore.theme, "class", "a new start keeps the outstanding snapshot")
+eq(db.restore.tint, "class", "a new start keeps the outstanding snapshot")
 check(logged("kept the outstanding one"), "...and says so")
 fp("steps stop")
-eq(GlassMiniMapDB.theme, "clear", "stopped: still clear")
+eq(GlassMiniMapDB.look.tint, "clear", "stopped: still clear")
 fp("mm restore")
-eq(GlassMiniMapDB.theme, "class", "/fp mm restore: back to class")
+eq(GlassMiniMapDB.look.tint, "class", "/fp mm restore: back to class")
 eq(db.restore, nil, "...snapshot cleared")
 fp("mm restore")
 check(logged("nothing to restore"), "a second restore does nothing")
+
+-- No tint of the player's own: saved as "none", and put back as none (no
+-- override left behind, #37). The snapshot is in MinimapProbeDB, so a reload
+-- in between changes nothing.
+GMM.Settings.ClearTheme()
+fp("steps mm wash")
+eq(db.restore.tint, "none", "no own tint: saved as none")
+S.Run(); settle()                                      -- clear: an override now
+eq(GlassMiniMapDB.look.tint, "clear", "...the procedure set one")
+fp("steps stop")
+fp("mm restore")
+eq(rawget(GlassMiniMapDB, "look"), nil, "restored: no override")
+-- A snapshot from before #37 (the theme itself) still restores.
+MinimapProbeDB.restore = { theme = "smoked", zoom = Minimap._zoom }
+fp("mm restore")
+eq(GlassMiniMapDB.look.tint, "smoked", "an old snapshot's theme put back")
 GMM.Settings.SetTheme("clear")
 
 -- The check fails on a wrong wash (the minus button not dimmed at zoom 0).
@@ -163,6 +181,7 @@ fp("mm restore")
 --------------------------------------------------------------------------------
 -- mail
 --------------------------------------------------------------------------------
+
 fp("steps mm mail")
 S.DoneByHand()                                         -- no mail yet, pressed Done
 S.Run()
@@ -199,7 +218,7 @@ eq(select(1, mailCheck()), false, "ring, the envelope showing too: FAIL")
 GMM.Settings.SetIndicators("pills")
 eq(select(1, mailCheck()), true, "back in the pills: PASS")
 S.Run(); settle(); S.Run(); settle(); S.Run(); settle()
-eq(GlassMiniMapDB.theme, "class", "the three themes, in turn")
+eq(GlassMiniMapDB.look.tint, "class", "the three themes, in turn")
 S.Answer(true)
 S.Skip()                                               -- Shoot skipped
 S.Answer(true)                                         -- answered without a shot
@@ -217,7 +236,7 @@ S.Answer(true)
 eq(result("mail", 9).check, "PASS", "the tooltip shot taken")
 check(result("mail", 9).checkDetail:find("WoWScrnShot_"), "...its file recorded")
 S.Run()
-eq(GMM.db.theme, "clear", "mail: the theme put back")
+eq(GMM.db.look.tint, "clear", "mail: the tint put back")
 eq(record("mail").status, "done", "mail: done")
 
 --------------------------------------------------------------------------------
@@ -330,8 +349,109 @@ S.Run(); settle()                                      -- smoked
 S.Run(); settle()                                      -- dark
 S.Answer(true)
 S.Run()                                                -- restore
-eq(GlassMiniMapDB.theme, "class", "edges: the theme put back")
+eq(GlassMiniMapDB.look.tint, "class", "edges: the tint put back")
 eq(record("edges").status, "done", "edges: done")
 
 eq(#WoW.chat, 0, "nothing in chat, all along")
+
+-- Pearl, our default material: the wash expected is its own (0.10), times
+-- smoked's factor.
+GMM = loadAddon()
+loadForeverProbe()
+loadProbe()
+db = MinimapProbeDB
+fp("mm glass")
+check(logged("glass as expected: theme clear; zoom 0 of 6; ring peak 0%.100 undimmed"), "Pearl: clear at its wash")
+GMM.Settings.SetTheme("smoked")
+fp("mm glass")
+check(logged("glass as expected: theme smoked.*ring peak 0%.078 undimmed"), "Pearl: smoked at 0.10 x 0.14 / 0.18")
+
+--------------------------------------------------------------------------------
+-- suite, suiteoff (#37): following Glass UI's suite, then not
+--------------------------------------------------------------------------------
+local ui
+GMM, ui = loadAddon({ suite = { tint = "smoked" }, db = { look = { tint = "class" } } })
+FP = loadForeverProbe()
+S = FP.Steps
+loadProbe()
+db = MinimapProbeDB
+fp("steps mm suite")
+eq(db.restore.tint, "class", "suite: the own tint saved first")
+GMM.GlassPreset = "clean"
+S.Run(); settle()
+eq(result("suite", 2).check, "FAIL", "following, but not on Pearl: FAIL")
+S.Back()
+GMM.GlassPreset = "pearl"
+S.Run(); settle()
+eq(result("suite", 2).check, "PASS", "following: Pearl and the suite's look")
+-- The refusal: a Settings that took the tint would fail it.
+local setTheme = GMM.Settings.SetTheme
+GMM.Settings.SetTheme = function() return true end
+S.Run(); settle()
+eq(result("suite", 3).check, "FAIL", "our tint accepted while following: FAIL")
+GMM.Settings.SetTheme = setTheme
+S.Back()
+S.Run(); settle()
+eq(result("suite", 3).check, "PASS", "our tint refused while following, and kept")
+eq(GlassMiniMapDB.look.tint, "class", "...still class")
+S.Run(); WoW.flushTimers(); settle()                   -- the options, shot
+S.Answer(true)
+eq(result("suite", 5).check, "PASS", "the options: shot and answered")
+S.Run(); settle()
+eq(result("suite", 6).check, "PASS", "smoked: the suite's (our saved class unused)")
+S.Run(); settle()
+eq(result("suite", 7).check, "FAIL", "class asked, the suite still smoked: FAIL (ours is class)")
+S.Back()
+ui.SetTint("class")
+S.Run(); settle()
+eq(result("suite", 7).check, "PASS", "class: the suite's")
+-- Clear asked while the suite says class (class's wash is clear's, so only
+-- the tint tells): the tint in effect and the suite's must both be clear.
+local name, tintOf = GMM.Theme.Name, GMM.Suite.Tint
+GMM.Theme.Name = function() return "clear" end
+S.Run(); settle()
+eq(result("suite", 8).check, "FAIL", "clear in effect, the suite's class: FAIL")
+S.Back()
+GMM.Theme.Name = function() return "class" end
+GMM.Suite.Tint = function() return "clear" end
+S.Run(); settle()
+eq(result("suite", 8).check, "FAIL", "the suite's clear, class in effect: FAIL")
+GMM.Theme.Name, GMM.Suite.Tint = name, tintOf
+S.Back()
+ui.SetTint("clear")
+S.Run(); settle()
+eq(result("suite", 8).check, "PASS", "clear: the suite's")
+S.Answer(true)
+WoW.combat = true
+ui.SetTint("smoked")
+WoW.combat = false
+S.Run(); settle()
+eq(result("suite", 10).check, "PASS", "after combat: the suite's smoked")
+S.Answer(true)
+S.Run()
+eq(GlassMiniMapDB.look.tint, "class", "suite: our own tint untouched")
+eq(record("suite").status, "done", "suite: done")
+
+-- Not following: the probe's check fails while following, passes after.
+fp("steps mm suiteoff")
+S.Run(); settle()
+eq(result("suiteoff", 1).check, "FAIL", "suiteoff while still following: FAIL")
+fp("steps stop")
+GMM, ui = loadAddon({ db = GlassMiniMapDB, suite = { answer = function() return nil, "not-following" end } })
+FP = loadForeverProbe()
+S = FP.Steps
+loadProbe({ db = db })
+db = MinimapProbeDB
+fp("steps mm suiteoff")
+local name = GMM.Theme.Name
+GMM.Theme.Name = function() return "clear" end           -- class's wash: only the tint differs
+S.Run(); settle()
+eq(result("suiteoff", 1).check, "FAIL", "not following, but not our own tint: FAIL")
+GMM.Theme.Name = name
+S.Back()
+S.Run(); settle()
+eq(result("suiteoff", 1).check, "PASS", "not following: our own material and tint")
+check(result("suiteoff", 1).checkDetail:find("built pearl, tint class"), "...Pearl (ours) and our class")
+S.Answer(true)
+eq(record("suiteoff").status, "done", "suiteoff: done")
 done("test_probe")

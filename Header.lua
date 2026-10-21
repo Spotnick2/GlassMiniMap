@@ -14,7 +14,6 @@
 GlassMiniMap = GlassMiniMap or {}
 local GMM = GlassMiniMap
 local API = GMM.API
-local Glass = GMM.Glass
 local Theme = GMM.Theme
 local Header = {}
 GMM.Header = Header
@@ -202,9 +201,9 @@ function Header.Build()
     -- edge (Edit Mode's default), its top stays inside the cluster.
     pill:SetPoint("BOTTOM", host, "TOP", 0, 9)
     pill:SetFrameLevel(GMM.Ring.AboveMap(4))
-    local g = Glass.Apply(pill, "small")
+    local g = GMM.Glass.Apply(pill, "small")
     Theme.Register(g)
-    local content = Glass.ContentLevel(pill)
+    local content = GMM.Glass.ContentLevel(pill)
 
     tracking = iconButton(pill, Header.BUTTON)
     tracking:SetPoint("LEFT", pill, "LEFT", 3, 0)
@@ -245,7 +244,7 @@ function Header.Build()
         GameTooltip:Show()
     end)
     calendar:SetScript("OnLeave", function() GameTooltip:Hide() end)
-    invites = Glass.Font(calendar, 10, "CENTER")
+    invites = GMM.Glass.Font(calendar, 10, "CENTER")
     invites:SetPoint("BOTTOMRIGHT", calendar, "BOTTOMRIGHT", 2, -2)
     invites:SetTextColor(1, 0.82, 0)
     if API.GameRule("IngameCalendarDisabled") then calendar:Hide() end
@@ -268,7 +267,7 @@ function Header.Build()
     zoneButton = CreateFrame("Button", nil, pill)
     zoneButton:SetFrameLevel(content)
     layoutRight()
-    zoneText = Glass.Font(zoneButton, 14, "CENTER")
+    zoneText = GMM.Glass.Font(zoneButton, 14, "CENTER")
     zoneText:SetAllPoints(zoneButton)
     zoneButton:SetScript("OnClick", function()
         if type(rawget(_G, "ToggleWorldMap")) == "function" then API.Try("world map", ToggleWorldMap) end

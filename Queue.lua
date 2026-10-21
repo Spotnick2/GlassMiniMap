@@ -28,7 +28,6 @@
 GlassMiniMap = GlassMiniMap or {}
 local GMM = GlassMiniMap
 local API = GMM.API
-local Glass = GMM.Glass
 local Queue = {}
 GMM.Queue = Queue
 
@@ -108,7 +107,7 @@ function Queue.Build()
     disc:SetPoint("CENTER", e, "CENTER", 0, 0)
     disc:EnableMouse(false)            -- every click is the eye's
     disc:Hide()
-    glass = Glass.Disc(disc, "disc_small")
+    glass = GMM.Glass.Disc(disc, "disc_small")
     GMM.Theme.Register(glass)
     -- Script hooks see every show and hide; the scale hook follows Edit Mode.
     e:HookScript("OnShow", Queue.Sync)

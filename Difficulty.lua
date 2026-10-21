@@ -19,7 +19,6 @@
 GlassMiniMap = GlassMiniMap or {}
 local GMM = GlassMiniMap
 local API = GMM.API
-local Glass = GMM.Glass
 local Difficulty = {}
 GMM.Difficulty = Difficulty
 
@@ -107,7 +106,7 @@ function Difficulty.Build()
     local f = flag()
     if not (f and type(f.Update) == "function") then return false end
     disc = GMM.Ring.AddDisc(Difficulty.ANGLE, { backing = true })   -- gold text on glass (#40)
-    label = Glass.Font(disc, 11, "CENTER")
+    label = GMM.Glass.Font(disc, 11, "CENTER")
     label:SetPoint("CENTER", disc, "CENTER", 0, 0)
     label:SetTextColor(1, 0.82, 0)
     disc:SetScript("OnEnter", function(self) API.Try("difficulty:tooltip", Difficulty.Tooltip, self) end)

@@ -8,7 +8,8 @@ check(toc:find("## Version: @project-version@", 1, true), "packager version toke
 check(toc:find("## SavedVariables: GlassMiniMapDB", 1, true), "saved variables declared")
 check(toc:find("## X-Curse-Project-ID: 1744024", 1, true), "CurseForge project ID (1744024)")
 check(toc:find("## X-License: MIT", 1, true), "MIT, like GlassMail")
-check(toc:find("## OptionalDeps: GlassMiniMapBar", 1, true), "Glass MiniMap Bar loads first when installed (the drawer)")
+eq(toc:match("## OptionalDeps: ([^\r\n]*)"), "GlassMiniMapBar, GlassUI",
+    "Glass MiniMap Bar and Glass UI load first when installed (the drawer; the suite's answer at our ADDON_LOADED)")
 check(not toc:find("AddonCompartmentFunc", 1, true), "no compartment entry of our own")
 check(io.open("LICENSE"):read("*a"):find("MIT License", 1, true), "LICENSE is MIT")
 for _, f in ipairs(tocFiles()) do
