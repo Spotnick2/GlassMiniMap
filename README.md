@@ -15,8 +15,8 @@ A liquid-glass minimap for **World of Warcraft: Forever**.
   tracking, and today's calendar page with your pending invites.
 - **Glass tracking menu**: the same entries as Blizzard's menu, in glass. Right-click the magnifier
   for Blizzard's own.
-- **Coordinates pill** with zoom buttons (Blizzard's "Player Minimap Coordinates" and "Coordinates by
-  Tenths" settings apply).
+- **Coordinates pill** with zoom buttons at its ends, or on the ring as discs (Blizzard's "Player
+  Minimap Coordinates" and "Coordinates by Tenths" settings apply).
 - **Day and night disc**: a sun or a moon, with the server and local time. Click it for the clock.
 - **New-mail disc** at the bottom right of the ring while you have unread mail, with the latest
   senders on hover.

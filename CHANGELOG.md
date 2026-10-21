@@ -12,9 +12,11 @@
 - Your glass theme carries over. Uses LibGlass r11.
 - **The sun and moon stand out on bright ground**: the day/night disc (and the instance size's)
   gets a dark well under its glyph, as an addon icon has. Over a desert they used to fade out.
-- **The ring stays a closed circle**: the coordinates pill now tucks behind the ring's bottom
-  edge instead of cutting into it. With the runic ring on, its coordinates and zoom buttons stay
-  crisp over the drifting vapor.
+- **The coordinates pill hangs under the ring** as far as the zone name sits over it, so the ring
+  stays a closed circle and the runic vapor drifts behind the pill, never over its text. The
+  coordinates are centered under the map, with − and + at the pill's ends.
+- **Zoom buttons on the ring**, if you prefer: Options > AddOns > Glass MiniMap, "Zoom buttons: On
+  the ring, as discs" puts + and − at the ring's bottom right and leaves the pill to the text.
 
 ## v0.2.0
 

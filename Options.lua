@@ -262,9 +262,16 @@ local function build()
         { "ring", "On the ring, as discs" },
     }, GMM.Settings.Indicators, GMM.Settings.SetIndicators)
     Options._test.indicatorRadios = whereGroup
+    local zoomWhere = label(panel, "Zoom buttons:", "GameFontHighlight")
+    zoomWhere:SetPoint("TOPLEFT", lastWhere, "BOTTOMLEFT", 0, -10)
+    local lastZoom, zoomGroup = radios(zoomWhere, {
+        { "pill", "At the ends of the coordinates pill" },
+        { "ring", "On the ring, as discs" },
+    }, GMM.Settings.Zoom, GMM.Settings.SetZoom)
+    Options._test.zoomRadios = zoomGroup
     local cnote = label(panel, "Coordinates: Options > Interface, \"Player Minimap Coordinates\" and "
         .. "\"Coordinates by Tenths\".", "GameFontHighlightSmall")
-    cnote:SetPoint("TOPLEFT", lastWhere, "BOTTOMLEFT", 0, -8)
+    cnote:SetPoint("TOPLEFT", lastZoom, "BOTTOMLEFT", 0, -8)
     cnote:SetWidth(295)
 
     -- The drawer: Glass MiniMap Bar's, when it's installed.
