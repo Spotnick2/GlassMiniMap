@@ -174,19 +174,7 @@ local G2 = loadAddon({ gmb = true })
 eq(G2.Drawer.Disc().backing, nil, "the drawer's icon: no well")
 eq(G2.Mail.Disc().backing, nil, "the mail envelope: no well")
 
--- The coords pill under the ring (#39): over it, it cut the rim open. Its
--- rim (LibGlass's top frame, +10) stays under the ring's rim; its text and
--- zoom buttons, clear of the ring, stay above the ring's body.
-local host, pill = G2.Ring.Host(), G2.Footer.Pill()
-check(pill._level < host._level, "the coords pill under the ring")
-local ringTop = G2.Ring.Glass().top
-local pillTop
-for _, s in ipairs(G2.Theme._test.surfaces) do
-    if s.g.top and s.g.top._parent == pill then pillTop = s.g.top end
-end
-check(pillTop and pillTop._level < ringTop._level, "...its rim under the ring's rim")
-check(G2.Footer._test.zoomIn()._level >= host._level, "...its zoom buttons above the ring's body")
-eq(pill._points[1][5], 4, "...still tucked 4 px into the ring (the quest tracker's room)")
+-- The coords pill and its zoom buttons: test_zoom.
 
 eq(next(GMM.failures), nil, "no failures")
 done("test_ui")

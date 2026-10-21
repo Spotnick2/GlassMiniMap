@@ -12,7 +12,7 @@
 --   /fp mm discs      the mail disc (#19) and the instance disc (#21), and what they mirror
 --   /fp mm restore    put back the tint and zoom a procedure changed
 --
--- Procedures (/fp steps mm <name>): wash, mail, instance, edges, suite, suiteoff. The mail
+-- Procedures (/fp steps mm <name>): wash, mail, instance, edges, zoomring, suite, suiteoff. The mail
 -- and instance checks follow GlassMiniMap's placement setting (#27): its indicator shows, the
 -- other doesn't. suite and suiteoff are Glass UI's suite (#37), followed and not.
 
@@ -400,7 +400,8 @@ end
 local function snapshot()
     local db = MinimapProbeDB
     if db.restore then return "kept the outstanding one", db.restore.tint, db.restore.zoom end
-    db.restore = { tint = ownTint() or "none", zoom = zoom() }
+    local g = gmm()
+    db.restore = { tint = ownTint() or "none", zoom = zoom(), place = g and g.Settings.Zoom and g.Settings.Zoom() }
     return "saved", db.restore.tint, db.restore.zoom
 end
 
@@ -416,8 +417,9 @@ local function restore()
     end
     local z = zoom()
     if r.zoom and z and g then g.Footer.Zoom(r.zoom - z) end
+    if r.place and g and g.Settings.SetZoom then g.Settings.SetZoom(r.place) end
     db.restore = nil
-    say("restored tint " .. str(tint) .. ", zoom " .. str(r.zoom))
+    say("restored tint " .. str(tint) .. ", zoom " .. str(r.zoom) .. ", zoom buttons " .. str(r.place))
     return "restored", tint, r.zoom
 end
 
@@ -429,6 +431,17 @@ local function setTheme(name)
         end
         if not (g and g.Settings.SetTheme(name)) then error("couldn't set the theme " .. name) end
         return name
+    end
+end
+
+-- For a procedure whose tint is only scenery (edges): while following Glass
+-- UI's tint, keep it rather than stop the procedure.
+local function sceneryTheme(name)
+    local set = setTheme(name)
+    return function()
+        local g = gmm()
+        if g and g.Suite.LookFollowing() then return "kept Glass UI's " .. str(g.Theme.Name()) .. " (following)" end
+        return set()
     end
 end
 
@@ -499,20 +512,97 @@ end
 -- recorded here and the next step's check reads it. A shot belongs to the
 -- procedure run that armed it (its record: a new one on every start), so a
 -- restarted procedure never passes on an earlier run's picture.
--- The ring's edges (#39, #40): the coords pill drawn under the ring (so its
--- rim stays closed), and the dark well under the day/night glyph.
+-- The ring's edges (#39, #40, #42): the coords pill hanging clear of the
+-- ring (so its rim stays closed) by the zone pill's gap over it, drawn over
+-- the runic vapor with its text and zoom buttons, and the dark well under the
+-- day/night glyph.
 local function edgesCheck()
     local g = gmm()
     local host = g and g.Ring and g.Ring.Host()
     local pill = g and g.Footer and g.Footer.Pill()
+    local zone = g and g.Header and g.Header.Pill()
     local sun = g and g.Ring and g.Ring.Sun()
-    if not (host and pill and sun) then return false, "the ring, the coords pill or the sun: MISSING" end
-    local hl, pl = host:GetFrameLevel(), pill:GetFrameLevel()
+    if not (host and pill and zone and sun) then return false, "the ring, a pill or the sun: MISSING" end
+    local R, F = g.Ring._test, g.Footer._test
+    local runes, fog = R.runes(), R.fog()
+    if not (runes and runes:IsVisible() and fog and fog:IsShown()) then
+        return false, "the runic ring or its vapor is off: /gmm runes on, /gmm runes fog on, then Check again"
+    end
+    local p, rel, _, _, y = pill:GetPoint(1)
+    local gap = (p == "TOP" and rel == host and type(y) == "number") and -y or nil
+    local zp, zrel, _, _, zy = zone:GetPoint(1)
+    local zoneGap = (zp == "BOTTOM" and zrel == host) and zy or nil
+    local placed = gap ~= nil and gap == zoneGap
+    local over = math.max(runes:GetFrameLevel(), fog:GetFrameLevel())
+    local pl = pill:GetFrameLevel()
+    local zl = math.min(F.zoomIn():GetFrameLevel(), F.zoomOut():GetFrameLevel())
+    local levelsOk = pl > over and zl > over and F.coords():GetParent() == pill
     local well = sun.backing
     local wellShown = well and well:IsShown() and well:GetAlpha() > 0
-    return pl < hl and wellShown == true,
-        ("ring level %s, coords pill level %s (want under); sun's well %s; Minimap level %s"):format(
-            str(hl), str(pl), well and (wellShown and "shown" or "HIDDEN") or "MISSING", str(Minimap:GetFrameLevel()))
+    return placed and levelsOk and wellShown == true,
+        ("coords pill %s under the ring, the zone pill %s over it%s; pill level %s, zoom %s, over the runes and vapor %s%s; sun's well %s; Minimap level %s"):format(
+            str(gap), str(zoneGap), placed and "" or " (WANT THE SAME GAP)", str(pl), str(zl), str(over),
+            levelsOk and "" or " (WANT OVER)", well and (wellShown and "shown" or "HIDDEN") or "MISSING",
+            str(Minimap:GetFrameLevel()))
+end
+
+-- The zoom buttons as discs on the ring (#42's zoom = "ring").
+local function setZoomPlace(where)
+    return function()
+        local g = gmm()
+        if not (g and g.Settings.SetZoom(where)) then error("couldn't put the zoom buttons: " .. where) end
+        return where
+    end
+end
+
+local function zoomRingCheck()
+    local g = gmm()
+    local F = g and g.Footer and g.Footer._test
+    if not F then return false, "the coords pill: MISSING" end
+    local c, zin, zout = g.Ring.Container(), F.zoomIn(), F.zoomOut()
+    local onRing = zin:GetParent() == c and zout:GetParent() == c
+    local shown = zin:IsVisible() and zout:IsVisible()
+    return onRing and shown,
+        ("zoom %s; + and - on the ring %s, shown %s"):format(str(g.Settings.Zoom()), str(onRing), str(shown))
+end
+
+-- The zoom discs on the ring, clicked (#42: "zoom no, hover yes" on 70450,
+-- with the map at its closest zoom, where + does nothing). What's under the
+-- mouse names our discs, else the frame in the way.
+local function focusName()
+    local g = gmm()
+    local fn = rawget(_G, "GetMouseFoci")
+    local ok, foci = pcall(fn)
+    local f = ok and type(foci) == "table" and foci[1] or nil
+    local F = g and g.Footer and g.Footer._test
+    if F and f == F.zoomIn() then return "our + disc" end
+    if F and f == F.zoomOut() then return "our - disc" end
+    local okName, name = pcall(function() return f:GetDebugName() end)
+    return okName and str(name) or str(f)
+end
+
+local function ringZoomReady()
+    local g = gmm()
+    local z = zoom()
+    if not (g and z) then error("zoom unreadable") end
+    if not g.Settings.SetZoom("ring") then error("couldn't put the zoom buttons on the ring") end
+    g.Footer.Zoom(2 - z)
+    return zoom()
+end
+
+local function clickCheck(want)
+    return function()
+        local z = zoom()
+        return z == want, ("map zoom %s (want %s); under the mouse: %s"):format(str(z), str(want), focusName())
+    end
+end
+
+local function fadedCheck()
+    local g = gmm()
+    local F = g and g.Footer and g.Footer._test
+    if not F then return false, "the zoom buttons: MISSING" end
+    local a, b = F.zoomIn():GetAlpha(), F.zoomOut():GetAlpha()
+    return a == 0 and b == 0, ("the zoom discs at alpha %s and %s (want 0, the mouse away)"):format(str(a), str(b))
 end
 
 local SHOT_DELAY = 3
@@ -568,6 +658,7 @@ Probe:Command("discs", function()
     local _, d = instanceCheck(kind ~= "none")
     say("instance: " .. d)
 end, "the mail and instance discs")
+Probe:Command("focus", function() say("under the mouse: " .. focusName()) end, "what's under the mouse")
 Probe:Command("restore", function() say(table.concat({ restore() }, " ")) end,
     "put back the tint and zoom a procedure changed")
 Probe:Command("clear", function() Probe:ClearLog(); say("log cleared") end, "empty the saved log")
@@ -620,20 +711,37 @@ Probe:Steps("mail", {
 })
 
 Probe:Steps("edges", {
-    rev = 1,
-    title = "The ring's edges: the sun's contrast (#40), the coords pill under the rim (#39)",
+    rev = 3,
+    title = "The ring's edges: the coords pill under the ring, the zoom buttons (#42)",
     SAVE(),
-    { text = "Go somewhere bright (a desert, snow) with the sun or moon disc over it, then press Check.",
-      button = "Check", run = setTheme("clear"), check = edgesCheck, screenshot = "edges: bright, clear" },
-    { text = "Is the sun (or moon) as easy to see as the drawer's disc and the mail envelope?", ask = true },
-    { text = "At the bottom of the ring: is the rim a closed circle, with the coordinates pill tucked behind it (not cutting it)?",
+    { text = "With the runic ring and its vapor on (/gmm runes on, /gmm runes fog on), go somewhere bright (a desert, snow), then press Check.",
+      button = "Check", run = sceneryTheme("clear"), check = edgesCheck, screenshot = "edges: bright, zoom in the pill" },
+    { text = "Does the coordinates pill sit as far under the ring as the zone name sits over it, the coordinates centered under the map, - and + at its ends?",
       ask = true },
-    { text = "Is the coordinates text still crisp, not dimmed by the ring's shadow?", ask = true },
-    { text = "Smoked glass.", button = "Smoked", run = setTheme("smoked"), screenshot = "edges: bright, smoked" },
+    { text = "Is the ring's rim a closed circle at the bottom, with the vapor behind the pill, not over it?", ask = true },
+    { text = "Is the pill clear of the quest tracker (All Objectives) under it?", ask = true },
+    { text = "Now the zoom buttons on the ring (the new setting).", button = "Ring", run = setZoomPlace("ring"),
+      check = zoomRingCheck, screenshot = "edges: bright, zoom on the ring" },
+    { text = "Are + and - on the ring at the bottom right, like your mockup's A, and do they zoom when clicked?", ask = true },
     { text = "Go somewhere dark (a cave, a forest at night), then press Shoot.", button = "Shoot",
-      run = setTheme("clear"), screenshot = "edges: dark, clear" },
-    { text = "Does the sun's dark well read as part of the glass, not a black hole?", ask = true },
-    RESTORE(),
+      run = sceneryTheme("clear"), screenshot = "edges: dark, zoom on the ring" },
+    { text = "On dark ground: do the pill, its text and the zoom discs read well?", ask = true },
+    { text = "Put your tint, zoom and zoom buttons back.", button = "Restore", run = restore },
+})
+
+Probe:Steps("zoomring", {
+    rev = 1,
+    title = "The zoom discs on the ring: clicks and the fade (#42)",
+    SAVE(),
+    { text = "Zoom buttons on the ring, and the map's zoom to the middle (so + and - both work).", button = "Ring",
+      run = ringZoomReady, check = zoomRingCheck },
+    { text = "Move the mouse off the minimap, wait 2 seconds, then press Check.", button = "Check",
+      run = function() end, check = fadedCheck, screenshot = "zoomring: faded" },
+    { text = "Hover the minimap: do + and - fade in, and fade out a moment after the mouse leaves?", ask = true },
+    { text = "Click - on the ring (bottom right). Nothing happens? Hover it, type /fp mm focus, then Skip.",
+      event = "MINIMAP_UPDATE_ZOOM", check = clickCheck(1) },
+    { text = "Click + on the ring.", event = "MINIMAP_UPDATE_ZOOM", check = clickCheck(2) },
+    { text = "Put your tint, zoom and zoom buttons back.", button = "Restore", run = restore },
 })
 
 Probe:Steps("instance", {

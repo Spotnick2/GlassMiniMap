@@ -1,6 +1,12 @@
 -- Footer.lua: the coordinates pill under the ring, with the zoom buttons.
 --
---   [  43.2, 24.8   (-) (+) ]
+--   [ (-)  43.2, 24.8  (+) ]       zoom = "pill" (the default)
+--        [ 43.2, 24.8 ]            zoom = "ring": + and - are discs on the ring
+--
+-- The pill hangs as far under the ring as the zone pill sits over it, clear
+-- of the ring and over the runic vapor, the text centered under the map
+-- (#42, the owner's mockup on 70450). Tucked under the ring, it cut the rim
+-- (#39) and the vapor drew over its text.
 --
 -- Coordinates as Blizzard's own PlayerCoords computes them (Minimap.lua,
 -- MinimapPlayerCoordsMixin), updated five times a second while shown; a dash
@@ -26,11 +32,19 @@ GMM.Footer = Footer
 
 Footer.HEIGHT = 22
 Footer.WIDTH = 158
+Footer.TEXT_WIDTH = 112      -- zoom on the ring: the text alone
+Footer.GAP = 9               -- under the ring: the zone pill's gap over it (Header.lua)
 Footer.ZOOM_SIZE = 18
 Footer.INTERVAL = 0.2
+-- Zoom on the ring: + over -, at the bottom right (the owner's mockup).
+-- With the indicators on the ring, the mail disc has 135 degrees: lower down.
+Footer.ZOOM_ANGLES = { pills = { 122, 138 }, ring = { 153, 167 } }
+Footer.FADE_DELAY = 1        -- zoom on the ring: seconds shown after the mouse leaves
+Footer.FADE_TIME = 0.25      -- ...then faded out over this
 
-local pill, coords, hit, zoomIn, zoomOut
+local pill, coords, hit, zoomIn, zoomOut, fader
 local since = 0
+local idle, fade = 0, 1
 local COORD_COLOR, SIZE_COLOR = { 0.92, 0.94, 0.97 }, { 1, 0.82, 0 }
 
 -- The instance's size, when the pill shows it (Difficulty.lua takes it after
@@ -103,7 +117,6 @@ end
 local function zoomButton(symbol, step)
     local b = CreateFrame("Button", nil, pill)
     b:SetSize(Footer.ZOOM_SIZE, Footer.ZOOM_SIZE)
-    b:SetFrameLevel(GMM.Glass.ContentLevel(pill))
     b.glass = GMM.Glass.Disc(b, "disc_small")
     b.glass.grain:SetAlpha(0)
     b.glass.shadow:SetAlpha(0)
@@ -120,16 +133,79 @@ local function zoomButton(symbol, step)
     return b
 end
 
--- Lay the pill out: text and buttons, or buttons only. The text shows the
--- coordinates (Blizzard's setting, ticking) or the instance's size (static,
--- hoverable). Called on the coordinates CVars and from Difficulty.Sync, and
--- calls UpdateCoords, never the other way round.
+local function setFade(a)
+    fade = a
+    zoomIn:SetAlpha(a)
+    zoomOut:SetAlpha(a)
+end
+
+-- Zoom on the ring: shown while the mouse is over the ring (the map included)
+-- or a disc, faded out a moment after it leaves, as Blizzard's zoom buttons
+-- show and hide (Minimap.lua, MinimapMixin:OnEnter/OnLeave; the owner,
+-- 70450). Faded, they keep the mouse: hovering their spot brings them back.
+local function fadeTick(_, elapsed)
+    local over = GMM.Ring.Host():IsMouseOver() or zoomIn:IsMouseOver() or zoomOut:IsMouseOver()
+    idle = over and 0 or idle + elapsed
+    local target = idle < Footer.FADE_DELAY and 1 or 0
+    if fade == target then return end
+    local step = elapsed / Footer.FADE_TIME
+    setFade(target > fade and math.min(1, fade + step) or math.max(0, fade - step))
+end
+
+-- The zoom buttons: at the pill's ends, or discs on the ring.
+local function placeZoom(onRing)
+    for i, b in ipairs({ zoomIn, zoomOut }) do
+        b:ClearAllPoints()
+        if onRing then
+            local container, host = GMM.Ring.Container(), GMM.Ring.Host()
+            b:SetParent(container)
+            b:SetFrameLevel(GMM.Ring.AboveMap(6))
+            local rad = math.rad(Footer.ZOOM_ANGLES[GMM.Settings.Indicators()][i])
+            local r = GMM.Ring.Radius() + GMM.Ring.RING_WIDTH * 0.3
+            b:SetPoint("CENTER", host, "CENTER", r * math.sin(rad), r * math.cos(rad))
+        else
+            b:SetParent(pill)
+            b:SetFrameLevel(GMM.Glass.ContentLevel(pill))
+        end
+    end
+    if not onRing then
+        zoomOut:SetPoint("LEFT", pill, "LEFT", 4, 0)
+        zoomIn:SetPoint("RIGHT", pill, "RIGHT", -4, 0)
+    end
+    -- Shown at once either way; on the ring, fading from there.
+    idle = 0
+    setFade(1)
+    fader:SetScript("OnUpdate", onRing and fadeTick or nil)
+    -- The text between the buttons, or across the pill: centered either way.
+    local left, right = onRing and pill or zoomOut, onRing and pill or zoomIn
+    coords:ClearAllPoints()
+    coords:SetPoint("LEFT", left, onRing and "LEFT" or "RIGHT", 4, 0)
+    coords:SetPoint("RIGHT", right, onRing and "RIGHT" or "LEFT", -4, 0)
+    hit:ClearAllPoints()
+    hit:SetPoint("TOPLEFT", left, onRing and "TOPLEFT" or "TOPRIGHT", 4, 0)
+    hit:SetPoint("BOTTOMRIGHT", right, onRing and "BOTTOMRIGHT" or "BOTTOMLEFT", -4, 0)
+    hit:SetPoint("TOP", pill, "TOP", 0, 0)
+    hit:SetPoint("BOTTOM", pill, "BOTTOM", 0, 0)
+end
+
+-- Lay the pill out: text and buttons, or buttons only (or, with zoom on the
+-- ring, text only, else no pill). The text shows the coordinates (Blizzard's
+-- setting, ticking) or the instance's size (static, hoverable). Called on the
+-- coordinates CVars, from Difficulty.Sync and the zoom and indicators
+-- settings, and calls UpdateCoords, never the other way round.
 function Footer.Layout()
     if not pill then return end
     local size = instanceText()
     local show = size ~= nil or API.CVarBool("minimapShowPlayerCoords")
+    local onRing = GMM.Settings.Zoom() == "ring"
+    placeZoom(onRing)
     local zoomW = 2 * Footer.ZOOM_SIZE + 3 + 8
-    pill:SetWidth(show and Footer.WIDTH or (zoomW + 4))
+    if onRing then
+        pill:SetWidth(Footer.TEXT_WIDTH)
+    else
+        pill:SetWidth(show and Footer.WIDTH or (zoomW + 4))
+    end
+    pill:SetShown(show or not onRing)
     coords:SetShown(show)
     pill:SetScript("OnUpdate", (show and not size) and onUpdate or nil)
     hit:EnableMouse(size ~= nil)
@@ -143,30 +219,20 @@ function Footer.Build()
     local container, host = GMM.Ring.Container(), GMM.Ring.Host()
     pill = CreateFrame("Frame", nil, container)
     pill:SetSize(Footer.WIDTH, Footer.HEIGHT)
-    -- Tucked 4 px into the ring's bottom: the quest tracker starts at the
-    -- cluster's bottom edge, 14 px under the ring (measured on 70374), and a
-    -- pill hanging lower sat on its header. Drawn under the ring (#39): over
-    -- it, the pill cut the ring's rim open; under it, the rim stays a closed
-    -- circle and the pill tucks behind. Only the pill's top middle is under
-    -- the ring: its text and zoom buttons (a few levels up) are clear of it.
-    pill:SetPoint("TOP", host, "BOTTOM", 0, 4)
-    pill:SetFrameLevel(math.max(0, host:GetFrameLevel() - 1))
+    -- Clear of the ring, so it never cuts the rim, and level with the zone
+    -- pill, over the runic vapor and runes (AboveMap 2 and 3).
+    pill:SetPoint("TOP", host, "BOTTOM", 0, -Footer.GAP)
+    pill:SetFrameLevel(GMM.Ring.AboveMap(4))
     Theme.Register(GMM.Glass.Apply(pill, "small"))
 
+    fader = CreateFrame("Frame", nil, container)
     zoomIn = zoomButton("+", 1)
-    zoomIn:SetPoint("RIGHT", pill, "RIGHT", -4, 0)
     zoomOut = zoomButton("\226\136\146", -1)   -- minus sign
-    zoomOut:SetPoint("RIGHT", zoomIn, "LEFT", -3, 0)
 
     coords = GMM.Glass.Font(pill, 14, "CENTER")
-    coords:SetPoint("LEFT", pill, "LEFT", 8, 0)
-    coords:SetPoint("RIGHT", zoomOut, "LEFT", -4, 0)
     coords:SetTextColor(COORD_COLOR[1], COORD_COLOR[2], COORD_COLOR[3])
     -- Over the text only (never the zoom buttons), mouse on while the size shows.
     hit = CreateFrame("Frame", nil, pill)
-    hit:SetPoint("TOPLEFT", pill, "TOPLEFT", 8, 0)
-    hit:SetPoint("BOTTOM", pill, "BOTTOM", 0, 0)
-    hit:SetPoint("RIGHT", zoomOut, "LEFT", -4, 0)
     hit:SetFrameLevel(GMM.Glass.ContentLevel(pill))
     hit:EnableMouse(false)
     hit:SetScript("OnEnter", function(self)
@@ -192,4 +258,5 @@ function Footer.Pill() return pill end
 Footer._test = {
     coords = function() return coords end, zoomIn = function() return zoomIn end,
     zoomOut = function() return zoomOut end, tick = onUpdate, hit = function() return hit end,
+    fader = function() return fader end, fade = fadeTick,
 }

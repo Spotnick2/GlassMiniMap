@@ -22,12 +22,14 @@ local DEFAULTS = {
     runeIntensity = 100,      -- percent of the current glow strength
     runeSpeed = 100,          -- orbit speed percent (30 seconds at 100)
     indicators = "pills",     -- mail and instance size: "pills" (zone and coords pills) | "ring" (discs)
+    zoom = "pill",            -- the zoom buttons: "pill" (the coords pill's ends) | "ring" (discs)
 }
 GMM.DEFAULTS = DEFAULTS
 local BOOLEANS = { sun = true, glassTracking = true, runicMode = true, runeFog = true }
 local RUNE_CHOICES = { runeStyle = { etched = true, glowing = true }, runeMotion = { sway = true, orbit = true } }
 local RUNE_RANGES = { runeIntensity = { 0, 100 }, runeSpeed = { 25, 200 } }
 local INDICATORS = { pills = true, ring = true }
+local ZOOMS = { pill = true, ring = true }
 local function validRuneNumber(key, value)
     local range = RUNE_RANGES[key]
     return range and type(value) == "number" and value == value
@@ -73,6 +75,7 @@ local function ensureDefaults()
         if db[key] ~= nil and not choices[db[key]] then db[key] = nil end
     end
     if db.indicators ~= nil and not INDICATORS[db.indicators] then db.indicators = nil end
+    if db.zoom ~= nil and not ZOOMS[db.zoom] then db.zoom = nil end
     db.drawer = nil   -- the absorbed drawer of a pre-release build; Glass MiniMap Bar keeps its own
     -- Pre-release coordinate settings: Blizzard's own CVars now (Footer.lua).
     db.coords, db.coordsTenths = nil, nil
@@ -174,6 +177,21 @@ function Settings.SetIndicators(where)
     store("indicators", where)
     GMM.Mail.Update()
     GMM.Difficulty.Sync()
+    GMM.Footer.Layout()
+    GMM.Options.Refresh()
+    return true
+end
+
+-- Where the zoom buttons are: "pill" (the coords pill's ends) or "ring" (two
+-- discs at the bottom right) (#42).
+function Settings.Zoom()
+    return GMM.db and ZOOMS[GMM.db.zoom] and GMM.db.zoom or DEFAULTS.zoom
+end
+
+-- False for anything else; the setting is left as it was. Applied live.
+function Settings.SetZoom(where)
+    if not ZOOMS[where] then return false end
+    store("zoom", where)
     GMM.Footer.Layout()
     GMM.Options.Refresh()
     return true

@@ -65,7 +65,7 @@ and a taint minefield (`..\References\Docs\PORTING-TBC-TO-FOREVER.md`, "Edit Mod
 | `Blizzard.lua` | fades stock art, opens Blizzard's tracking menu |
 | `Ring.lua` | the ring (one `Glass.Disc` behind the map), the north tab, `Ring.AddDisc`, the day/night disc |
 | `Header.lua` | zone pill: magnifier, zone name (PvP colours), the new-mail envelope (pills placement), calendar |
-| `Footer.lua` | coordinates pill (Blizzard's coords CVars), or the instance size there (pills placement), zoom − / + |
+| `Footer.lua` | coordinates pill under the ring (the zone pill's gap), Blizzard's coords CVars, or the instance size there (pills placement); zoom − / + at its ends, or discs on the ring (`zoom`) |
 | `Queue.lua` | Blizzard's LFG eye (`QueueStatusButton`) mirrored to the top left while in its default position (base methods, deferred, out of Edit Mode and combat), with a glass disc behind it |
 | `Mail.lua` | new mail while `HasNewMail()`: the zone pill's envelope, or with `indicators = "ring"` a disc (bottom right, 135°); Blizzard's tooltip; Blizzard's `IndicatorFrame.MailFrame` is faded |
 | `Difficulty.lua` | the instance size, mirrored from Blizzard's faded `InstanceDifficulty` after each of its `Update`s (with its own tooltip method): the coords pill's text ("Dungeon · 5"), or with `indicators = "ring"` a disc (right, 90°) |
