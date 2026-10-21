@@ -104,9 +104,10 @@ function API.CVarBool(name)
     return ok and API.Plain(on) == true
 end
 
--- The player's class colour (plain numbers), or nil (GlassPanel's).
-function API.ClassColor()
-    local ok, _, class = pcall(UnitClass, "player")
+-- A unit's class colour (plain numbers), or nil (GlassPanel's): the player's
+-- by default, a pinger's for Ping.lua (#14).
+function API.ClassColor(unit)
+    local ok, _, class = pcall(UnitClass, unit or "player")
     class = ok and API.Plain(class) or nil
     if type(class) ~= "string" then return nil end
     local ok2, c = pcall(C_ClassColor.GetClassColor, class)

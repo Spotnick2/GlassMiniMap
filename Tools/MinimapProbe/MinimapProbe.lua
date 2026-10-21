@@ -12,7 +12,8 @@
 --   /fp mm discs      the mail disc (#19) and the instance disc (#21), and what they mirror
 --   /fp mm restore    put back the tint and zoom a procedure changed
 --
--- Procedures (/fp steps mm <name>): wash, mail, instance, edges, zoomring, suite, suiteoff. The mail
+-- Procedures (/fp steps mm <name>): wash, mail, instance, edges, zoomring, extras, checklist,
+-- suite, suiteoff. extras is #13-#15; checklist is what #2 still had open. The mail
 -- and instance checks follow GlassMiniMap's placement setting (#27): its indicator shows, the
 -- other doesn't. suite and suiteoff are Glass UI's suite (#37), followed and not.
 
@@ -401,7 +402,12 @@ local function snapshot()
     local db = MinimapProbeDB
     if db.restore then return "kept the outstanding one", db.restore.tint, db.restore.zoom end
     local g = gmm()
-    db.restore = { tint = ownTint() or "none", zoom = zoom(), place = g and g.Settings.Zoom and g.Settings.Zoom() }
+    local S = g and g.Settings
+    db.restore = { tint = ownTint() or "none", zoom = zoom(), place = S and S.Zoom and S.Zoom(),
+        autoZoomOut = S and S.AutoZoomOut and S.AutoZoomOut(), pingName = S and S.PingName and S.PingName(),
+        fader = S and S.Fader and S.Fader(), faderOpacity = S and S.FaderOpacity and S.FaderOpacity() }
+    -- A step's zoom stays put: no auto zoom-out during a run (#13; extras turns it on).
+    if S and S.SetAutoZoomOut then S.SetAutoZoomOut(0) end
     return "saved", db.restore.tint, db.restore.zoom
 end
 
@@ -418,6 +424,14 @@ local function restore()
     local z = zoom()
     if r.zoom and z and g then g.Footer.Zoom(r.zoom - z) end
     if r.place and g and g.Settings.SetZoom then g.Settings.SetZoom(r.place) end
+    -- The behaviour settings (#13-#15), when the snapshot has them.
+    local S = g and g.Settings
+    if S and S.SetAutoZoomOut then
+        if r.autoZoomOut ~= nil then S.SetAutoZoomOut(r.autoZoomOut) end
+        if r.pingName ~= nil then S.SetPingName(r.pingName) end
+        if r.fader ~= nil then S.SetFader(r.fader) end
+        if r.faderOpacity ~= nil then S.SetFaderOpacity(r.faderOpacity) end
+    end
     db.restore = nil
     say("restored tint " .. str(tint) .. ", zoom " .. str(r.zoom) .. ", zoom buttons " .. str(r.place))
     return "restored", tint, r.zoom
@@ -605,6 +619,166 @@ local function fadedCheck()
     return a == 0 and b == 0, ("the zoom discs at alpha %s and %s (want 0, the mouse away)"):format(str(a), str(b))
 end
 
+-- The behaviour settings (#13, #14, #15), at their defaults for a run.
+local function behaviourDefaults()
+    local S = gmm() and gmm().Settings
+    if not (S and S.SetAutoZoomOut) then error("Glass MiniMap without #13-#15") end
+    S.SetAutoZoomOut(5); S.SetPingName("map"); S.SetFader(true); S.SetFaderOpacity(60)
+    return "auto zoom-out 5 s, ping names on the map, fader on at 60 %"
+end
+
+local function container() return MinimapCluster and MinimapCluster.MinimapContainer end
+
+local function protectedState(f)
+    if not (f and f.IsProtected) then return "n/a" end
+    local ok, p, explicit = pcall(f.IsProtected, f)
+    return ok and (str(p) .. "/" .. str(explicit)) or "error"
+end
+
+local function about(a, b) return type(a) == "number" and math.abs(a - b) < 0.01 end
+
+-- The fader at rest, the mouse away (#15).
+local function faderCheck()
+    local g, c = gmm(), container()
+    if not (g and c) then return false, "Glass MiniMap or the container: MISSING" end
+    local a = c:GetAlpha()
+    local q = g.Queue.Disc()
+    local qa = q and q:GetAlpha()
+    local ok = about(a, 0.6) and (q == nil or about(qa, 0.6))
+    return ok, ("container alpha %s (want 0.6), queue backing %s, Minimap %s; protected: container %s, Minimap %s, cluster %s"):format(
+        str(a), str(qa), str(Minimap:GetAlpha()), protectedState(c), protectedState(Minimap), protectedState(MinimapCluster))
+end
+
+local function faderHeldCheck()
+    local g, c = gmm(), container()
+    if not (g and c) then return false, "MISSING" end
+    local open = g.Tracking.IsOpen()
+    return open and c:GetAlpha() == 1, ("tracking menu open %s, container alpha %s (want 1)"):format(str(open), str(c:GetAlpha()))
+end
+
+-- What the minimap's events said, for the checks and the log: each zoom
+-- event with the zoom and indoors (#13), each ping with its payload and the
+-- pinger's name when plain (#14), and the container's alpha range in combat.
+local seen = { zooms = 0, pings = {}, combat = nil }
+local watcher = CreateFrame("Frame")
+watcher:RegisterEvent("MINIMAP_UPDATE_ZOOM")
+watcher:RegisterEvent("MINIMAP_PING")
+watcher:RegisterEvent("PLAYER_REGEN_DISABLED")
+watcher:RegisterEvent("PLAYER_REGEN_ENABLED")
+watcher:SetScript("OnEvent", function(_, event, a, b, c)
+    if event == "MINIMAP_UPDATE_ZOOM" then
+        seen.zooms = seen.zooms + 1
+        local okI, indoors = pcall(IsIndoors)
+        say(("zoom event: zoom %s, indoors %s"):format(str(zoom()), str(okI and indoors)))
+    elseif event == "MINIMAP_PING" then
+        local mine = false
+        if not secret(a) then
+            local ok, m = pcall(UnitIsUnit, a, "player")
+            mine = ok and not secret(m) and m == true
+        end
+        local okN, name = false, nil
+        if not secret(a) then okN, name = pcall(UnitName, a) end
+        if not okN or secret(name) then name = nil end
+        local okP, px, py = pcall(Minimap.GetPingPosition, Minimap)
+        local entry = { unit = not secret(a) and a or "(secret)", mine = mine, name = name }
+        seen.pings[#seen.pings + 1] = entry
+        say(("ping: unit %s (ours %s, name %s), y %s, x %s; GetPingPosition %s, %s; map width %s"):format(
+            str(entry.unit), str(mine), str(name), str(b), str(c), str(okP and px), str(okP and py), str(Minimap:GetWidth())))
+    elseif event == "PLAYER_REGEN_DISABLED" then
+        seen.combat = { min = 1, max = 0, changes = 0, last = nil }
+    elseif event == "PLAYER_REGEN_ENABLED" and seen.combat then
+        local k = seen.combat
+        say(("combat: container alpha %s to %s, %s changes"):format(str(k.min), str(k.max), str(k.changes)))
+        seen.lastCombat, seen.combat = k, nil
+    end
+end)
+watcher:SetScript("OnUpdate", function()
+    local k, c = seen.combat, container()
+    if not (k and c) then return end
+    local a = c:GetAlpha()
+    if k.last and a ~= k.last then k.changes = k.changes + 1 end
+    k.last, k.min, k.max = a, math.min(k.min, a), math.max(k.max, a)
+end)
+
+local function zoomedIn() local z = zoom(); return z ~= nil and z > 0, "zoom " .. str(z) end
+local function zoomedOut() local z = zoom(); return z == 0, "zoom " .. str(z) end
+
+local function ownPing()
+    local before = #seen.pings
+    Minimap:PingLocation(40, 25)
+    return before
+end
+
+local function ownPingCheck()
+    local g = gmm()
+    local last = seen.pings[#seen.pings]
+    local shown = g and g.Ping.Pill() and g.Ping.Pill():IsShown()
+    return last ~= nil and last.mine and not shown,
+        ("last ping ours %s, the label shown %s (want no label)"):format(str(last and last.mine), str(shown))
+end
+
+local function showOwnLabel()
+    local g = gmm()
+    local ok, name = pcall(UnitName, "player")
+    local r, gr, b = g.API.ClassColor()
+    if not (ok and g.Ping.Show(name, r and { r, gr, b } or nil)) then error("the label couldn't be shown") end
+    return name
+end
+
+local function labelShown()
+    local g = gmm()
+    local pill = g and g.Ping.Pill()
+    return pill ~= nil and pill:IsShown(), "label shown " .. str(pill and pill:IsShown())
+end
+
+-- A real ping from someone else: the label names them.
+local function otherPingCheck()
+    local g = gmm()
+    local last
+    for i = #seen.pings, 1, -1 do
+        if not seen.pings[i].mine then last = seen.pings[i]; break end
+    end
+    if not last then return false, "no ping from another player seen" end
+    local text = g.Ping._test.text():GetText()
+    local ok = last.name ~= nil and text == last.name
+    return ok, ("their ping: unit %s, name %s; the label says %s"):format(str(last.unit), str(last.name), str(text))
+end
+
+local function failuresCheck()
+    local g = gmm()
+    local n = 0
+    for _ in pairs(g and g.failures or {}) do n = n + 1 end
+    return n == 0, n .. " failure(s) (/gmm failures)"
+end
+
+-- The fader changed the container's alpha in combat with no failure.
+local function combatFaderCheck()
+    local k = seen.lastCombat
+    local okF, f = failuresCheck()
+    if not k then return false, "no fight seen (PLAYER_REGEN_DISABLED then ENABLED)" end
+    return k.changes > 0 and okF, ("in combat the container's alpha went %s to %s, %s changes; %s"):format(
+        str(k.min), str(k.max), str(k.changes), f)
+end
+
+-- The checklist (#2): the map at a scale, and rotation.
+local function scaleCheck()
+    local c, g = container(), gmm()
+    if not (c and g) then return false, "MISSING" end
+    local host = g.Ring.Host()
+    local ce, he, me = c:GetEffectiveScale(), host:GetEffectiveScale(), Minimap:GetEffectiveScale()
+    local w, h = c:GetSize()
+    local ok = about(he, ce) and about(me, ce)
+    return ok, ("container %sx%s scale %s eff %s; Minimap %sx%s eff %s; ring eff %s (want the container's)"):format(
+        str(w), str(h), str(c:GetScale()), str(ce), str(Minimap:GetWidth()), str(Minimap:GetHeight()), str(me), str(he))
+end
+
+local function rotationCheck(want)
+    return function()
+        local on = GetCVarBool("rotateMinimap")
+        return on == want, "rotateMinimap " .. str(on) .. " (want " .. str(want) .. ")"
+    end
+end
+
 local SHOT_DELAY = 3
 local shots = {}   -- label -> { rec, pending | file | why }
 
@@ -668,7 +842,7 @@ Probe:Command("clear", function() Probe:ClearLog(); say("log cleared") end, "emp
 --------------------------------------------------------------------------------
 
 local function SAVE()
-    return { text = "Saving your tint and zoom, to put them back at the end (/fp mm restore if you stop).",
+    return { text = "Saving your tint, zoom and settings, to put them back at the end (/fp mm restore if you stop). Auto zoom-out is paused for the run.",
         auto = true, run = snapshot }
 end
 local function RESTORE() return { text = "Put your tint and zoom back.", button = "Restore", run = restore } end
@@ -742,6 +916,67 @@ Probe:Steps("zoomring", {
       event = "MINIMAP_UPDATE_ZOOM", check = clickCheck(1) },
     { text = "Click + on the ring.", event = "MINIMAP_UPDATE_ZOOM", check = clickCheck(2) },
     { text = "Put your tint, zoom and zoom buttons back.", button = "Restore", run = restore },
+})
+
+Probe:Steps("extras", {
+    rev = 1,
+    title = "Auto zoom-out, who pinged, the fader (#13, #14, #15)",
+    SAVE(),
+    { text = "The three settings at their defaults for this run.", auto = true, run = behaviourDefaults },
+    { text = "Move the mouse off the minimap, wait 2 seconds, then press Check.", button = "Check",
+      run = function() end, check = faderCheck, screenshot = "extras: faded" },
+    { text = "Hover the minimap: does it come to full, and fade back a second after the mouse leaves?", ask = true },
+    { text = "Hover just outside the ring, in the corner between the ring and the zone pill's end: does it stay faded?",
+      ask = true },
+    { text = "Open the tracking menu (click the magnifier), move the mouse off it and the map, wait 3 seconds, then press Check.",
+      button = "Check", run = function() end, check = faderHeldCheck },
+    { text = "Close the menu. Zoom in with the mouse wheel, then move the mouse off the minimap and leave it there.",
+      event = "MINIMAP_UPDATE_ZOOM" },
+    { text = "Wait: the map zooms back out about 5 seconds after the mouse left.", wait = zoomedOut, timeout = 15 },
+    { text = "Zoom in again and keep the mouse on the map for about 8 seconds, then press Check (still on the map).",
+      button = "Check", run = function() end, check = zoomedIn },
+    { text = "Now move the mouse off the minimap and wait.", wait = zoomedOut, timeout = 15 },
+    { text = "Optional: zoom in, walk into a building and back out, then press Done (Skip if none is near). Each zoom event is logged.",
+      button = "Done", run = function() return seen.zooms end },
+    { text = "The probe pings the map itself (your own ping: no label).", button = "Ping", run = ownPing,
+      check = ownPingCheck },
+    { text = "The probe shows your name the way a group member's would be shown, by that ping.", button = "Show",
+      run = showOwnLabel, check = labelShown, screenshot = "extras: ping label" },
+    { text = "Was your name by the ping, readable, then fading out after about 3 seconds?", ask = true },
+    { text = "In a group: have someone ping the minimap, then press Check. Alone? Skip (#14 stays open until this passes).",
+      button = "Check", run = function() end, check = otherPingCheck, screenshot = "extras: their ping" },
+    { text = "Type /console scriptErrors 1. Open Edit Mode, move and scale the minimap, close Edit Mode, then press Check.",
+      button = "Check", run = function() end, check = failuresCheck },
+    { text = "Fight something, moving the mouse on and off the minimap during the fight. The step ends when the fight does.",
+      event = "PLAYER_REGEN_ENABLED", check = combatFaderCheck },
+    { text = "No Lua error and no blocked or forbidden action message, all along?", ask = true },
+    { text = "Put your tint, zoom and settings back.", button = "Restore", run = restore },
+})
+
+Probe:Steps("checklist", {
+    rev = 1,
+    title = "What #2 still has open: rotation, Edit Mode scale, tracking, the drawer, taint",
+    SAVE(),
+    { text = "Turn Rotate Minimap on (Options > Interface, or /console rotateMinimap 1), then press Check.",
+      button = "Check", run = function() end, check = rotationCheck(true), screenshot = "checklist: rotating" },
+    { text = "Turn around: is the map round inside the ring, the north tab moving round it, and no stock compass art?",
+      ask = true },
+    { text = "Turn Rotate Minimap off, then press Check.", button = "Check", run = function() end,
+      check = rotationCheck(false), screenshot = "checklist: fixed" },
+    { text = "Is the map's mask still round and filling the ring?", ask = true },
+    { text = "Edit Mode: set the minimap's size to its smallest (80 % or what it offers), close Edit Mode, then press Check.",
+      button = "Check", run = function() end, check = scaleCheck, screenshot = "checklist: small" },
+    { text = "Edit Mode: set it to its largest (120 % or what it offers), close Edit Mode, then press Check.",
+      button = "Check", run = function() end, check = scaleCheck, screenshot = "checklist: large" },
+    { text = "At both sizes, did the ring, the pills and the discs follow the map? (Put the size back after.)", ask = true },
+    { text = "Tracking: in our menu (click the magnifier) turn a tracking on (Find Herbs, say), then right-click the magnifier for Blizzard's menu. Does it agree? Then Uncheck All in ours, and check again.",
+      ask = true },
+    { text = "The drawer: is each addon there once (a LibDBIcon one, and a compartment-only one such as Gnomesweeper), and do left and right clicks reach both kinds?",
+      ask = true },
+    { text = "Taint pass: Edit Mode, move, scale and rotate the minimap, close; then fight using your action bars and a macro. The step ends when the fight does.",
+      event = "PLAYER_REGEN_ENABLED", check = failuresCheck },
+    { text = "No Lua error and no blocked or forbidden action message, all along?", ask = true },
+    { text = "Put your tint, zoom and settings back.", button = "Restore", run = restore },
 })
 
 Probe:Steps("instance", {

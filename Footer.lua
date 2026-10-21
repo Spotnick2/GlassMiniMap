@@ -44,7 +44,8 @@ Footer.FADE_TIME = 0.25      -- ...then faded out over this
 
 local pill, coords, hit, zoomIn, zoomOut, fader
 local since = 0
-local idle, fade = 0, 1
+local grace, fade = 0, 1
+local countdown        -- seconds to the auto zoom-out (#13), or nil
 local COORD_COLOR, SIZE_COLOR = { 0.92, 0.94, 0.97 }, { 1, 0.82, 0 }
 
 -- The instance's size, when the pill shows it (Difficulty.lua takes it after
@@ -139,14 +140,15 @@ local function setFade(a)
     zoomOut:SetAlpha(a)
 end
 
--- Zoom on the ring: shown while the mouse is over the ring (the map included)
--- or a disc, faded out a moment after it leaves, as Blizzard's zoom buttons
--- show and hide (Minimap.lua, MinimapMixin:OnEnter/OnLeave; the owner,
--- 70450). Faded, they keep the mouse: hovering their spot brings them back.
+-- Zoom on the ring: shown while the mouse is over the minimap (Hover.lua:
+-- the ring's circle, our pieces, these discs included), faded out a moment
+-- after it leaves, as Blizzard's zoom buttons show and hide (Minimap.lua,
+-- MinimapMixin:OnEnter/OnLeave; the owner, 70450). Faded, they keep the
+-- mouse: hovering their spot brings them back. Laid out anew, they show for
+-- the delay whatever the mouse does.
 local function fadeTick(_, elapsed)
-    local over = GMM.Ring.Host():IsMouseOver() or zoomIn:IsMouseOver() or zoomOut:IsMouseOver()
-    idle = over and 0 or idle + elapsed
-    local target = idle < Footer.FADE_DELAY and 1 or 0
+    grace = math.max(0, grace - elapsed)
+    local target = (grace > 0 or GMM.Hover.Idle() < Footer.FADE_DELAY) and 1 or 0
     if fade == target then return end
     local step = elapsed / Footer.FADE_TIME
     setFade(target > fade and math.min(1, fade + step) or math.max(0, fade - step))
@@ -173,7 +175,7 @@ local function placeZoom(onRing)
         zoomIn:SetPoint("RIGHT", pill, "RIGHT", -4, 0)
     end
     -- Shown at once either way; on the ring, fading from there.
-    idle = 0
+    grace = Footer.FADE_DELAY
     setFade(1)
     fader:SetScript("OnUpdate", onRing and fadeTick or nil)
     -- The text between the buttons, or across the pill: centered either way.
@@ -242,18 +244,48 @@ function Footer.Build()
 
     pill:SetScript("OnEvent", function(_, event, name)
         if event == "MINIMAP_UPDATE_ZOOM" then
-            Footer.UpdateZoomButtons()
+            Footer.ZoomChanged()
         elseif name == "minimapShowPlayerCoords" or name == "coordsByTenths" then
             Footer.Layout()
         end
     end)
     API.RegisterEvents(pill, { "MINIMAP_UPDATE_ZOOM", "CVAR_UPDATE" }, "coords pill")
+    GMM.Hover.OnTick(Footer.AutoZoomTick)
     Footer.Layout()
     Footer.UpdateZoomButtons()
     return pill
 end
 
 function Footer.Pill() return pill end
+function Footer.ZoomButtons() return zoomIn, zoomOut end
+
+-- Auto zoom-out (#13; docs/PLAN-zoom-ping-fader.md §1): a zoom change from any
+-- path (our buttons, the wheel, Blizzard's) to above 0 starts the countdown,
+-- and 0 stops it, so our own zoom-out starts nothing. Indoors and outdoors
+-- keep their own zoom (two CVars): the event's is the one acted on.
+function Footer.ZoomChanged()
+    Footer.UpdateZoomButtons()
+    local ok, z = pcall(Minimap.GetZoom, Minimap)
+    z = ok and API.Plain(z)
+    local delay = GMM.Settings.AutoZoomOut()
+    countdown = (type(z) == "number" and z > 0 and delay > 0) and delay or nil
+end
+
+-- Hover's tick: the countdown runs only while the mouse is away, and starts
+-- over while it's on the minimap (or the menu or Edit Mode is open), so a map
+-- zoomed in to read never zooms out under the cursor.
+function Footer.AutoZoomTick(dt)
+    if not countdown then return end
+    local delay = GMM.Settings.AutoZoomOut()
+    if GMM.Hover.Over() or GMM.Hover.Held() then countdown = delay; return end
+    countdown = countdown - dt
+    if countdown > 0 then return end
+    countdown = nil
+    Minimap:SetZoom(0)
+    Footer.UpdateZoomButtons()
+end
+
+function Footer.Countdown() return countdown end
 
 Footer._test = {
     coords = function() return coords end, zoomIn = function() return zoomIn end,

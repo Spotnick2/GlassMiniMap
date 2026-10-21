@@ -23,5 +23,8 @@ Mail.lua
 Difficulty.lua
 Tracking.lua
 Drawer.lua
+Hover.lua
+Ping.lua
+Fader.lua
 Options.lua
 GlassMiniMap.lua

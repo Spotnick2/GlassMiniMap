@@ -17,6 +17,12 @@ A liquid-glass minimap for **World of Warcraft: Forever**.
   for Blizzard's own.
 - **Coordinates pill** with zoom buttons at its ends, or on the ring as discs (Blizzard's "Player
   Minimap Coordinates" and "Coordinates by Tenths" settings apply).
+- **Zooms back out** on its own 5 seconds after you zoomed in and moved the mouse away (0 to 30
+  seconds, or never).
+- **Who pinged**: when a group member clicks the minimap, their name shows by the ping in their
+  class colour (or in chat, or not at all).
+- **Fades until hovered**: the minimap rests at 60 % opacity and comes to full under the mouse
+  (or not at all, or another opacity).
 - **Day and night disc**: a sun or a moon, with the server and local time. Click it for the clock.
 - **New-mail disc** at the bottom right of the ring while you have unread mail, with the latest
   senders on hover.
