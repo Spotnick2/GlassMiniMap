@@ -39,9 +39,12 @@ Footer.INTERVAL = 0.2
 -- Zoom on the ring: + over -, at the bottom right (the owner's mockup).
 -- With the indicators on the ring, the mail disc has 135 degrees: lower down.
 Footer.ZOOM_ANGLES = { pills = { 122, 138 }, ring = { 153, 167 } }
+Footer.FADE_DELAY = 1        -- zoom on the ring: seconds shown after the mouse leaves
+Footer.FADE_TIME = 0.25      -- ...then faded out over this
 
-local pill, coords, hit, zoomIn, zoomOut
+local pill, coords, hit, zoomIn, zoomOut, fader
 local since = 0
+local idle, fade = 0, 1
 local COORD_COLOR, SIZE_COLOR = { 0.92, 0.94, 0.97 }, { 1, 0.82, 0 }
 
 -- The instance's size, when the pill shows it (Difficulty.lua takes it after
@@ -130,6 +133,25 @@ local function zoomButton(symbol, step)
     return b
 end
 
+local function setFade(a)
+    fade = a
+    zoomIn:SetAlpha(a)
+    zoomOut:SetAlpha(a)
+end
+
+-- Zoom on the ring: shown while the mouse is over the ring (the map included)
+-- or a disc, faded out a moment after it leaves, as Blizzard's zoom buttons
+-- show and hide (Minimap.lua, MinimapMixin:OnEnter/OnLeave; the owner,
+-- 70450). Faded, they keep the mouse: hovering their spot brings them back.
+local function fadeTick(_, elapsed)
+    local over = GMM.Ring.Host():IsMouseOver() or zoomIn:IsMouseOver() or zoomOut:IsMouseOver()
+    idle = over and 0 or idle + elapsed
+    local target = idle < Footer.FADE_DELAY and 1 or 0
+    if fade == target then return end
+    local step = elapsed / Footer.FADE_TIME
+    setFade(target > fade and math.min(1, fade + step) or math.max(0, fade - step))
+end
+
 -- The zoom buttons: at the pill's ends, or discs on the ring.
 local function placeZoom(onRing)
     for i, b in ipairs({ zoomIn, zoomOut }) do
@@ -150,6 +172,10 @@ local function placeZoom(onRing)
         zoomOut:SetPoint("LEFT", pill, "LEFT", 4, 0)
         zoomIn:SetPoint("RIGHT", pill, "RIGHT", -4, 0)
     end
+    -- Shown at once either way; on the ring, fading from there.
+    idle = 0
+    setFade(1)
+    fader:SetScript("OnUpdate", onRing and fadeTick or nil)
     -- The text between the buttons, or across the pill: centered either way.
     local left, right = onRing and pill or zoomOut, onRing and pill or zoomIn
     coords:ClearAllPoints()
@@ -199,6 +225,7 @@ function Footer.Build()
     pill:SetFrameLevel(GMM.Ring.AboveMap(4))
     Theme.Register(GMM.Glass.Apply(pill, "small"))
 
+    fader = CreateFrame("Frame", nil, container)
     zoomIn = zoomButton("+", 1)
     zoomOut = zoomButton("\226\136\146", -1)   -- minus sign
 
@@ -231,4 +258,5 @@ function Footer.Pill() return pill end
 Footer._test = {
     coords = function() return coords end, zoomIn = function() return zoomIn end,
     zoomOut = function() return zoomOut end, tick = onUpdate, hit = function() return hit end,
+    fader = function() return fader end, fade = fadeTick,
 }

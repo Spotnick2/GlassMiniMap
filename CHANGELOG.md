@@ -17,6 +17,7 @@
   coordinates are centered under the map, with − and + at the pill's ends.
 - **Zoom buttons on the ring**, if you prefer: Options > AddOns > Glass MiniMap, "Zoom buttons: On
   the ring, as discs" puts + and − at the ring's bottom right and leaves the pill to the text.
+  Like Blizzard's, they show while the mouse is over the minimap and fade out after it leaves.
 
 ## v0.2.0
 

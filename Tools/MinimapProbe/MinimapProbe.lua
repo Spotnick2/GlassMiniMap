@@ -12,7 +12,7 @@
 --   /fp mm discs      the mail disc (#19) and the instance disc (#21), and what they mirror
 --   /fp mm restore    put back the tint and zoom a procedure changed
 --
--- Procedures (/fp steps mm <name>): wash, mail, instance, edges, suite, suiteoff. The mail
+-- Procedures (/fp steps mm <name>): wash, mail, instance, edges, zoomring, suite, suiteoff. The mail
 -- and instance checks follow GlassMiniMap's placement setting (#27): its indicator shows, the
 -- other doesn't. suite and suiteoff are Glass UI's suite (#37), followed and not.
 
@@ -566,6 +566,45 @@ local function zoomRingCheck()
         ("zoom %s; + and - on the ring %s, shown %s"):format(str(g.Settings.Zoom()), str(onRing), str(shown))
 end
 
+-- The zoom discs on the ring, clicked (#42: "zoom no, hover yes" on 70450,
+-- with the map at its closest zoom, where + does nothing). What's under the
+-- mouse names our discs, else the frame in the way.
+local function focusName()
+    local g = gmm()
+    local fn = rawget(_G, "GetMouseFoci")
+    local ok, foci = pcall(fn)
+    local f = ok and type(foci) == "table" and foci[1] or nil
+    local F = g and g.Footer and g.Footer._test
+    if F and f == F.zoomIn() then return "our + disc" end
+    if F and f == F.zoomOut() then return "our - disc" end
+    local okName, name = pcall(function() return f:GetDebugName() end)
+    return okName and str(name) or str(f)
+end
+
+local function ringZoomReady()
+    local g = gmm()
+    local z = zoom()
+    if not (g and z) then error("zoom unreadable") end
+    if not g.Settings.SetZoom("ring") then error("couldn't put the zoom buttons on the ring") end
+    g.Footer.Zoom(2 - z)
+    return zoom()
+end
+
+local function clickCheck(want)
+    return function()
+        local z = zoom()
+        return z == want, ("map zoom %s (want %s); under the mouse: %s"):format(str(z), str(want), focusName())
+    end
+end
+
+local function fadedCheck()
+    local g = gmm()
+    local F = g and g.Footer and g.Footer._test
+    if not F then return false, "the zoom buttons: MISSING" end
+    local a, b = F.zoomIn():GetAlpha(), F.zoomOut():GetAlpha()
+    return a == 0 and b == 0, ("the zoom discs at alpha %s and %s (want 0, the mouse away)"):format(str(a), str(b))
+end
+
 local SHOT_DELAY = 3
 local shots = {}   -- label -> { rec, pending | file | why }
 
@@ -619,6 +658,7 @@ Probe:Command("discs", function()
     local _, d = instanceCheck(kind ~= "none")
     say("instance: " .. d)
 end, "the mail and instance discs")
+Probe:Command("focus", function() say("under the mouse: " .. focusName()) end, "what's under the mouse")
 Probe:Command("restore", function() say(table.concat({ restore() }, " ")) end,
     "put back the tint and zoom a procedure changed")
 Probe:Command("clear", function() Probe:ClearLog(); say("log cleared") end, "empty the saved log")
@@ -686,6 +726,21 @@ Probe:Steps("edges", {
     { text = "Go somewhere dark (a cave, a forest at night), then press Shoot.", button = "Shoot",
       run = sceneryTheme("clear"), screenshot = "edges: dark, zoom on the ring" },
     { text = "On dark ground: do the pill, its text and the zoom discs read well?", ask = true },
+    { text = "Put your tint, zoom and zoom buttons back.", button = "Restore", run = restore },
+})
+
+Probe:Steps("zoomring", {
+    rev = 1,
+    title = "The zoom discs on the ring: clicks and the fade (#42)",
+    SAVE(),
+    { text = "Zoom buttons on the ring, and the map's zoom to the middle (so + and - both work).", button = "Ring",
+      run = ringZoomReady, check = zoomRingCheck },
+    { text = "Move the mouse off the minimap, wait 2 seconds, then press Check.", button = "Check",
+      run = function() end, check = fadedCheck, screenshot = "zoomring: faded" },
+    { text = "Hover the minimap: do + and - fade in, and fade out a moment after the mouse leaves?", ask = true },
+    { text = "Click - on the ring (bottom right). Nothing happens? Hover it, type /fp mm focus, then Skip.",
+      event = "MINIMAP_UPDATE_ZOOM", check = clickCheck(1) },
+    { text = "Click + on the ring.", event = "MINIMAP_UPDATE_ZOOM", check = clickCheck(2) },
     { text = "Put your tint, zoom and zoom buttons back.", button = "Restore", run = restore },
 })
 

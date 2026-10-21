@@ -420,6 +420,46 @@ eq(GMM.Settings.Zoom(), "pill", "...and the zoom buttons back in the pill")
 eq(rawget(GlassMiniMapDB, "zoom"), nil, "...not saved")
 eq(record("edges").status, "done", "edges: done")
 
+--------------------------------------------------------------------------------
+-- zoomring (#42)
+--------------------------------------------------------------------------------
+local Fz = GMM.Footer._test
+Minimap:SetZoom(5)                                     -- the owner's: the closest zoom
+fp("steps mm zoomring")
+S.Run(); settle()
+eq(result("zoomring", 2).check, "PASS", "zoomring: the discs on the ring")
+eq(Minimap:GetZoom(), 2, "...the map's zoom to the middle")
+WoW.mouseOver = {}
+for _ = 1, 40 do Fz.fade(Fz.fader(), 0.05) end
+S.Run(); settle()
+eq(result("zoomring", 3).check, "PASS", "the discs faded, the mouse away")
+check(result("zoomring", 3).screenshots, "...with a screenshot")
+S.Back()
+Fz.zoomIn():SetAlpha(1)
+S.Run(); settle()
+eq(result("zoomring", 3).check, "FAIL", "a disc not faded: FAIL")
+for _ = 1, 40 do Fz.fade(Fz.fader(), 0.05) end
+S.Answer(true)
+rawset(_G, "GetMouseFoci", function() return { Fz.zoomOut() } end)
+WoW.fire("MINIMAP_UPDATE_ZOOM")                        -- the wheel, say: no click
+eq(result("zoomring", 5).check, "FAIL", "the event without the zoom changed: FAIL")
+check(result("zoomring", 5).checkDetail:find("under the mouse: our - disc", 1, true), "...naming what's under the mouse")
+S.Back()
+Fz.zoomOut():Click("LeftButton")
+WoW.fire("MINIMAP_UPDATE_ZOOM")
+eq(result("zoomring", 5).check, "PASS", "- clicked: zoomed out")
+rawset(_G, "GetMouseFoci", function() return { Minimap } end)
+Fz.zoomIn():Click("LeftButton")
+WoW.fire("MINIMAP_UPDATE_ZOOM")
+eq(result("zoomring", 6).check, "PASS", "+ clicked: zoomed in")
+check(not result("zoomring", 6).checkDetail:find("our", 1, true), "...another frame under the mouse named as such")
+rawset(_G, "GetMouseFoci", nil)
+fp("mm focus")
+S.Run()                                                -- restore
+eq(Minimap:GetZoom(), 5, "zoomring: the zoom put back")
+eq(GMM.Settings.Zoom(), "pill", "...and the zoom buttons back in the pill")
+eq(record("zoomring").status, "done", "zoomring: done")
+
 eq(#WoW.chat, 0, "nothing in chat, all along")
 
 -- Pearl, our default material: the wash expected is its own (0.10), times
