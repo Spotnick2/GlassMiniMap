@@ -186,6 +186,16 @@ for _, s in ipairs(G2.Theme._test.surfaces) do
 end
 check(pillTop and pillTop._level < ringTop._level, "...its rim under the ring's rim")
 check(G2.Footer._test.zoomIn()._level >= host._level, "...its zoom buttons above the ring's body")
+-- ...and above the runic vapor and runes reaching over its top (#42).
+local G3 = loadAddon({ gmb = true, db = { runicMode = true } })
+local runes, fogFrame = G3.Ring._test.runes(), G3.Ring._test.fog()
+check(runes and fogFrame, "runic mode: the runes and vapor built")
+local over = math.max(runes._level, fogFrame._level, G3.Ring._test.bloom()._level)
+local F3 = G3.Footer._test
+check(F3.zoomIn()._level > over and F3.zoomOut()._level > over, "...the zoom buttons over them")
+eq(F3.coords()._parent, F3.hit(), "...the coordinates on the lifted hit frame")
+check(F3.hit()._level > over, "...over them too")
+check(F3.hit()._level < G3.Ring.Glass().top._level, "...but under the ring's rim")
 eq(pill._points[1][5], 4, "...still tucked 4 px into the ring (the quest tracker's room)")
 
 eq(next(GMM.failures), nil, "no failures")

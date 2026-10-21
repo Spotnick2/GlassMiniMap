@@ -100,10 +100,17 @@ function Footer.UpdateZoomButtons()
     GMM.Glass.SetSurfaceEnabled(zoomOut.glass, z > 0)
 end
 
+-- The text and the zoom buttons sit over the runic ring's vapor and runes
+-- (Ring.lua, AboveMap 2 and 3), which reach EFFECT_PADDING past the ring and
+-- across the pill's top since it went under the ring (#39): at the pill's own
+-- content level they were dimmed by it (#42, the owner on 70450). Level with
+-- the north tab, under the ring's discs and both rims.
+local function contentLevel() return GMM.Ring.AboveMap(4) end
+
 local function zoomButton(symbol, step)
     local b = CreateFrame("Button", nil, pill)
     b:SetSize(Footer.ZOOM_SIZE, Footer.ZOOM_SIZE)
-    b:SetFrameLevel(GMM.Glass.ContentLevel(pill))
+    b:SetFrameLevel(contentLevel())
     b.glass = GMM.Glass.Disc(b, "disc_small")
     b.glass.grain:SetAlpha(0)
     b.glass.shadow:SetAlpha(0)
@@ -148,7 +155,7 @@ function Footer.Build()
     -- pill hanging lower sat on its header. Drawn under the ring (#39): over
     -- it, the pill cut the ring's rim open; under it, the rim stays a closed
     -- circle and the pill tucks behind. Only the pill's top middle is under
-    -- the ring: its text and zoom buttons (a few levels up) are clear of it.
+    -- the ring: its text and zoom buttons (lifted, contentLevel) are clear of it.
     pill:SetPoint("TOP", host, "BOTTOM", 0, 4)
     pill:SetFrameLevel(math.max(0, host:GetFrameLevel() - 1))
     Theme.Register(GMM.Glass.Apply(pill, "small"))
@@ -158,17 +165,18 @@ function Footer.Build()
     zoomOut = zoomButton("\226\136\146", -1)   -- minus sign
     zoomOut:SetPoint("RIGHT", zoomIn, "LEFT", -3, 0)
 
-    coords = GMM.Glass.Font(pill, 14, "CENTER")
-    coords:SetPoint("LEFT", pill, "LEFT", 8, 0)
-    coords:SetPoint("RIGHT", zoomOut, "LEFT", -4, 0)
-    coords:SetTextColor(COORD_COLOR[1], COORD_COLOR[2], COORD_COLOR[3])
-    -- Over the text only (never the zoom buttons), mouse on while the size shows.
+    -- Over the text only (never the zoom buttons), mouse on while the size
+    -- shows. It carries the text, so both are lifted together.
     hit = CreateFrame("Frame", nil, pill)
     hit:SetPoint("TOPLEFT", pill, "TOPLEFT", 8, 0)
     hit:SetPoint("BOTTOM", pill, "BOTTOM", 0, 0)
     hit:SetPoint("RIGHT", zoomOut, "LEFT", -4, 0)
-    hit:SetFrameLevel(GMM.Glass.ContentLevel(pill))
+    hit:SetFrameLevel(contentLevel())
     hit:EnableMouse(false)
+    coords = GMM.Glass.Font(hit, 14, "CENTER")
+    coords:SetPoint("LEFT", pill, "LEFT", 8, 0)
+    coords:SetPoint("RIGHT", zoomOut, "LEFT", -4, 0)
+    coords:SetTextColor(COORD_COLOR[1], COORD_COLOR[2], COORD_COLOR[3])
     hit:SetScript("OnEnter", function(self)
         if instanceText() then API.Try("difficulty:tooltip", GMM.Difficulty.Tooltip, self) end
     end)

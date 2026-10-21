@@ -499,20 +499,30 @@ end
 -- recorded here and the next step's check reads it. A shot belongs to the
 -- procedure run that armed it (its record: a new one on every start), so a
 -- restarted procedure never passes on an earlier run's picture.
--- The ring's edges (#39, #40): the coords pill drawn under the ring (so its
--- rim stays closed), and the dark well under the day/night glyph.
+-- The ring's edges (#39, #40, #42): the coords pill drawn under the ring (so
+-- its rim stays closed), its text and zoom buttons over the runic vapor that
+-- reaches across its top, and the dark well under the day/night glyph.
 local function edgesCheck()
     local g = gmm()
     local host = g and g.Ring and g.Ring.Host()
     local pill = g and g.Footer and g.Footer.Pill()
     local sun = g and g.Ring and g.Ring.Sun()
     if not (host and pill and sun) then return false, "the ring, the coords pill or the sun: MISSING" end
+    local R, F = g.Ring._test, g.Footer._test
+    local runes, fog = R.runes(), R.fog()
+    if not (runes and runes:IsVisible() and fog and fog:IsShown()) then
+        return false, "the runic ring or its vapor is off: /gmm runes on, /gmm runes fog on, then Check again"
+    end
     local hl, pl = host:GetFrameLevel(), pill:GetFrameLevel()
+    local over = math.max(runes:GetFrameLevel(), fog:GetFrameLevel())
+    local tl, zl = F.hit():GetFrameLevel(), math.min(F.zoomIn():GetFrameLevel(), F.zoomOut():GetFrameLevel())
+    local textOk = F.coords():GetParent() == F.hit() and tl > over and zl > over
     local well = sun.backing
     local wellShown = well and well:IsShown() and well:GetAlpha() > 0
-    return pl < hl and wellShown == true,
-        ("ring level %s, coords pill level %s (want under); sun's well %s; Minimap level %s"):format(
-            str(hl), str(pl), well and (wellShown and "shown" or "HIDDEN") or "MISSING", str(Minimap:GetFrameLevel()))
+    return pl < hl and textOk and wellShown == true,
+        ("ring level %s, coords pill level %s (want under); its text %s and zoom %s over the runes and vapor %s%s; sun's well %s; Minimap level %s"):format(
+            str(hl), str(pl), str(tl), str(zl), str(over), textOk and "" or " (WANT OVER)",
+            well and (wellShown and "shown" or "HIDDEN") or "MISSING", str(Minimap:GetFrameLevel()))
 end
 
 local SHOT_DELAY = 3
@@ -620,19 +630,20 @@ Probe:Steps("mail", {
 })
 
 Probe:Steps("edges", {
-    rev = 1,
-    title = "The ring's edges: the sun's contrast (#40), the coords pill under the rim (#39)",
+    rev = 2,
+    title = "The ring's edges: the coords pill under the rim (#39) and over the runic vapor (#42)",
     SAVE(),
-    { text = "Go somewhere bright (a desert, snow) with the sun or moon disc over it, then press Check.",
+    { text = "With the runic ring and its vapor on (/gmm runes on, /gmm runes fog on), go somewhere bright (a desert, snow), then press Check.",
       button = "Check", run = setTheme("clear"), check = edgesCheck, screenshot = "edges: bright, clear" },
-    { text = "Is the sun (or moon) as easy to see as the drawer's disc and the mail envelope?", ask = true },
-    { text = "At the bottom of the ring: is the rim a closed circle, with the coordinates pill tucked behind it (not cutting it)?",
+    { text = "Is the coordinates text crisp, with the vapor drifting behind it rather than over it?", ask = true },
+    { text = "And the zoom buttons: drawn over the vapor too?", ask = true },
+    { text = "At the bottom of the ring: is the rim a closed circle, with the pill tucked behind it?", ask = true },
+    { text = "Does the vapor tinting the pill's top still bother you? (Yes asks for #42's option 2: keeping it off the pill.)",
       ask = true },
-    { text = "Is the coordinates text still crisp, not dimmed by the ring's shadow?", ask = true },
     { text = "Smoked glass.", button = "Smoked", run = setTheme("smoked"), screenshot = "edges: bright, smoked" },
     { text = "Go somewhere dark (a cave, a forest at night), then press Shoot.", button = "Shoot",
       run = setTheme("clear"), screenshot = "edges: dark, clear" },
-    { text = "Does the sun's dark well read as part of the glass, not a black hole?", ask = true },
+    { text = "On dark ground: the coordinates still crisp over the vapor?", ask = true },
     RESTORE(),
 })
 

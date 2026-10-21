@@ -13,7 +13,8 @@
 - **The sun and moon stand out on bright ground**: the day/night disc (and the instance size's)
   gets a dark well under its glyph, as an addon icon has. Over a desert they used to fade out.
 - **The ring stays a closed circle**: the coordinates pill now tucks behind the ring's bottom
-  edge instead of cutting into it.
+  edge instead of cutting into it. With the runic ring on, its coordinates and zoom buttons stay
+  crisp over the drifting vapor.
 
 ## v0.2.0
 
