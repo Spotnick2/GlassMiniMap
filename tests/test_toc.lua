@@ -7,6 +7,7 @@ check(toc:find("## Interface: 16001", 1, true), "interface 16001 (1.60.1; 11601 
 check(toc:find("## Version: @project-version@", 1, true), "packager version token kept")
 check(toc:find("## SavedVariables: GlassMiniMapDB", 1, true), "saved variables declared")
 check(toc:find("## X-Curse-Project-ID: 1744024", 1, true), "CurseForge project ID (1744024)")
+check(toc:find("## X-Wago-ID: 5NRgYe63", 1, true), "Wago project ID (5NRgYe63)")
 check(toc:find("## X-License: MIT", 1, true), "MIT, like GlassMail")
 eq(toc:match("## OptionalDeps: ([^\r\n]*)"), "GlassMiniMapBar, GlassUI",
     "Glass MiniMap Bar and Glass UI load first when installed (the drawer; the suite's answer at our ADDON_LOADED)")
