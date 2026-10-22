@@ -632,6 +632,7 @@ local function behaviourDefaults()
     local S = gmm() and gmm().Settings
     if not (S and S.SetAutoZoomOut) then error("Glass MiniMap without #13 and #15") end
     S.SetAutoZoomOut(5); S.SetFader(true); S.SetFaderOpacity(60)
+    heldPolls = 0
     return "auto zoom-out 5 s, fader on at 60 %"
 end
 
@@ -657,11 +658,18 @@ local function faderCheck()
         str(a), str(qa), str(Minimap:GetAlpha()), protectedState(c), protectedState(Minimap), protectedState(MinimapCluster))
 end
 
-local function faderHeldCheck()
+-- Held while the tracking menu is open: the menu open, the mouse off the
+-- minimap, the container still at full for 3 polls in a row (about 3 s). A
+-- wait, not a Check button: any click elsewhere closes the menu, the
+-- button's included (extras rev 2's FAIL, the owner on 70450).
+local heldPolls = 0
+local function faderHeld()
     local g, c = gmm(), container()
     if not (g and c) then return false, "MISSING" end
-    local open = g.Tracking.IsOpen()
-    return open and c:GetAlpha() == 1, ("tracking menu open %s, container alpha %s (want 1)"):format(str(open), str(c:GetAlpha()))
+    local open, over, a = g.Tracking.IsOpen(), g.Hover.Over(), c:GetAlpha()
+    heldPolls = (open and not over and a == 1) and heldPolls + 1 or 0
+    return heldPolls >= 3, ("menu open %s, mouse on the minimap %s, container alpha %s: %d of 3 polls"):format(
+        str(open), str(over), str(a), heldPolls)
 end
 
 -- What the minimap's events said, for the checks and the log: each zoom
@@ -873,7 +881,7 @@ Probe:Steps("zoomring", {
 })
 
 Probe:Steps("extras", {
-    rev = 2,
+    rev = 3,
     title = "Auto zoom-out and the fader (#13, #15)",
     SAVE(),
     { text = "The three settings at their defaults for this run.", auto = true, run = behaviourDefaults },
@@ -882,8 +890,8 @@ Probe:Steps("extras", {
     { text = "Hover the minimap: does it come to full, and fade back a second after the mouse leaves?", ask = true },
     { text = "Hover just outside the ring, in the corner between the ring and the zone pill's end: does it stay faded?",
       ask = true },
-    { text = "Open the tracking menu (click the magnifier), move the mouse off it and the map, wait 3 seconds, then press Check.",
-      button = "Check", run = function() end, check = faderHeldCheck },
+    { text = "Open the tracking menu (click the magnifier), then move the mouse off it and the map. The step ends by itself about 3 seconds later (don't click).",
+      wait = faderHeld, timeout = 60 },
     { text = "Close the menu. Zoom in with the mouse wheel, then move the mouse off the minimap and leave it there.",
       event = "MINIMAP_UPDATE_ZOOM" },
     { text = "Wait: the map zooms back out about 5 seconds after the mouse left.", wait = zoomedOut, timeout = 15 },
@@ -896,7 +904,7 @@ Probe:Steps("extras", {
       button = "Check", run = function() end, check = failuresCheck },
     { text = "Fight something, moving the mouse on and off the minimap during the fight. The step ends when the fight does.",
       event = "PLAYER_REGEN_ENABLED", check = combatFaderCheck },
-    { text = "No Lua error and no blocked or forbidden action message, all along?", ask = true },
+    { text = "Did a Lua error, or a blocked or forbidden action message, appear at any point? (Yes is a problem.)", ask = true },
     { text = "Put your tint, zoom and settings back.", button = "Restore", run = restore },
 })
 
@@ -922,7 +930,7 @@ Probe:Steps("checklist", {
       ask = true },
     { text = "Taint pass: Edit Mode, move, scale and rotate the minimap, close; then fight using your action bars and a macro. The step ends when the fight does.",
       event = "PLAYER_REGEN_ENABLED", check = failuresCheck },
-    { text = "No Lua error and no blocked or forbidden action message, all along?", ask = true },
+    { text = "Did a Lua error, or a blocked or forbidden action message, appear at any point? (Yes is a problem.)", ask = true },
     { text = "Put your tint, zoom and settings back.", button = "Restore", run = restore },
 })
 
