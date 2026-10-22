@@ -550,6 +550,20 @@ S.Run()                                                -- restore
 eq(GMM.Settings.AutoZoomOut(), 12, "extras: the owner's delay put back")
 eq(GMM.Settings.Fader(), false, "...and their fader setting")
 eq(record("extras").status, "done", "extras: done")
+-- A second run counts its own three polls (Codex, #44: the reset wrote a
+-- global, so the first run's count carried over).
+eq(rawget(_G, "heldPolls"), nil, "the probe leaks no global count")
+fp("steps mm extras")
+settle()
+S.Skip(); S.Skip(); S.Skip()                           -- to the menu hold
+GMM.Tracking.Open(GMM.Header.TrackingButton())
+away(); polls(1)
+eq(result("extras", 6).status, nil, "a second run: not done on its first poll")
+polls(3)
+eq(result("extras", 6).status, "done", "...done after three")
+GMM.Tracking.Close()
+fp("steps stop")
+fp("mm restore")
 
 --------------------------------------------------------------------------------
 -- checklist (#2)

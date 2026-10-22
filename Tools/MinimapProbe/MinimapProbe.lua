@@ -627,6 +627,10 @@ local function fadedCheck()
     return a == 0 and b == 0, ("the zoom discs at alpha %s and %s (want 0, the mouse away)"):format(str(a), str(b))
 end
 
+-- The menu-hold wait's count of polls in a row (faderHeld), reset by each
+-- extras run's defaults step: declared here, before both (Codex, #44).
+local heldPolls = 0
+
 -- The behaviour settings (#13, #15), at their defaults for a run.
 local function behaviourDefaults()
     local S = gmm() and gmm().Settings
@@ -662,7 +666,6 @@ end
 -- minimap, the container still at full for 3 polls in a row (about 3 s). A
 -- wait, not a Check button: any click elsewhere closes the menu, the
 -- button's included (extras rev 2's FAIL, the owner on 70450).
-local heldPolls = 0
 local function faderHeld()
     local g, c = gmm(), container()
     if not (g and c) then return false, "MISSING" end
