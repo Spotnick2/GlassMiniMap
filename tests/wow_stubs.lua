@@ -272,8 +272,14 @@ end
 function Methods.Click(w, mouse)
     if w._scripts.OnClick then w._scripts.OnClick(w, mouse or "LeftButton", false) end
 end
+-- Callback events (CallbackEvent = true in Blizzard's API documentation, a
+-- flag the dump drops): RegisterEvent refuses them as the client does (70450,
+-- MINIMAP_PING); Event.RegisterCallback takes them.
+WoW.CALLBACK_EVENTS = { MINIMAP_PING = true }
 function Methods.RegisterEvent(w, e)
-    if not WoW.KNOWN_EVENTS[e] then error("Attempt to register unknown event \"" .. e .. "\"", 2) end
+    if not WoW.KNOWN_EVENTS[e] or WoW.CALLBACK_EVENTS[e] then
+        error("Attempt to register unknown event \"" .. e .. "\"", 2)
+    end
     w._events[e] = true
     return true
 end
@@ -476,6 +482,7 @@ function WoW.reset()
     WoW.monthDay, WoW.invites = 13, 0
     WoW.class = "MAGE"
     WoW.units, WoW.cursor, WoW.now, WoW.secretUnitIsUnit = {}, { -1000, -1000 }, 0, false
+    WoW.eventCallbacks = {}
     WoW.facing = 0
     WoW.combat = false
     WoW.mail, WoW.senders = false, {}
@@ -754,7 +761,22 @@ end
 --------------------------------------------------------------------------------
 
 -- Fire an event at every frame registered for it. Errors are NOT caught.
+-- Blizzard's (Blizzard_SharedXMLBase/Event.lua): the callback gets the payload
+-- alone; the handle unregisters.
+Event = {
+    RegisterCallback = function(event, cb)
+        if not WoW.KNOWN_EVENTS[event] then error("unknown event " .. tostring(event), 2) end
+        WoW.eventCallbacks[event] = WoW.eventCallbacks[event] or {}
+        local entry = { cb = cb }
+        table.insert(WoW.eventCallbacks[event], entry)
+        return { Unregister = function() entry.cb = nil end }
+    end,
+}
+
 function WoW.fire(event, ...)
+    for _, entry in ipairs(WoW.eventCallbacks[event] or {}) do
+        if entry.cb then entry.cb(...) end
+    end
     local list = {}
     for _, w in ipairs(WoW.frames) do list[#list + 1] = w end
     for _, w in ipairs(list) do

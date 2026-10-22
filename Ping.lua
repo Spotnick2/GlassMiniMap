@@ -1,7 +1,11 @@
 -- Ping.lua: who pinged the minimap, in glass (#14;
 -- docs/PLAN-zoom-ping-fader.md §2). On by default, "map".
 --
--- MINIMAP_PING -> unitTarget, y, x (the 70450 dump: y before x). It fires
+-- MINIMAP_PING -> unitTarget, y, x (the 70450 dump: y before x). It's a
+-- callback event: RegisterEvent refuses it ("unknown event", the owner on
+-- 70450), Blizzard's MinimapDocumentation.lua flags it CallbackEvent (and
+-- SecretPayloads), and Minimap.lua:127 takes it with RegisterEventCallback.
+-- Blizzard's Event.RegisterCallback hands us the payload alone. It fires
 -- once per alias of the pinger ("party1", "target", "focus"...), so the same
 -- unit at the same spot within a second is one ping. Our own pings show
 -- nothing. Another player's name and class may be secret on this client:
@@ -123,8 +127,13 @@ function Ping.Build()
     a:SetDuration(Ping.FADE)
     fade:SetScript("OnFinished", function() pill:Hide() end)
     pill:SetScript("OnUpdate", place)    -- only while shown
-    pill:SetScript("OnEvent", function(_, _, unit, y, x) API.Try("ping", Ping.OnPing, unit, y, x) end)
-    API.RegisterEvent(pill, "MINIMAP_PING", "ping")
+    local E = rawget(_G, "Event")
+    local ok, handle = pcall(function()
+        return E.RegisterCallback("MINIMAP_PING", function(unit, y, x) API.Try("ping", Ping.OnPing, unit, y, x) end)
+    end)
+    if not (ok and handle) then
+        API.Fail("event:MINIMAP_PING", "ping: " .. (ok and "no handle" or tostring(handle)))
+    end
     pill:Hide()
     return pill
 end

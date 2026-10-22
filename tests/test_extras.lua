@@ -168,7 +168,10 @@ WoW.combat = false
 local P = GMM.Ping
 local pill, text, fade = P.Pill(), P._test.text(), P._test.fade()
 eq(pill:IsShown(), false, "ping: hidden at first")
-check(pill._events.MINIMAP_PING, "...MINIMAP_PING registered")
+check(WoW.eventCallbacks.MINIMAP_PING and #WoW.eventCallbacks.MINIMAP_PING >= 1,
+    "...MINIMAP_PING taken as the callback event it is (Event.RegisterCallback)")
+eq(GMM.failures["event:MINIMAP_PING"], nil, "...with no failure")
+check(not pcall(pill.RegisterEvent, pill, "MINIMAP_PING"), "...RegisterEvent refuses it, as the client does")
 WoW.units.party1 = { name = "Thrall", class = "MAGE", guid = "Player-2" }
 WoW.units.target = WoW.units.party1
 Minimap._ping = { 0.1, 0.2 }

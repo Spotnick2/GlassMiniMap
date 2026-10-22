@@ -671,7 +671,6 @@ end
 local seen = { zooms = 0, pings = {}, combat = nil }
 local watcher = CreateFrame("Frame")
 watcher:RegisterEvent("MINIMAP_UPDATE_ZOOM")
-watcher:RegisterEvent("MINIMAP_PING")
 watcher:RegisterEvent("PLAYER_REGEN_DISABLED")
 watcher:RegisterEvent("PLAYER_REGEN_ENABLED")
 watcher:SetScript("OnEvent", function(_, event, a, b, c)
@@ -680,6 +679,7 @@ watcher:SetScript("OnEvent", function(_, event, a, b, c)
         local okI, indoors = pcall(IsIndoors)
         say(("zoom event: zoom %s, indoors %s"):format(str(zoom()), str(okI and indoors)))
     elseif event == "MINIMAP_PING" then
+        say(("ping payload secret: unit %s, y %s, x %s"):format(str(secret(a)), str(secret(b)), str(secret(c))))
         local mine = false
         if not secret(a) then
             local ok, m = pcall(UnitIsUnit, a, "player")
@@ -701,6 +701,15 @@ watcher:SetScript("OnEvent", function(_, event, a, b, c)
         seen.lastCombat, seen.combat = k, nil
     end
 end)
+-- MINIMAP_PING is a callback event: RegisterEvent refuses it (70450, the
+-- owner's error), Event.RegisterCallback hands over the payload alone.
+do
+    local onEvent = watcher:GetScript("OnEvent")
+    local ok, why = pcall(function()
+        return Event.RegisterCallback("MINIMAP_PING", function(...) onEvent(watcher, "MINIMAP_PING", ...) end)
+    end)
+    if not ok or not why then say("MINIMAP_PING: no callback (" .. str(why) .. ")") end
+end
 watcher:SetScript("OnUpdate", function()
     local k, c = seen.combat, container()
     if not (k and c) then return end
