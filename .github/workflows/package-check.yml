@@ -227,8 +227,11 @@ jobs:
       # `gh release create` makes a draft, uploads each file, then publishes,
       # so a failed upload can leave a draft or a release without its files.
       # A manual run (publish: github) then repairs it rather than failing on
-      # the existing tag: the files uploaded again (--clobber), the title,
-      # notes and pre-release flag set, the draft published last (Codex, #45).
+      # the existing tag: only the missing files uploaded (--clobber deletes a
+      # file before its replacement goes up, so a retry never touches one
+      # already there), the title, notes and pre-release flag set, the draft
+      # published last (Codex, #45). Replacing a bad file is a deliberate
+      # repair by hand.
       - name: Create the GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -238,7 +241,17 @@ jobs:
           title="$(jq -r '.releases[0].name' out/release.json) ${TAG#v}"
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
             echo "$TAG already has a release: completing it"
-            gh release upload "$TAG" "$ZIP" out/release.json --repo "$GITHUB_REPOSITORY" --clobber
+            have=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')
+            missing=()
+            for f in "$ZIP" out/release.json; do
+              grep -qxF "$(basename "$f")" <<< "$have" || missing+=("$f")
+            done
+            if [ "${#missing[@]}" -gt 0 ]; then
+              echo "uploading: ${missing[*]}"
+              gh release upload "$TAG" "${missing[@]}" --repo "$GITHUB_REPOSITORY"
+            else
+              echo "both files already there, left alone"
+            fi
             gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --title "$title" --notes-file out/notes.md \
               --prerelease="$pre" --draft=false
           else
