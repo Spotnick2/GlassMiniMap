@@ -574,9 +574,16 @@ eq(record("extras").status, "done", "extras: done")
 --------------------------------------------------------------------------------
 -- checklist (#2)
 --------------------------------------------------------------------------------
+-- An extras run left before Restore: its snapshot is kept, and the next
+-- run's Save still pauses the auto zoom-out extras turned on (Codex, #44).
+fp("steps mm extras")
+settle()
+eq(GMM.Settings.AutoZoomOut(), 5, "extras left mid-run: its 5 s on")
+fp("steps stop")
 fp("steps mm checklist")
 settle()
-eq(GMM.Settings.AutoZoomOut(), 0, "a run pauses the auto zoom-out")
+eq(GMM.Settings.AutoZoomOut(), 0, "a run on a kept snapshot pauses the auto zoom-out too")
+eq(MinimapProbeDB.restore.autoZoomOut, 12, "...the kept snapshot's own delay still the owner's")
 WoW.cvars.rotateMinimap = false
 S.Run(); settle()
 eq(result("checklist", 2).check, "FAIL", "rotation not on: FAIL")

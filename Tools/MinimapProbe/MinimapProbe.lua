@@ -398,16 +398,25 @@ local function ownTint()
     return g and g.Theme and g.Theme.Own() or nil
 end
 
+-- A step's zoom stays put: no auto zoom-out during a run (#13; extras turns
+-- it on), on every Save, a kept snapshot's too (Codex, #44).
+local function pauseAutoZoom()
+    local S = gmm() and gmm().Settings
+    if S and S.SetAutoZoomOut then S.SetAutoZoomOut(0) end
+end
+
 local function snapshot()
     local db = MinimapProbeDB
-    if db.restore then return "kept the outstanding one", db.restore.tint, db.restore.zoom end
+    if db.restore then
+        pauseAutoZoom()
+        return "kept the outstanding one", db.restore.tint, db.restore.zoom
+    end
     local g = gmm()
     local S = g and g.Settings
     db.restore = { tint = ownTint() or "none", zoom = zoom(), place = S and S.Zoom and S.Zoom(),
         autoZoomOut = S and S.AutoZoomOut and S.AutoZoomOut(), pingName = S and S.PingName and S.PingName(),
         fader = S and S.Fader and S.Fader(), faderOpacity = S and S.FaderOpacity and S.FaderOpacity() }
-    -- A step's zoom stays put: no auto zoom-out during a run (#13; extras turns it on).
-    if S and S.SetAutoZoomOut then S.SetAutoZoomOut(0) end
+    pauseAutoZoom()
     return "saved", db.restore.tint, db.restore.zoom
 end
 
