@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## v0.3.0
+
+Released 2026-10-22.
 
 - **Glass UI's suite.** With Glass UI installed and "Use Glass UI appearance" on for Glass MiniMap,
   the minimap wears the suite's Pearl glass and follows its tint (clear, smoked or class) live.
