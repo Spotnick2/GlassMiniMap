@@ -18,6 +18,24 @@ local panel = CreateFrame("Frame")
 panel.name = "Glass MiniMap"
 panel:Hide()
 
+-- Everything sits in a scroll child: the page outgrew the Settings canvas
+-- (#13-#15). The recipe's GlassUnitFrames\Options.lua; without the template a
+-- plain ScrollFrame still clips, and scrolls by wheel.
+local scroll = CreateFrame("ScrollFrame", nil, panel, "UIPanelScrollFrameTemplate")
+scroll:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, -4)
+scroll:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -26, 4)
+local content = CreateFrame("Frame", nil, scroll)
+content:SetSize(620, 1000)
+scroll:SetScrollChild(content)
+if not scroll.ScrollBar then
+    scroll:EnableMouseWheel(true)
+    scroll:SetScript("OnMouseWheel", function(self, delta)
+        local range = self:GetVerticalScrollRange() or 0
+        local y = math.max(0, math.min(range, (self:GetVerticalScroll() or 0) - delta * 40))
+        self:SetVerticalScroll(y)
+    end)
+end
+
 local category
 local refreshers = {}
 
@@ -57,7 +75,7 @@ end
 
 -- An on/off setting under `anchor`.
 local function checkbox(anchor, text, get, set, parent)
-    parent = parent or panel
+    parent = parent or content
     local cb = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
     cb:SetSize(24, 24)
     cb:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -4)
@@ -82,7 +100,7 @@ end
 
 -- Mutually exclusive choices stacked under `anchor`: { {value, text}, ... }.
 local function radios(anchor, options, get, set, parent)
-    parent = parent or panel
+    parent = parent or content
     local group = {}
     local function sync()
         local current = get()
@@ -102,7 +120,7 @@ local function radios(anchor, options, get, set, parent)
 end
 
 local function heading(text, anchor, y)
-    local fs = label(panel, text, "GameFontNormal")
+    local fs = label(content, text, "GameFontNormal")
     fs:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, y or -16)
     return fs
 end
@@ -143,6 +161,41 @@ local function runeSlider(title, key, lo, hi, y, parent)
     return slider
 end
 
+-- A slider under `anchor`: its label reads fmt with the value.
+local function valueSlider(anchor, fmt, lo, hi, step, get, set)
+    local text = label(content, "", "GameFontHighlight")
+    text:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -10)
+    local slider = CreateFrame("Slider", nil, content)
+    slider:EnableMouse(true)
+    slider:SetPoint("TOPLEFT", text, "BOTTOMLEFT", 0, -8)
+    slider:SetSize(220, 16)
+    slider:SetOrientation("HORIZONTAL")
+    slider:SetMinMaxValues(lo, hi)
+    slider:SetValueStep(step)
+    slider:SetObeyStepOnDrag(true)
+    local track = slider:CreateTexture(nil, "BACKGROUND")
+    track:SetPoint("LEFT", slider, "LEFT", 0, 0)
+    track:SetPoint("RIGHT", slider, "RIGHT", 0, 0)
+    track:SetHeight(4)
+    track:SetColorTexture(0.4, 0.4, 0.4, 0.8)
+    slider:SetThumbTexture("Interface\\Buttons\\UI-SliderBar-Button-Horizontal")
+    local updating = false
+    refreshers[#refreshers + 1] = function()
+        updating = true
+        local ok, err = pcall(function()
+            slider:SetValue(get())
+            text:SetText(fmt:format(get()))
+        end)
+        updating = false
+        if not ok then error(err, 0) end
+    end
+    slider:SetScript("OnValueChanged", function(_, value)
+        if not updating then set(math.floor(value / step + 0.5) * step) end
+    end)
+    slider.label = text
+    return slider
+end
+
 local function refreshControls()
     if Options.built and panel:IsShown() then
         for _, refresh in ipairs(refreshers) do API.Try("options:refresh", refresh) end
@@ -159,14 +212,14 @@ function Options.Refresh()
 end
 
 local function buildRunicSettings()
-    local enable = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
+    local enable = CreateFrame("CheckButton", nil, content, "UICheckButtonTemplate")
     enable:SetSize(24, 24)
-    enable:SetPoint("TOPLEFT", panel, "TOPLEFT", 335, -65)
-    local title = label(panel, "Runic mode", "GameFontNormal")
+    enable:SetPoint("TOPLEFT", content, "TOPLEFT", 335, -65)
+    local title = label(content, "Runic mode", "GameFontNormal")
     title:SetPoint("LEFT", enable, "RIGHT", 4, 0)
     enable:SetScript("OnClick", function(self) GMM.Settings.Set("runicMode", self:GetChecked() == true) end)
-    local controls = CreateFrame("Frame", nil, panel)
-    controls:SetPoint("TOPLEFT", panel, "TOPLEFT", 335, -105)
+    local controls = CreateFrame("Frame", nil, content)
+    controls:SetPoint("TOPLEFT", content, "TOPLEFT", 335, -105)
     controls:SetSize(260, 280)
     local styleLabel = label(controls, "Style", "GameFontNormal")
     styleLabel:SetPoint("TOPLEFT", controls, "TOPLEFT", 0, 0)
@@ -199,9 +252,9 @@ local function buildRunicSettings()
 end
 
 local function build()
-    local title = label(panel, "|cff7fd4ffGlass|r MiniMap", "GameFontNormalHuge")
-    title:SetPoint("TOPLEFT", panel, "TOPLEFT", 16, -16)
-    local version = label(panel, "", "GameFontDisableSmall")
+    local title = label(content, "|cff7fd4ffGlass|r MiniMap", "GameFontNormalHuge")
+    title:SetPoint("TOPLEFT", content, "TOPLEFT", 16, -16)
+    local version = label(content, "", "GameFontDisableSmall")
     version:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -6)
     refreshers[#refreshers + 1] = function()
         version:SetText("Version " .. GMM.VersionText() .. " for World of Warcraft: Forever, by Spotnick")
@@ -216,7 +269,7 @@ local function build()
     for _, name in ipairs(GMM.Theme.NAMES) do opts[#opts + 1] = { name, GMM.Theme.LABELS[name] } end
     local last, group = radios(look, opts, function() return GMM.Theme.Own() or "clear" end, GMM.Settings.SetTheme)
     Options._test.themeRadios = group
-    local tstatus = label(panel, "", "GameFontHighlightSmall")
+    local tstatus = label(content, "", "GameFontHighlightSmall")
     tstatus:SetPoint("TOPLEFT", last, "BOTTOMLEFT", 0, -4)
     tstatus:SetWidth(295)
     refreshers[#refreshers + 1] = function()
@@ -225,19 +278,19 @@ local function build()
     end
     Options._test.tintStatus = tstatus
 
-    local mlabel = label(panel, "Material (applies after /reload):", "GameFontHighlight")
+    local mlabel = label(content, "Material (applies after /reload):", "GameFontHighlight")
     mlabel:SetPoint("TOPLEFT", tstatus, "BOTTOMLEFT", 0, -10)
     local lastMaterial, materials = radios(mlabel, { { "pearl", "Pearl" }, { "clean", "Clean" } },
         GMM.Settings.Material, function(name)
             if GMM.Settings.SetMaterial(name) then API.Print("material " .. name .. ": applies after /reload") end
             Options.Refresh()
         end)
-    local suiteButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+    local suiteButton = CreateFrame("Button", nil, content, "UIPanelButtonTemplate")
     suiteButton:SetSize(120, 22)
     suiteButton:SetText("Set in Glass UI")
     suiteButton:SetPoint("LEFT", materials[1], "RIGHT", 110, 0)
     suiteButton:SetScript("OnClick", function() Suite.Open() end)
-    local mstatus = label(panel, "", "GameFontHighlightSmall")
+    local mstatus = label(content, "", "GameFontHighlightSmall")
     mstatus:SetPoint("TOPLEFT", lastMaterial, "BOTTOMLEFT", 0, -4)
     mstatus:SetWidth(295)
     refreshers[#refreshers + 1] = function()
@@ -255,31 +308,42 @@ local function build()
     local c4 = checkbox(c3, "Glass tracking menu (off: Blizzard's menu)",
         function() return GMM.db.glassTracking end, function(on) GMM.Settings.Set("glassTracking", on) end)
     Options._test.checks = { c3, c4 }
-    local where = label(panel, "New mail and the instance's size:", "GameFontHighlight")
+    local where = label(content, "New mail and the instance's size:", "GameFontHighlight")
     where:SetPoint("TOPLEFT", c4, "BOTTOMLEFT", 0, -10)
     local lastWhere, whereGroup = radios(where, {
         { "pills", "In the pills (envelope by the zone, size by the coordinates)" },
         { "ring", "On the ring, as discs" },
     }, GMM.Settings.Indicators, GMM.Settings.SetIndicators)
     Options._test.indicatorRadios = whereGroup
-    local zoomWhere = label(panel, "Zoom buttons:", "GameFontHighlight")
+    local zoomWhere = label(content, "Zoom buttons:", "GameFontHighlight")
     zoomWhere:SetPoint("TOPLEFT", lastWhere, "BOTTOMLEFT", 0, -10)
     local lastZoom, zoomGroup = radios(zoomWhere, {
         { "pill", "At the ends of the coordinates pill" },
         { "ring", "On the ring, as discs" },
     }, GMM.Settings.Zoom, GMM.Settings.SetZoom)
     Options._test.zoomRadios = zoomGroup
-    local cnote = label(panel, "Coordinates: Options > Interface, \"Player Minimap Coordinates\" and "
+    local cnote = label(content, "Coordinates: Options > Interface, \"Player Minimap Coordinates\" and "
         .. "\"Coordinates by Tenths\".", "GameFontHighlightSmall")
     cnote:SetPoint("TOPLEFT", lastZoom, "BOTTOMLEFT", 0, -8)
     cnote:SetWidth(295)
 
+    -- Behaviour (#13, #15): each on by default.
+    local S = GMM.Settings
+    local behaviour = heading("Behaviour", cnote)
+    local autoZoom = valueSlider(behaviour, "Zoom back out after %d s (0: never)", 0, 30, 1,
+        S.AutoZoomOut, S.SetAutoZoomOut)
+    local faderCheck = checkbox(autoZoom, "Fade the minimap until the mouse is over it",
+        S.Fader, S.SetFader)
+    local opacity = valueSlider(faderCheck, "Opacity while faded: %d%%", 20, 100, 5,
+        S.FaderOpacity, S.SetFaderOpacity)
+    Options._test.behaviour = { autoZoom = autoZoom, fader = faderCheck, opacity = opacity }
+
     -- The drawer: Glass MiniMap Bar's, when it's installed.
-    local drawer = heading("Addon drawer", cnote)
-    local note = label(panel, "", "GameFontHighlightSmall")
+    local drawer = heading("Addon drawer", opacity)
+    local note = label(content, "", "GameFontHighlightSmall")
     note:SetPoint("TOPLEFT", drawer, "BOTTOMLEFT", 0, -6)
     note:SetWidth(295)
-    local button = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+    local button = CreateFrame("Button", nil, content, "UIPanelButtonTemplate")
     button:SetSize(160, 22)
     button:SetText("Drawer options")
     button:SetPoint("TOPLEFT", note, "BOTTOMLEFT", 0, -6)
@@ -294,10 +358,17 @@ local function build()
             or "Install Glass MiniMap Bar for an addon drawer on the disc at the bottom left of the map.")
     end
 
-    local hint = label(panel, "The minimap moves and scales with Edit Mode. Type /gmm help for every command.",
+    local hint = label(content, "The minimap moves and scales with Edit Mode. Type /gmm help for every command.",
         "GameFontDisableSmall")
     hint:SetPoint("TOPLEFT", button, "BOTTOMLEFT", 0, -16)
     hint:SetWidth(295)
+    -- The scroll child as tall as what it holds, once laid out.
+    refreshers[#refreshers + 1] = function()
+        local top, bottom = content:GetTop(), hint:GetBottom()
+        if type(top) == "number" and type(bottom) == "number" and top > bottom then
+            content:SetHeight(top - bottom + 24)
+        end
+    end
 end
 
 panel:SetScript("OnShow", function()
@@ -321,4 +392,4 @@ function Options.Open()
     return ok
 end
 
-Options._test = { panel = panel }
+Options._test = { panel = panel, scroll = scroll, content = content }

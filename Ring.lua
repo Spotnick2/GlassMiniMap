@@ -235,6 +235,7 @@ Theme.OnChange(function() Ring.UpdateRunes("theme") end)
 function Ring.Host() return host end
 function Ring.Glass() return glass end
 function Ring.Container() return container end
+function Ring.Notch() return notch end
 function Ring.Radius()
     local w = (Minimap and Minimap:GetWidth()) or Ring.MAP_SIZE
     if type(w) ~= "number" or w <= 0 then w = Ring.MAP_SIZE end

@@ -42,7 +42,7 @@ do
                              "CALENDAR_UPDATE_PENDING_INVITES", "MINIMAP_UPDATE_ZOOM", "MINIMAP_UPDATE_TRACKING",
                              "SPELLS_CHANGED", "CVAR_UPDATE", "DIEL_CYCLE_CHANGED", "EDIT_MODE_LAYOUTS_UPDATED",
                              "PLAYER_REGEN_ENABLED", "UPDATE_PENDING_MAIL",
-                             "SCREENSHOT_SUCCEEDED", "SCREENSHOT_FAILED" }) do
+                             "SCREENSHOT_SUCCEEDED", "SCREENSHOT_FAILED", "MINIMAP_PING" }) do
             WoW.KNOWN_EVENTS[e] = true
         end
     end
@@ -272,8 +272,14 @@ end
 function Methods.Click(w, mouse)
     if w._scripts.OnClick then w._scripts.OnClick(w, mouse or "LeftButton", false) end
 end
+-- Callback events (CallbackEvent = true in Blizzard's API documentation, a
+-- flag the dump drops): RegisterEvent refuses them as the client does (70450,
+-- MINIMAP_PING), and RegisterEventCallback is protected for addons (#14).
+WoW.CALLBACK_EVENTS = { MINIMAP_PING = true }
 function Methods.RegisterEvent(w, e)
-    if not WoW.KNOWN_EVENTS[e] then error("Attempt to register unknown event \"" .. e .. "\"", 2) end
+    if not WoW.KNOWN_EVENTS[e] or WoW.CALLBACK_EVENTS[e] then
+        error("Attempt to register unknown event \"" .. e .. "\"", 2)
+    end
     w._events[e] = true
     return true
 end
@@ -468,6 +474,7 @@ function WoW.reset()
     WoW.isDay = true
     WoW.monthDay, WoW.invites = 13, 0
     WoW.class = "MAGE"
+    WoW.cursor, WoW.now = { -1000, -1000 }, 0
     WoW.facing = 0
     WoW.combat = false
     WoW.mail, WoW.senders = false, {}
@@ -556,6 +563,9 @@ Settings = {
 function GetCVarBool(name) return WoW.cvars[name] == true end
 function GetPlayerFacing() return WoW.facing end
 function UnitClass() return "Mage", WoW.class, 8 end
+function GetCursorPosition() return WoW.cursor[1], WoW.cursor[2] end
+function GetTime() return WoW.now end
+function IsIndoors() return WoW.indoors == true end
 C_ClassColor = { GetClassColor = function(class)
     if class == "MAGE" then return { r = 0.25, g = 0.78, b = 0.92 } end
     return { r = 1, g = 1, b = 1 }

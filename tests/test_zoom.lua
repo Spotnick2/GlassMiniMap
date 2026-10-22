@@ -118,14 +118,17 @@ WoW.cvars.minimapShowPlayerCoords = true
 WoW.fire("CVAR_UPDATE", "minimapShowPlayerCoords")
 eq(pill:IsShown(), true, "coordinates on: the pill back")
 
--- On the ring they fade off hover, as Blizzard's show and hide; in the pill, never.
-local fader, tick = F.fader(), F.fade
-eq(fader._scripts.OnUpdate, tick, "on the ring: the fade runs")
+-- On the ring they fade off hover (Hover.lua), as Blizzard's show and hide;
+-- in the pill, never.
+local fader = F.fader()
+eq(fader._scripts.OnUpdate, F.fade, "on the ring: the fade runs")
 eq(zoomIn:GetAlpha(), 1, "...shown at first")
 local function wait(seconds)
-    for _ = 1, math.floor(seconds / 0.05 + 0.5) do tick(fader, 0.05) end
+    for _ = 1, math.floor(seconds / 0.05 + 0.5) do WoW.tick(0.05) end
 end
-WoW.mouseOver = {}
+host._cx, host._cy = 600, 400
+local function away() WoW.cursor = { -1000, -1000 }; WoW.mouseOver = {} end
+away()
 wait(GMM.Footer.FADE_DELAY - 0.1)
 eq(zoomIn:GetAlpha(), 1, "...still shown just under the delay, the mouse away")
 wait(0.1 + GMM.Footer.FADE_TIME / 2)
@@ -134,16 +137,29 @@ wait(GMM.Footer.FADE_TIME)
 eq(zoomIn:GetAlpha(), 0, "...then faded out")
 eq(zoomOut:GetAlpha(), 0, "...both")
 check(zoomIn:IsShown() and zoomOut:IsShown(), "...still there for the mouse (shown, at alpha 0)")
-for _, over in ipairs({ host, zoomIn, zoomOut }) do
-    WoW.mouseOver = { [over] = true }
-    wait(GMM.Footer.FADE_TIME)
-    eq(zoomOut:GetAlpha(), 1, "the mouse over " .. (over == host and "the ring" or "a disc") .. ": shown")
-    WoW.mouseOver = {}
-    wait(GMM.Footer.FADE_DELAY + GMM.Footer.FADE_TIME)
+local half = host._width / 2
+local spots = {
+    { "the map's centre", function() WoW.cursor = { 600, 400 } end },
+    { "the ring's edge", function() WoW.cursor = { 600 + half - 1, 400 } end },
+    { "the + disc", function() WoW.mouseOver = { [zoomIn] = true } end },
+    { "the - disc", function() WoW.mouseOver = { [zoomOut] = true } end },
+}
+for _, spot in ipairs(spots) do
+    spot[2]()
+    wait(GMM.Footer.FADE_TIME + 0.1)
+    eq(zoomOut:GetAlpha(), 1, "the mouse over " .. spot[1] .. ": shown")
+    away()
+    wait(GMM.Footer.FADE_DELAY + GMM.Footer.FADE_TIME + 0.1)
     eq(zoomOut:GetAlpha(), 0, "...and faded again after it leaves")
 end
+WoW.cursor = { 600 + half * 0.8, 400 + half * 0.8 }   -- the host's square, off its circle
+wait(GMM.Footer.FADE_TIME + 0.1)
+eq(zoomOut:GetAlpha(), 0, "a corner of the ring's square, off the circle: still faded")
+away()
 GMM.Settings.SetIndicators("ring")
 eq(zoomIn:GetAlpha(), 1, "laid out again: shown at once")
+wait(0.5)
+eq(zoomIn:GetAlpha(), 1, "...for the delay, the mouse away")
 GMM.Settings.SetIndicators("pills")
 
 check(not GMM.Settings.SetZoom("left"), "an unknown placement is refused")

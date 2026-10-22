@@ -50,6 +50,9 @@ and a taint minefield (`..\References\Docs\PORTING-TBC-TO-FOREVER.md`, "Edit Mod
   default position, with `ClearAllPointsBase`/`SetPointBase`, from a deferred hook on
   `UpdateDefaultAnchor`, never with Edit Mode open or (if protected) in combat.
 - Never reassign a Blizzard global or method. `hooksecurefunc` and our own frames only.
+- Our one Blizzard alpha is `MinimapCluster.MinimapContainer`'s, set by the fader only
+  (`Fader.lua`, #15), and put back to 1 when the fader is off. Blizzard never sets or reads it;
+  Edit Mode only scales it. Its taint in combat is measured by `/fp steps mm extras`.
 - The map's mask stays Blizzard's (round, re-applied by `Camelot\Skin.lua` on `rotateMinimap`).
 - Our own frames stay **unnamed** (minimap-button collectors grab named square children of
   `Minimap`), except `GlassMiniMapTrackingPopup` (UIParent child, for `UISpecialFrames`).
@@ -71,7 +74,9 @@ and a taint minefield (`..\References\Docs\PORTING-TBC-TO-FOREVER.md`, "Edit Mod
 | `Difficulty.lua` | the instance size, mirrored from Blizzard's faded `InstanceDifficulty` after each of its `Update`s (with its own tooltip method): the coords pill's text ("Dungeon · 5"), or with `indicators = "ring"` a disc (right, 90°) |
 | `Tracking.lua` | the glass tracking menu, a copy of Blizzard's menu logic (`Minimap.lua:636-772`) |
 | `Drawer.lua` | the bottom-left disc as Glass MiniMap Bar's launcher, through its public API |
-| `Options.lua` | Esc > Options > AddOns > Glass MiniMap ("Drawer options" opens Glass MiniMap Bar's page) |
+| `Hover.lua` | is the mouse over the minimap (the ring's circle, our visible pieces), held while our tracking menu or Edit Mode is open: one throttled OnUpdate, no hooks on Blizzard's frames |
+| `Fader.lua` | the fader (#15): the container's alpha down to `faderOpacity` until hovered |
+| `Options.lua` | Esc > Options > AddOns > Glass MiniMap, in a scroll frame ("Drawer options" opens Glass MiniMap Bar's page) |
 | `GlassMiniMap.lua` | bootstrap, `GlassMiniMapDB`, `GMM.Settings`, `/gmm` |
 | `Tools\make_art.py` | generates every texture in `Media\` (uses ..\LibGlass\Tools primitives) |
 | `Tools\MinimapProbe\` | throwaway measuring addon, a ForeverProbe module (`/fp mm`, procedures `/fp steps mm <name>`) |

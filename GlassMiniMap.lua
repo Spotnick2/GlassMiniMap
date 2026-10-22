@@ -23,6 +23,9 @@ local DEFAULTS = {
     runeSpeed = 100,          -- orbit speed percent (30 seconds at 100)
     indicators = "pills",     -- mail and instance size: "pills" (zone and coords pills) | "ring" (discs)
     zoom = "pill",            -- the zoom buttons: "pill" (the coords pill's ends) | "ring" (discs)
+    autoZoomOut = 5,          -- seconds before zooming back out, 0 = never (#13)
+    fader = true,             -- the minimap faded until hovered (#15)
+    faderOpacity = 60,        -- ...to this percent
 }
 GMM.DEFAULTS = DEFAULTS
 local BOOLEANS = { sun = true, glassTracking = true, runicMode = true, runeFog = true }
@@ -30,6 +33,12 @@ local RUNE_CHOICES = { runeStyle = { etched = true, glowing = true }, runeMotion
 local RUNE_RANGES = { runeIntensity = { 0, 100 }, runeSpeed = { 25, 200 } }
 local INDICATORS = { pills = true, ring = true }
 local ZOOMS = { pill = true, ring = true }
+-- Whole numbers within [lo, hi] on a step from lo, else nil.
+local function stepped(v, lo, hi, step)
+    if type(v) ~= "number" or v ~= v or v < lo or v > hi then return nil end
+    if (v - lo) % step ~= 0 then return nil end
+    return v
+end
 local function validRuneNumber(key, value)
     local range = RUNE_RANGES[key]
     return range and type(value) == "number" and value == value
@@ -76,6 +85,9 @@ local function ensureDefaults()
     end
     if db.indicators ~= nil and not INDICATORS[db.indicators] then db.indicators = nil end
     if db.zoom ~= nil and not ZOOMS[db.zoom] then db.zoom = nil end
+    if db.autoZoomOut ~= nil and not stepped(db.autoZoomOut, 0, 30, 1) then db.autoZoomOut = nil end
+    if db.fader ~= nil and type(db.fader) ~= "boolean" then db.fader = nil end
+    if db.faderOpacity ~= nil and not stepped(db.faderOpacity, 20, 100, 5) then db.faderOpacity = nil end
     db.drawer = nil   -- the absorbed drawer of a pre-release build; Glass MiniMap Bar keeps its own
     -- Pre-release coordinate settings: Blizzard's own CVars now (Footer.lua).
     db.coords, db.coordsTenths = nil, nil
@@ -193,6 +205,47 @@ function Settings.SetZoom(where)
     if not ZOOMS[where] then return false end
     store("zoom", where)
     GMM.Footer.Layout()
+    GMM.Options.Refresh()
+    return true
+end
+
+-- Auto zoom-out (#13): seconds, whole, 0 (never) to 30.
+function Settings.AutoZoomOut()
+    local v = GMM.db and stepped(GMM.db.autoZoomOut, 0, 30, 1)
+    return v or DEFAULTS.autoZoomOut
+end
+
+function Settings.SetAutoZoomOut(seconds)
+    if not stepped(seconds, 0, 30, 1) then return false end
+    store("autoZoomOut", seconds)
+    GMM.Footer.ZoomChanged()
+    GMM.Options.Refresh()
+    return true
+end
+
+-- The fader (#15): on or off, and the opacity while the mouse is away.
+function Settings.Fader()
+    if GMM.db and type(GMM.db.fader) == "boolean" then return GMM.db.fader end
+    return DEFAULTS.fader
+end
+
+function Settings.SetFader(on)
+    if type(on) ~= "boolean" then return false end
+    store("fader", on)
+    GMM.Fader.Refresh()
+    GMM.Options.Refresh()
+    return true
+end
+
+function Settings.FaderOpacity()
+    local v = GMM.db and stepped(GMM.db.faderOpacity, 20, 100, 5)
+    return v or DEFAULTS.faderOpacity
+end
+
+function Settings.SetFaderOpacity(percent)
+    if not stepped(percent, 20, 100, 5) then return false end
+    store("faderOpacity", percent)
+    GMM.Fader.Refresh()
     GMM.Options.Refresh()
     return true
 end
@@ -338,6 +391,7 @@ boot:SetScript("OnEvent", function(_, event, arg1)
             start("instance disc", GMM.Difficulty.Build)
             start("tracking", GMM.Tracking.Build)
             start("drawer", GMM.Drawer.Start)
+            start("fader", GMM.Fader.Start)
         end
         start("theme", GMM.Theme.Refresh)
     elseif event == "PLAYER_ENTERING_WORLD" then

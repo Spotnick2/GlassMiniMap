@@ -460,6 +460,158 @@ eq(Minimap:GetZoom(), 5, "zoomring: the zoom put back")
 eq(GMM.Settings.Zoom(), "pill", "...and the zoom buttons back in the pill")
 eq(record("zoomring").status, "done", "zoomring: done")
 
+--------------------------------------------------------------------------------
+-- extras (#13, #14, #15)
+--------------------------------------------------------------------------------
+local hostE = GMM.Ring.Host()
+hostE._cx, hostE._cy = 500, 400
+local function away() WoW.cursor = { -1000, -1000 }; WoW.mouseOver = {} end
+local function onMap() WoW.cursor = { 500, 400 } end
+GMM.Settings.SetAutoZoomOut(12)                        -- the owner's own, put back at the end
+GMM.Settings.SetFader(false)
+away()
+fp("steps mm extras")
+settle()
+eq(GMM.Settings.AutoZoomOut(), 5, "extras: the defaults for the run")
+eq(GMM.Settings.Fader(), true, "...the fader on")
+GMM.Settings.SetFaderOpacity(80)
+S.Run(); settle()
+eq(result("extras", 3).check, "FAIL", "the container not at 60 %: FAIL")
+check(result("extras", 3).checkDetail:find("protected: container", 1, true), "...the protection logged")
+S.Back()
+GMM.Settings.SetFaderOpacity(60)
+GMM.Blizzard.Container():SetAlpha(1)                   -- the backing faded, the container not
+S.Run(); settle()
+eq(result("extras", 3).check, "FAIL", "the container alone not faded: FAIL")
+S.Back()
+GMM.Fader.Refresh()
+S.Run(); settle()
+eq(result("extras", 3).check, "PASS", "faded to 60 %, the queue backing too")
+check(result("extras", 3).screenshots, "...with a screenshot")
+S.Answer(true); S.Answer(true)
+-- A few polls at a time: a full settle would run past the step's 60 s timeout.
+local function polls(n) for _ = 1, n do clock = clock + 1.5; WoW.tick(1.5) end end
+polls(4)
+eq(result("extras", 6).status, nil, "the tracking menu closed: still waiting")
+onMap(); polls(4)
+eq(result("extras", 6).status, nil, "closed, full only because the mouse is on the map: still waiting")
+away()
+GMM.Settings.SetFader(false); polls(4)
+eq(result("extras", 6).status, nil, "the menu closed, full only because the fader is off: still waiting")
+GMM.Settings.SetFader(true)
+GMM.Tracking.Open(GMM.Header.TrackingButton())
+local realIdle = GMM.Hover.Idle
+GMM.Hover.Idle = function() return 99 end              -- the hold broken: the map fades
+polls(4)
+eq(result("extras", 6).status, nil, "the menu open but the map faded: still waiting")
+GMM.Hover.Idle = realIdle
+onMap(); polls(4)
+eq(result("extras", 6).status, nil, "open, but the mouse on the map: still waiting")
+away(); polls(4)
+eq(result("extras", 6).status, "done", "open, the mouse away, full for 3 polls: done")
+check(result("extras", 6).detail:find("3 of 3 polls", 1, true), "...the polls logged")
+GMM.Tracking.Close()
+Minimap:SetZoom(2)
+WoW.fire("MINIMAP_UPDATE_ZOOM")
+eq(result("extras", 7).status, "event", "zoomed in: the event step done")
+check(logged("zoom event: zoom 2, indoors"), "...the zoom event logged")
+settle()
+eq(result("extras", 8).status, "done", "...then zoomed back out, the mouse away")
+eq(Minimap:GetZoom(), 0, "...to 0")
+onMap()
+Minimap:SetZoom(3)
+WoW.fire("MINIMAP_UPDATE_ZOOM")
+settle()
+S.Run()
+eq(result("extras", 9).check, "PASS", "the mouse kept on the map: still zoomed")
+away()
+settle()
+eq(result("extras", 10).status, "done", "...left: zoomed out")
+S.Run()                                                -- the optional indoors step
+GMM.failures.probe = "a failure"
+S.Run(); settle()
+eq(result("extras", 12).check, "FAIL", "a failure recorded: FAIL")
+GMM.failures.probe = nil
+S.Back()
+S.Run(); settle()
+eq(result("extras", 12).check, "PASS", "no failure after Edit Mode")
+WoW.fire("PLAYER_REGEN_DISABLED")
+WoW.tick(0.05); WoW.tick(0.05)
+WoW.fire("PLAYER_REGEN_ENABLED")
+eq(result("extras", 13).check, "FAIL", "a fight with the alpha never changing: FAIL")
+S.Back()
+WoW.fire("PLAYER_REGEN_DISABLED")
+onMap(); settle(); away(); settle()
+WoW.fire("PLAYER_REGEN_ENABLED")
+eq(result("extras", 13).check, "PASS", "the alpha changed in combat, no failure")
+check(logged("combat: container alpha"), "...the range logged")
+S.Answer(true)
+S.Run()                                                -- restore
+eq(GMM.Settings.AutoZoomOut(), 12, "extras: the owner's delay put back")
+eq(GMM.Settings.Fader(), false, "...and their fader setting")
+eq(record("extras").status, "done", "extras: done")
+-- A second run counts its own three polls (Codex, #44: the reset wrote a
+-- global, so the first run's count carried over).
+eq(rawget(_G, "heldPolls"), nil, "the probe leaks no global count")
+fp("steps mm extras")
+settle()
+S.Skip(); S.Skip(); S.Skip()                           -- to the menu hold
+GMM.Tracking.Open(GMM.Header.TrackingButton())
+away(); polls(1)
+eq(result("extras", 6).status, nil, "a second run: not done on its first poll")
+polls(3)
+eq(result("extras", 6).status, "done", "...done after three")
+GMM.Tracking.Close()
+fp("steps stop")
+fp("mm restore")
+
+--------------------------------------------------------------------------------
+-- checklist (#2)
+--------------------------------------------------------------------------------
+-- An extras run left before Restore: its snapshot is kept, and the next
+-- run's Save still pauses the auto zoom-out extras turned on (Codex, #44).
+fp("steps mm extras")
+settle()
+eq(GMM.Settings.AutoZoomOut(), 5, "extras left mid-run: its 5 s on")
+fp("steps stop")
+fp("steps mm checklist")
+settle()
+eq(GMM.Settings.AutoZoomOut(), 0, "a run on a kept snapshot pauses the auto zoom-out too")
+eq(MinimapProbeDB.restore.autoZoomOut, 12, "...the kept snapshot's own delay still the owner's")
+WoW.cvars.rotateMinimap = false
+S.Run(); settle()
+eq(result("checklist", 2).check, "FAIL", "rotation not on: FAIL")
+S.Back()
+WoW.cvars.rotateMinimap = true
+S.Run(); settle()
+eq(result("checklist", 2).check, "PASS", "rotating")
+S.Answer(true)
+S.Run(); settle()
+eq(result("checklist", 4).check, "FAIL", "rotation still on: FAIL")
+S.Back()
+WoW.cvars.rotateMinimap = false
+S.Run(); settle()
+eq(result("checklist", 4).check, "PASS", "fixed")
+S.Answer(true)
+hostE._effScale = 0.8
+S.Run(); settle()
+eq(result("checklist", 6).check, "FAIL", "the ring at another scale than the container: FAIL")
+hostE._effScale = nil
+S.Back()
+S.Run(); settle()
+eq(result("checklist", 6).check, "PASS", "small: the ring at the container's scale")
+S.Run(); settle()
+eq(result("checklist", 7).check, "PASS", "large too")
+S.Answer(true); S.Answer(true); S.Answer(true)
+WoW.fire("PLAYER_REGEN_DISABLED")
+WoW.fire("PLAYER_REGEN_ENABLED")
+eq(result("checklist", 11).check, "PASS", "the taint pass: no failure")
+S.Answer(true)
+S.Run()                                                -- restore
+eq(GMM.Settings.AutoZoomOut(), 12, "checklist: the auto zoom-out back")
+eq(record("checklist").status, "done", "checklist: done")
+GMM.Settings.SetAutoZoomOut(5); GMM.Settings.SetFader(true)
+
 eq(#WoW.chat, 0, "nothing in chat, all along")
 
 -- Pearl, our default material: the wash expected is its own (0.10), times
