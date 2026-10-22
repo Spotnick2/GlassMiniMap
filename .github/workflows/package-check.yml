@@ -223,15 +223,32 @@ jobs:
 
       # The title is release.json's name: the packaged TOC's Title, colour
       # codes stripped.
+      #
+      # `gh release create` makes a draft, uploads each file, then publishes,
+      # so a failed upload can leave a draft or a release without its files.
+      # A manual run (publish: github) then repairs it rather than failing on
+      # the existing tag: the files uploaded again (--clobber), the title,
+      # notes and pre-release flag set, the draft published last (Codex, #45).
       - name: Create the GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          pre=
-          case "${TAG,,}" in *alpha*|*beta*) pre=--prerelease ;; esac
+          pre=false
+          case "${TAG,,}" in *alpha*|*beta*) pre=true ;; esac
           title="$(jq -r '.releases[0].name' out/release.json) ${TAG#v}"
-          gh release create "$TAG" "$ZIP" out/release.json --repo "$GITHUB_REPOSITORY" --verify-tag \
-            --title "$title" --notes-file out/notes.md $pre
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "$TAG already has a release: completing it"
+            gh release upload "$TAG" "$ZIP" out/release.json --repo "$GITHUB_REPOSITORY" --clobber
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --title "$title" --notes-file out/notes.md \
+              --prerelease="$pre" --draft=false
+          else
+            flag=
+            [ "$pre" = true ] && flag=--prerelease
+            gh release create "$TAG" "$ZIP" out/release.json --repo "$GITHUB_REPOSITORY" --verify-tag \
+              --title "$title" --notes-file out/notes.md $flag
+          fi
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets,isDraft \
+            --jq '"draft: \(.isDraft); assets: \([.assets[].name] | join(", "))"'
 
   # The same zip on Wago Addons, through its upload API - the request the
   # packager's upload_wago makes, minus its two problems: it would package a
