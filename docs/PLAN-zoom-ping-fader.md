@@ -1,5 +1,12 @@
 # Plan: auto zoom-out, who pinged, the fader (#13, #14, #15)
 
+> **#14 dropped (2026-10-22, measured on 70450).** `MINIMAP_PING` is out of an addon's reach on
+> this client. `RegisterEvent` refuses it as an unknown event. Blizzard's own minimap takes it
+> with `RegisterEventCallback`, and that is protected for addons (`ADDON_ACTION_FORBIDDEN`). Its
+> documentation also flags it `SecretPayloads`. So §2 below is history, and `Ping.lua` was
+> removed before the merge. The converted API dump drops the `CallbackEvent` flag, which is
+> how the plan and its review missed it.
+
 Three features, each a setting **on by default** (the owner, 2026-10-21), and one probe
 procedure that also closes what #2 still has open. Client 1.60.1.70450, Lua 5.1.
 

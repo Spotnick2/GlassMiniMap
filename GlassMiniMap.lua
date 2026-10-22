@@ -24,7 +24,6 @@ local DEFAULTS = {
     indicators = "pills",     -- mail and instance size: "pills" (zone and coords pills) | "ring" (discs)
     zoom = "pill",            -- the zoom buttons: "pill" (the coords pill's ends) | "ring" (discs)
     autoZoomOut = 5,          -- seconds before zooming back out, 0 = never (#13)
-    pingName = "map",         -- who pinged: "map" | "chat" | "off" (#14)
     fader = true,             -- the minimap faded until hovered (#15)
     faderOpacity = 60,        -- ...to this percent
 }
@@ -34,7 +33,6 @@ local RUNE_CHOICES = { runeStyle = { etched = true, glowing = true }, runeMotion
 local RUNE_RANGES = { runeIntensity = { 0, 100 }, runeSpeed = { 25, 200 } }
 local INDICATORS = { pills = true, ring = true }
 local ZOOMS = { pill = true, ring = true }
-local PING_NAMES = { map = true, chat = true, off = true }
 -- Whole numbers within [lo, hi] on a step from lo, else nil.
 local function stepped(v, lo, hi, step)
     if type(v) ~= "number" or v ~= v or v < lo or v > hi then return nil end
@@ -88,7 +86,6 @@ local function ensureDefaults()
     if db.indicators ~= nil and not INDICATORS[db.indicators] then db.indicators = nil end
     if db.zoom ~= nil and not ZOOMS[db.zoom] then db.zoom = nil end
     if db.autoZoomOut ~= nil and not stepped(db.autoZoomOut, 0, 30, 1) then db.autoZoomOut = nil end
-    if db.pingName ~= nil and not PING_NAMES[db.pingName] then db.pingName = nil end
     if db.fader ~= nil and type(db.fader) ~= "boolean" then db.fader = nil end
     if db.faderOpacity ~= nil and not stepped(db.faderOpacity, 20, 100, 5) then db.faderOpacity = nil end
     db.drawer = nil   -- the absorbed drawer of a pre-release build; Glass MiniMap Bar keeps its own
@@ -222,18 +219,6 @@ function Settings.SetAutoZoomOut(seconds)
     if not stepped(seconds, 0, 30, 1) then return false end
     store("autoZoomOut", seconds)
     GMM.Footer.ZoomChanged()
-    GMM.Options.Refresh()
-    return true
-end
-
--- Who pinged (#14): "map", "chat" or "off".
-function Settings.PingName()
-    return GMM.db and PING_NAMES[GMM.db.pingName] and GMM.db.pingName or DEFAULTS.pingName
-end
-
-function Settings.SetPingName(where)
-    if not PING_NAMES[where] then return false end
-    store("pingName", where)
     GMM.Options.Refresh()
     return true
 end
@@ -406,7 +391,6 @@ boot:SetScript("OnEvent", function(_, event, arg1)
             start("instance disc", GMM.Difficulty.Build)
             start("tracking", GMM.Tracking.Build)
             start("drawer", GMM.Drawer.Start)
-            start("ping", GMM.Ping.Build)
             start("fader", GMM.Fader.Start)
         end
         start("theme", GMM.Theme.Refresh)

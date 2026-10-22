@@ -21,8 +21,6 @@
 - **Zooms back out on its own**: 5 seconds after you zoom in and move the mouse away, the map
   zooms all the way out. It waits while the mouse is on the map. Options > AddOns > Glass MiniMap,
   "Behaviour": 0 to 30 seconds, 0 for never.
-- **Who pinged**: when someone in your group clicks the minimap, their name shows by the ping in
-  their class colour, for a few seconds. Or in chat, or off.
 - **The minimap fades until hovered**: it rests at 60 % opacity and comes to full under the mouse,
   or while the tracking menu or Edit Mode is open. Turn it off or pick the opacity under
   "Behaviour".

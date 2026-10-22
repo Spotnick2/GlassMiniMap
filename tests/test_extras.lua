@@ -1,6 +1,6 @@
--- The hover, the fader (#15), the auto zoom-out (#13), who pinged (#14), their
--- settings and the options page's Behaviour section
--- (docs/PLAN-zoom-ping-fader.md). All three on by default.
+-- The hover, the fader (#15), the auto zoom-out (#13), their settings and the
+-- options page's Behaviour section (docs/PLAN-zoom-ping-fader.md). Both on by
+-- default. Who pinged (#14) is out: the client keeps MINIMAP_PING from addons.
 dofile("tests/wow_stubs.lua")
 dofile("tests/harness.lua")
 
@@ -24,10 +24,9 @@ local function settle() away(); wait(GMM.Fader.DELAY + GMM.Fader.TIME + 0.2) end
 --------------------------------------------------------------------------------
 local S = GMM.Settings
 eq(S.AutoZoomOut(), 5, "auto zoom-out: 5 s by default")
-eq(S.PingName(), "map", "who pinged: on the map by default")
 eq(S.Fader(), true, "the fader: on by default")
 eq(S.FaderOpacity(), 60, "...at 60 %")
-for _, k in ipairs({ "autoZoomOut", "pingName", "fader", "faderOpacity" }) do
+for _, k in ipairs({ "autoZoomOut", "fader", "faderOpacity" }) do
     eq(rawget(GlassMiniMapDB, k), nil, k .. ": not saved")
 end
 
@@ -163,97 +162,12 @@ eq(Minimap:GetZoom(), 0, "in combat: still zooms out")
 WoW.combat = false
 
 --------------------------------------------------------------------------------
--- Who pinged
---------------------------------------------------------------------------------
-local P = GMM.Ping
-local pill, text, fade = P.Pill(), P._test.text(), P._test.fade()
-eq(pill:IsShown(), false, "ping: hidden at first")
-check(WoW.eventCallbacks.MINIMAP_PING and #WoW.eventCallbacks.MINIMAP_PING >= 1,
-    "...MINIMAP_PING taken as the callback event it is (Event.RegisterCallback)")
-eq(GMM.failures["event:MINIMAP_PING"], nil, "...with no failure")
-check(not pcall(pill.RegisterEvent, pill, "MINIMAP_PING"), "...RegisterEvent refuses it, as the client does")
-WoW.units.party1 = { name = "Thrall", class = "MAGE", guid = "Player-2" }
-WoW.units.target = WoW.units.party1
-Minimap._ping = { 0.1, 0.2 }
-local plays = fade._plays or 0
-WoW.fire("MINIMAP_PING", "party1", 0.2, 0.1)
-eq(pill:IsShown(), true, "a group member's ping: shown")
-eq(text._text, "Thrall", "...their name")
-eq(text._textColor and text._textColor[1] or nil, 0.25, "...in their class colour")
-eq(fade._plays, plays + 1, "...the fade played")
-local p = pill._points[1]
-check(p[1] == "BOTTOM" and p[2] == Minimap and p[3] == "CENTER", "...above the ping")
-near(p[4], 0.1 * Minimap._width, 1e-9, "...at the ping's x (the offset times the map's width)")
-near(p[5], 0.2 * Minimap._width + GMM.Ping.LIFT, 1e-9, "...just above its y")
-eq(GMM.Glass.ContentLevel and pill._level, GMM.Ring.AboveMap(6), "...at the discs' level")
-WoW.fire("MINIMAP_PING", "target", 0.2, 0.1)
-eq(fade._plays, plays + 1, "the same ping under another alias: once")
-WoW.now = WoW.now + 1.5
-WoW.fire("MINIMAP_PING", "target", 0.2, 0.1)
-eq(fade._plays, plays + 2, "...a second later: a new ping")
-Minimap._ping = { 0.2, 0.1 }
-WoW.tick(0.05)
-near(pill._points[1][4], 0.2 * Minimap._width, 1e-9, "the pill follows the ping as the player moves")
-Minimap._ping = { 0.6, 0 }
-WoW.tick(0.05)
-near(pill._points[1][4], Minimap._width / 2 - GMM.Ping.EDGE, 1e-9, "...kept inside the map's circle")
-WoW.finishAnimations()
-eq(pill:IsShown(), false, "faded out: hidden")
-
-plays = fade._plays
-WoW.fire("MINIMAP_PING", "player", 0.3, 0.3)
-eq(fade._plays, plays, "our own ping: nothing")
-Minimap:PingLocation(40, 25)
-eq(fade._plays, plays, "...pinged through the map too")
-WoW.units.party2 = { name = WoW.SECRET, class = "MAGE", guid = "Player-3" }
-WoW.fire("MINIMAP_PING", "party2", 0.3, 0.3)
-eq(fade._plays, plays, "a secret name: nothing")
-WoW.units[WoW.SECRET] = { name = "Ghost", class = "MAGE", guid = "Player-9" }   -- one the client resolves
-WoW.fire("MINIMAP_PING", WoW.SECRET, 0.3, 0.3)
-eq(fade._plays, plays, "a secret unit: nothing")
-WoW.units[WoW.SECRET] = nil
-WoW.fire("MINIMAP_PING", "party1", WoW.SECRET, 0.3)
-eq(fade._plays, plays, "a secret position: nothing")
-WoW.secretUnitIsUnit = true
-WoW.fire("MINIMAP_PING", "party1", 0.4, 0.4)
-eq(fade._plays, plays, "UnitIsUnit secret: nothing")
-WoW.secretUnitIsUnit = false
-WoW.units.party3 = { name = "Jaina", class = WoW.SECRET, guid = "Player-4" }
-WoW.fire("MINIMAP_PING", "party3", 0.5, 0.5)
-eq(text._text, "Jaina", "a secret class: the name shown")
-eq(text._textColor and text._textColor[1], 1, "...in white")
-eq(next(GMM.failures), nil, "no failures from secrets")
-
-check(S.SetPingName("chat"), "who pinged in chat")
-eq(rawget(GlassMiniMapDB, "pingName"), "chat", "...saved")
-plays = fade._plays
-local lines = #WoW.chat
-WoW.now = WoW.now + 2
-WoW.fire("MINIMAP_PING", "party1", 0.6, 0.6)
-eq(#WoW.chat, lines + 1, "...one line")
-check(WoW.chat[#WoW.chat]:find("Thrall", 1, true), "...naming the pinger")
-eq(fade._plays, plays, "...no pill")
-check(S.SetPingName("off"), "off")
-WoW.now = WoW.now + 2
-WoW.fire("MINIMAP_PING", "party1", 0.7, 0.7)
-eq(#WoW.chat, lines + 1, "...no line")
-eq(fade._plays, plays, "...no pill")
-check(not S.SetPingName("whisper"), "an unknown place refused")
-check(S.SetPingName("map"), "back on the map")
-eq(rawget(GlassMiniMapDB, "pingName"), nil, "...the default, not saved")
-WoW.combat = true
-WoW.now = WoW.now + 2
-WoW.fire("MINIMAP_PING", "party1", 0.1, 0.1)
-eq(fade._plays, plays + 1, "in combat: shown")
-WoW.combat = false
-
---------------------------------------------------------------------------------
 -- The options page
 --------------------------------------------------------------------------------
 local O = GMM.Options._test
 O.panel:Show()
 local B = O.behaviour
-check(B and B.autoZoom and B.ping and B.fader and B.opacity, "options: the Behaviour section built")
+check(B and B.autoZoom and B.fader and B.opacity, "options: the Behaviour section built")
 local panelChildren = 0
 for _, c in ipairs(O.panel._children) do panelChildren = panelChildren + 1; eq(c, O.scroll, "the panel holds the scroll frame only") end
 eq(panelChildren, 1, "...one child")
@@ -264,10 +178,6 @@ eq(B.autoZoom._value, 5, "the delay slider at 5")
 check(B.autoZoom.label._text:find("5 s", 1, true), "...labelled")
 B.autoZoom._scripts.OnValueChanged(B.autoZoom, 7.4)
 eq(S.AutoZoomOut(), 7, "dragged: 7 s, on the step")
-B.ping[2]:Click()
-eq(S.PingName(), "chat", "the chat radio")
-B.ping[1]:Click()
-eq(S.PingName(), "map", "...back on the map")
 eq(B.fader:GetChecked(), true, "the fader checked")
 B.fader:SetChecked(false); B.fader:Click()
 eq(S.Fader(), false, "...unchecked: off")
@@ -280,13 +190,12 @@ check(B.opacity.label._text:find("70%", 1, true), "...labelled")
 --------------------------------------------------------------------------------
 -- Saved values
 --------------------------------------------------------------------------------
-GMM = loadAddon({ db = { autoZoomOut = 31, pingName = "x", fader = "yes", faderOpacity = 42 } })
-for _, k in ipairs({ "autoZoomOut", "pingName", "fader", "faderOpacity" }) do
+GMM = loadAddon({ db = { autoZoomOut = 31, fader = "yes", faderOpacity = 42 } })
+for _, k in ipairs({ "autoZoomOut", "fader", "faderOpacity" }) do
     eq(rawget(GlassMiniMapDB, k), nil, "junk " .. k .. " dropped")
 end
-GMM = loadAddon({ db = { autoZoomOut = 0, pingName = "off", fader = false, faderOpacity = 30 } })
+GMM = loadAddon({ db = { autoZoomOut = 0, fader = false, faderOpacity = 30 } })
 eq(GMM.Settings.AutoZoomOut(), 0, "saved: never zoom out")
-eq(GMM.Settings.PingName(), "off", "saved: no ping names")
 eq(GMM.Settings.Fader(), false, "saved: no fader")
 eq(GMM.Blizzard.Container():GetAlpha(), 1, "...the container at full from the start")
 eq(GMM.Settings.FaderOpacity(), 30, "saved: 30 %")

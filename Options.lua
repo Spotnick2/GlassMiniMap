@@ -327,23 +327,16 @@ local function build()
     cnote:SetPoint("TOPLEFT", lastZoom, "BOTTOMLEFT", 0, -8)
     cnote:SetWidth(295)
 
-    -- Behaviour (#13, #14, #15): each on by default.
+    -- Behaviour (#13, #15): each on by default.
     local S = GMM.Settings
     local behaviour = heading("Behaviour", cnote)
     local autoZoom = valueSlider(behaviour, "Zoom back out after %d s (0: never)", 0, 30, 1,
         S.AutoZoomOut, S.SetAutoZoomOut)
-    local pingLabel = label(content, "Who pinged the map:", "GameFontHighlight")
-    pingLabel:SetPoint("TOPLEFT", autoZoom, "BOTTOMLEFT", 0, -14)
-    local lastPing, pingGroup = radios(pingLabel, {
-        { "map", "On the map, by the ping" },
-        { "chat", "In chat" },
-        { "off", "Off" },
-    }, S.PingName, S.SetPingName)
-    local faderCheck = checkbox(lastPing, "Fade the minimap until the mouse is over it",
+    local faderCheck = checkbox(autoZoom, "Fade the minimap until the mouse is over it",
         S.Fader, S.SetFader)
     local opacity = valueSlider(faderCheck, "Opacity while faded: %d%%", 20, 100, 5,
         S.FaderOpacity, S.SetFaderOpacity)
-    Options._test.behaviour = { autoZoom = autoZoom, ping = pingGroup, fader = faderCheck, opacity = opacity }
+    Options._test.behaviour = { autoZoom = autoZoom, fader = faderCheck, opacity = opacity }
 
     -- The drawer: Glass MiniMap Bar's, when it's installed.
     local drawer = heading("Addon drawer", opacity)

@@ -75,7 +75,6 @@ and a taint minefield (`..\References\Docs\PORTING-TBC-TO-FOREVER.md`, "Edit Mod
 | `Tracking.lua` | the glass tracking menu, a copy of Blizzard's menu logic (`Minimap.lua:636-772`) |
 | `Drawer.lua` | the bottom-left disc as Glass MiniMap Bar's launcher, through its public API |
 | `Hover.lua` | is the mouse over the minimap (the ring's circle, our visible pieces), held while our tracking menu or Edit Mode is open: one throttled OnUpdate, no hooks on Blizzard's frames |
-| `Ping.lua` | who pinged (#14): the pinger's name in class colour on a glass pill by the ping, or in chat; secret-safe |
 | `Fader.lua` | the fader (#15): the container's alpha down to `faderOpacity` until hovered |
 | `Options.lua` | Esc > Options > AddOns > Glass MiniMap, in a scroll frame ("Drawer options" opens Glass MiniMap Bar's page) |
 | `GlassMiniMap.lua` | bootstrap, `GlassMiniMapDB`, `GMM.Settings`, `/gmm` |

@@ -274,7 +274,7 @@ function Methods.Click(w, mouse)
 end
 -- Callback events (CallbackEvent = true in Blizzard's API documentation, a
 -- flag the dump drops): RegisterEvent refuses them as the client does (70450,
--- MINIMAP_PING); Event.RegisterCallback takes them.
+-- MINIMAP_PING), and RegisterEventCallback is protected for addons (#14).
 WoW.CALLBACK_EVENTS = { MINIMAP_PING = true }
 function Methods.RegisterEvent(w, e)
     if not WoW.KNOWN_EVENTS[e] or WoW.CALLBACK_EVENTS[e] then
@@ -334,13 +334,6 @@ function Methods.AddDoubleLine(tt, l, r) table.insert(tt._lines, tostring(l) .. 
 function Methods.GetZoom(m) return m._zoom or 0 end
 function Methods.SetZoom(m, z) m._zoom = z end
 function Methods.GetZoomLevels(m) return m._zoomLevels or 6 end
--- Pings: GetPingPosition is the offset from the centre / the map's width
--- (measured, the porting guide); PingLocation takes the offset itself.
-function Methods.GetPingPosition(m) return (m._ping or { 0, 0 })[1], (m._ping or { 0, 0 })[2] end
-function Methods.PingLocation(m, x, y)
-    m._ping = { x / m._width, y / m._width }
-    WoW.fire("MINIMAP_PING", "player", m._ping[2], m._ping[1])
-end
 
 --------------------------------------------------------------------------------
 -- The Forever minimap cluster (Blizzard_Minimap\Mainline\Minimap.xml + Camelot)
@@ -481,8 +474,7 @@ function WoW.reset()
     WoW.isDay = true
     WoW.monthDay, WoW.invites = 13, 0
     WoW.class = "MAGE"
-    WoW.units, WoW.cursor, WoW.now, WoW.secretUnitIsUnit = {}, { -1000, -1000 }, 0, false
-    WoW.eventCallbacks = {}
+    WoW.cursor, WoW.now = { -1000, -1000 }, 0
     WoW.facing = 0
     WoW.combat = false
     WoW.mail, WoW.senders = false, {}
@@ -527,11 +519,7 @@ C_AddOns = {
     IsAddOnLoaded = function(name) return WoW.loaded[name] == true end,
 }
 function IsShiftKeyDown() return WoW.shift end
--- A secret stands in as one table: issecretvalue says so, nothing else may.
-WoW.SECRET = setmetatable({}, { __tostring = function() error("a secret was turned into a string", 2) end,
-    __concat = function() error("a secret was concatenated", 2) end,
-    __eq = function() error("a secret was compared", 2) end })
-function issecretvalue(v) return v == nil and false or rawequal(v, WoW.SECRET) end
+function issecretvalue(v) return false end
 function InCombatLockdown() return WoW.combat end
 EditModeManagerFrame = nil
 -- hooksecurefunc(table, name, fn) or hooksecurefunc(globalName, fn).
@@ -574,25 +562,7 @@ Settings = {
 
 function GetCVarBool(name) return WoW.cvars[name] == true end
 function GetPlayerFacing() return WoW.facing end
--- Units: "player" is the mage; WoW.units[token] = { name, class, guid } for
--- others, any field possibly WoW.SECRET (issecretvalue says so).
-function UnitClass(unit)
-    if unit == nil or unit == "player" then return "Mage", WoW.class, 8 end
-    local u = WoW.units[unit]
-    if not u then return nil end
-    return u.class, u.class, 1
-end
-function UnitName(unit)
-    if unit == "player" then return "Spotnick" end
-    local u = WoW.units[unit]
-    return u and u.name or nil
-end
-function UnitIsUnit(a, b)
-    local function guid(t) if t == "player" then return "Player-1" end; return WoW.units[t] and WoW.units[t].guid end
-    if WoW.secretUnitIsUnit then return WoW.SECRET end
-    local ga, gb = guid(a), guid(b)
-    return ga ~= nil and ga == gb
-end
+function UnitClass() return "Mage", WoW.class, 8 end
 function GetCursorPosition() return WoW.cursor[1], WoW.cursor[2] end
 function GetTime() return WoW.now end
 function IsIndoors() return WoW.indoors == true end
@@ -761,22 +731,7 @@ end
 --------------------------------------------------------------------------------
 
 -- Fire an event at every frame registered for it. Errors are NOT caught.
--- Blizzard's (Blizzard_SharedXMLBase/Event.lua): the callback gets the payload
--- alone; the handle unregisters.
-Event = {
-    RegisterCallback = function(event, cb)
-        if not WoW.KNOWN_EVENTS[event] then error("unknown event " .. tostring(event), 2) end
-        WoW.eventCallbacks[event] = WoW.eventCallbacks[event] or {}
-        local entry = { cb = cb }
-        table.insert(WoW.eventCallbacks[event], entry)
-        return { Unregister = function() entry.cb = nil end }
-    end,
-}
-
 function WoW.fire(event, ...)
-    for _, entry in ipairs(WoW.eventCallbacks[event] or {}) do
-        if entry.cb then entry.cb(...) end
-    end
     local list = {}
     for _, w in ipairs(WoW.frames) do list[#list + 1] = w end
     for _, w in ipairs(list) do
