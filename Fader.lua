@@ -1,5 +1,5 @@
 -- Fader.lua: the minimap at a lower opacity until hovered (#15;
--- docs/PLAN-zoom-ping-fader.md §3). On by default, 60 %.
+-- docs/PLAN-zoom-ping-fader.md §3). Off by default, 60 % when on.
 --
 -- One alpha on MinimapCluster.MinimapContainer fades the map, our glass and
 -- other addons' pins alike. Blizzard never sets or reads that frame's alpha

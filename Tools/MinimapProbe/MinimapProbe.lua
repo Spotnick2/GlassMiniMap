@@ -631,7 +631,8 @@ end
 -- extras run's defaults step: declared here, before both (Codex, #44).
 local heldPolls = 0
 
--- The behaviour settings (#13, #15), at their defaults for a run.
+-- The behaviour settings (#13, #15) for a run: the defaults, with the fader
+-- on (off by default since v0.3.1).
 local function behaviourDefaults()
     local S = gmm() and gmm().Settings
     if not (S and S.SetAutoZoomOut) then error("Glass MiniMap without #13 and #15") end
@@ -887,7 +888,7 @@ Probe:Steps("extras", {
     rev = 4,
     title = "Auto zoom-out and the fader (#13, #15)",
     SAVE(),
-    { text = "The three settings at their defaults for this run.", auto = true, run = behaviourDefaults },
+    { text = "The three settings at their defaults for this run, the fader on.", auto = true, run = behaviourDefaults },
     { text = "Move the mouse off the minimap, wait 2 seconds, then press Check.", button = "Check",
       run = function() end, check = faderCheck, screenshot = "extras: faded" },
     { text = "Hover the minimap: does it come to full, and fade back a second after the mouse leaves?", ask = true },

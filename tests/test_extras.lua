@@ -1,6 +1,6 @@
 -- The hover, the fader (#15), the auto zoom-out (#13), their settings and the
--- options page's Behaviour section (docs/PLAN-zoom-ping-fader.md). Both on by
--- default. Who pinged (#14) is out: the client keeps MINIMAP_PING from addons.
+-- options page's Behaviour section (docs/PLAN-zoom-ping-fader.md). The auto
+-- zoom-out on by default, the fader off. Who pinged (#14) is out: the client keeps MINIMAP_PING from addons.
 dofile("tests/wow_stubs.lua")
 dofile("tests/harness.lua")
 
@@ -24,7 +24,7 @@ local function settle() away(); wait(GMM.Fader.DELAY + GMM.Fader.TIME + 0.2) end
 --------------------------------------------------------------------------------
 local S = GMM.Settings
 eq(S.AutoZoomOut(), 5, "auto zoom-out: 5 s by default")
-eq(S.Fader(), true, "the fader: on by default")
+eq(S.Fader(), false, "the fader: off by default")
 eq(S.FaderOpacity(), 60, "...at 60 %")
 for _, k in ipairs({ "autoZoomOut", "fader", "faderOpacity" }) do
     eq(rawget(GlassMiniMapDB, k), nil, k .. ": not saved")
@@ -71,6 +71,10 @@ rawset(_G, "EditModeManagerFrame", nil)
 local queue = GMM.Queue.Disc()
 check(queue ~= nil, "the queue backing built")
 settle()
+eq(container:GetAlpha(), 1, "off by default: the container at full with the mouse away")
+check(S.SetFader(true), "the fader on")
+eq(rawget(GlassMiniMapDB, "fader"), true, "...saved")
+settle()
 near(container:GetAlpha(), 0.6, 1e-9, "fader: the container at 60 % with the mouse away")
 near(queue:GetAlpha(), 0.6, 1e-9, "...the queue backing too (a UIParent child)")
 eq(Minimap._alpha, 1, "...the map's own alpha untouched (it inherits)")
@@ -99,12 +103,12 @@ eq(S.FaderOpacity(), 40, "...left as it was")
 check(S.SetFader(false), "the fader off")
 eq(container:GetAlpha(), 1, "...the container back to 1 at once")
 eq(queue:GetAlpha(), 1, "...the queue backing too")
-eq(rawget(GlassMiniMapDB, "fader"), false, "...saved")
+eq(rawget(GlassMiniMapDB, "fader"), nil, "...the default, not saved")
 settle()
 eq(container:GetAlpha(), 1, "...and it stays, the mouse away")
 check(not S.SetFader("yes"), "a non-boolean refused")
 check(S.SetFader(true), "on again")
-eq(rawget(GlassMiniMapDB, "fader"), nil, "...the default, not saved")
+eq(rawget(GlassMiniMapDB, "fader"), true, "...saved")
 WoW.combat = true
 onMap(); wait(0.5); away(); settle()
 near(container:GetAlpha(), 0.4, 1e-9, "in combat: still fades")
@@ -199,6 +203,8 @@ eq(GMM.Settings.AutoZoomOut(), 0, "saved: never zoom out")
 eq(GMM.Settings.Fader(), false, "saved: no fader")
 eq(GMM.Blizzard.Container():GetAlpha(), 1, "...the container at full from the start")
 eq(GMM.Settings.FaderOpacity(), 30, "saved: 30 %")
+GMM = loadAddon({ db = { fader = true } })
+eq(GMM.Settings.Fader(), true, "saved: the fader on")
 
 eq(next(GMM.failures), nil, "no failures")
 done("test_extras")

@@ -19,8 +19,8 @@ A liquid-glass minimap for **World of Warcraft: Forever**.
   Minimap Coordinates" and "Coordinates by Tenths" settings apply).
 - **Zooms back out** on its own 5 seconds after you zoomed in and moved the mouse away (0 to 30
   seconds, or never).
-- **Fades until hovered**: the minimap rests at 60 % opacity and comes to full under the mouse
-  (or not at all, or another opacity).
+- **Fades until hovered**, if you turn it on: the minimap rests at 60 % opacity (or another) and
+  comes to full under the mouse.
 - **Day and night disc**: a sun or a moon, with the server and local time. Click it for the clock.
 - **New-mail disc** at the bottom right of the ring while you have unread mail, with the latest
   senders on hover.
