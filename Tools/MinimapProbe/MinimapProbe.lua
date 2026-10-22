@@ -881,7 +881,7 @@ Probe:Steps("zoomring", {
 })
 
 Probe:Steps("extras", {
-    rev = 3,
+    rev = 4,
     title = "Auto zoom-out and the fader (#13, #15)",
     SAVE(),
     { text = "The three settings at their defaults for this run.", auto = true, run = behaviourDefaults },
@@ -890,7 +890,7 @@ Probe:Steps("extras", {
     { text = "Hover the minimap: does it come to full, and fade back a second after the mouse leaves?", ask = true },
     { text = "Hover just outside the ring, in the corner between the ring and the zone pill's end: does it stay faded?",
       ask = true },
-    { text = "Open the tracking menu (click the magnifier), then move the mouse off it and the map. The step ends by itself about 3 seconds later (don't click).",
+    { text = "Open the tracking menu (click the magnifier), then move the mouse off it and the map, and don't click. The menu stays open and the minimap stays at full; the probe moves on to the next step by itself after about 3 seconds.",
       wait = faderHeld, timeout = 60 },
     { text = "Close the menu. Zoom in with the mouse wheel, then move the mouse off the minimap and leave it there.",
       event = "MINIMAP_UPDATE_ZOOM" },
@@ -909,7 +909,7 @@ Probe:Steps("extras", {
 })
 
 Probe:Steps("checklist", {
-    rev = 1,
+    rev = 2,
     title = "What #2 still has open: rotation, Edit Mode scale, tracking, the drawer, taint",
     SAVE(),
     { text = "Turn Rotate Minimap on (Options > Interface, or /console rotateMinimap 1), then press Check.",
@@ -926,7 +926,7 @@ Probe:Steps("checklist", {
     { text = "At both sizes, did the ring, the pills and the discs follow the map? (Put the size back after.)", ask = true },
     { text = "Tracking: in our menu (click the magnifier) turn a tracking on (Find Herbs, say), then right-click the magnifier for Blizzard's menu. Does it agree? Then Uncheck All in ours, and check again.",
       ask = true },
-    { text = "The drawer: is each addon there once (a LibDBIcon one, and a compartment-only one such as Gnomesweeper), and do left and right clicks reach both kinds?",
+    { text = "The disc at the bottom left: does it open Glass MiniMap Bar's drawer, and do its buttons work? (What the drawer collects is Glass MiniMap Bar's, checked by its own probes.)",
       ask = true },
     { text = "Taint pass: Edit Mode, move, scale and rotate the minimap, close; then fight using your action bars and a macro. The step ends when the fight does.",
       event = "PLAYER_REGEN_ENABLED", check = failuresCheck },
