@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- **The fader is off by default**: the minimap stays at full opacity unless you turn on "Fade the
+  minimap until the mouse is over it" (Options > AddOns > Glass MiniMap, "Behaviour"). If you
+  never changed it, it turns off with this update.
+
 ## v0.3.0
 
 Released 2026-10-22.

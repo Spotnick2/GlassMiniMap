@@ -24,7 +24,7 @@ local DEFAULTS = {
     indicators = "pills",     -- mail and instance size: "pills" (zone and coords pills) | "ring" (discs)
     zoom = "pill",            -- the zoom buttons: "pill" (the coords pill's ends) | "ring" (discs)
     autoZoomOut = 5,          -- seconds before zooming back out, 0 = never (#13)
-    fader = true,             -- the minimap faded until hovered (#15)
+    fader = false,            -- the minimap faded until hovered (#15)
     faderOpacity = 60,        -- ...to this percent
 }
 GMM.DEFAULTS = DEFAULTS
