@@ -156,3 +156,20 @@ client's data: that's the probe's procedures and the in-game checklist.
 - `GMM.failures` is the one failure record (`API.Fail`, `API.Try`); `/gmm failures` reads it.
 - Every setting goes through `GMM.Settings` (or `GMM.Drawer.Set` for the drawer).
 - `GlassMiniMapDB` saves only what differs from `DEFAULTS`; `drawer` is always a table.
+
+## Consulting Codex
+
+The shared `codex-consult` skill (user level) has the invocation and the gotchas. For this repo:
+
+For Glass MiniMap, good things to hand Codex:
+- anything that touches MinimapCluster, Minimap or another Edit Mode system (fading, reparenting,
+  hooks), where taint can block a protected action later;
+- the drawer's collector and the AddOns compartment (other addons' buttons and callbacks);
+- anything that writes to SavedVariables;
+- any plan that grows scope beyond the mockup (docs/mockups/glass-minimap.png).
+
+**Always hand it `CLAUDE.md` and `docs/PLAN.md` alongside the diff or plan**, plus
+`C:/Projects/WoW/References/Docs/PORTING-TBC-TO-FOREVER.md` and `docs/FOREVER-PROBE.md`. Without them, a
+cold reviewer argues from Classic-era or Retail behaviour that doesn't hold here.
+`C:/Projects/WoW/References/Forever/api/forever-api-<version>.<build>.md` (take the highest build) is the full API surface, and
+`C:/Projects/WoW/wow-ui-source` (branch `forever`) is the client's own FrameXML (`Blizzard_Minimap`).
