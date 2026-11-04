@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.0
+
+Released 2026-11-03.
+
+- **Glass MiniMap 1.0**: the first stable release. Nothing changed since v0.3.1.
+
 ## v0.3.1
 
 Released 2026-10-22.
