@@ -44,6 +44,42 @@ local function plain(obj, method, ...)
     return API.Plain(a), API.Plain(b), API.Plain(c), API.Plain(d), API.Plain(e)
 end
 
+-- Blizzard's one-time tip on the eye ("You are queued for an activity...",
+-- QueueStatusButtonMixin:CheckTutorials, from its OnShow) opens ABOVE it
+-- (TopEdgeCenter) and never flips (no autoEdgeFlipping). Mirrored to the top
+-- of a minimap in the screen's top corner, it went off screen with its close
+-- button (owner, 70790, #53). So a tip on the eye is clamped to the screen
+-- while it shows: a widget property, undone when it hides. Re-pointing it
+-- with the tip's own AnchorAndRotate would write fields on a frame of
+-- Blizzard's shared HelpTip pool (Arrow.rotation survives its Reset), tainting
+-- every tip that frame shows later. State in our weak tables, as for fading.
+local clamped = setmetatable({}, { __mode = "k" })
+local hooked = setmetatable({}, { __mode = "k" })
+
+local function unclamp(tip)
+    if not clamped[tip] then return end
+    clamped[tip] = nil
+    tip:SetClampedToScreen(false)
+end
+
+function Queue.ClampTips()
+    local e = eye()
+    local helpTip = rawget(_G, "HelpTip")
+    local pool = type(helpTip) == "table" and rawget(helpTip, "framePool")
+    if not (e and type(pool) == "table" and type(pool.EnumerateActive) == "function") then return end
+    for tip in pool:EnumerateActive() do
+        if type(tip) == "table" and plain(tip, "GetParent") == e
+            and plain(tip, "IsClampedToScreen") == false then
+            clamped[tip] = true
+            tip:SetClampedToScreen(true)
+            if not hooked[tip] then
+                hooked[tip] = true
+                tip:HookScript("OnHide", unclamp)
+            end
+        end
+    end
+end
+
 local function editModeOpen()
     local em = rawget(_G, "EditModeManagerFrame")
     return type(em) == "table" and em.IsShown ~= nil and plain(em, "IsShown") == true
@@ -97,6 +133,8 @@ function Queue.Sync()
         if glass and glass.top then glass.top:SetFrameLevel(under) end
     end
     disc:SetShown(plain(e, "IsShown") == true)
+    -- Our OnShow hook runs after Blizzard's, which has just shown the tip.
+    API.Try("eye:tip", Queue.ClampTips)
 end
 
 function Queue.Build()

@@ -159,6 +159,8 @@ function Methods.GetFrameLevel(w) return w._level end
 function Methods.SetFrameLevel(w, l) w._level = l end
 function Methods.SetFrameStrata(w, s) w._strata = s end
 function Methods.GetFrameStrata(w) return w._strata or "MEDIUM" end
+function Methods.SetClampedToScreen(w, v) w._clamped = v and true or false end
+function Methods.IsClampedToScreen(w) return w._clamped == true end
 function Methods.GetName(w) return w._name end
 function Methods.GetParent(w) return w._parent end
 function Methods.SetParent(w, p)
@@ -436,6 +438,33 @@ local function buildCluster()
         for _, c in ipairs(self.callbacks[event] or {}) do c.fn(c.owner, ...) end
     end
     EventRegistry:RegisterCallback("Minimap.OnScaleUpdated", q.UpdateDefaultAnchor, q)
+    -- Blizzard's one-time tip on the eye, shown from its OnShow until
+    -- acknowledged (QueueStatusFrame.lua:143, CheckTutorials): above the eye,
+    -- never flipped. HelpTip keeps its frames in a pool (HelpTip.lua:151);
+    -- a tip closes when it hides, and with acknowledgeOnHide that's for good.
+    HelpTip = { framePool = { activeObjects = {} } }
+    function HelpTip.framePool:EnumerateActive() return pairs(self.activeObjects) end
+    function HelpTip:IsShowing(parent)
+        for f in pairs(self.framePool.activeObjects) do if f._parent == parent then return true end end
+        return false
+    end
+    function HelpTip:Show(parent, info)
+        if self:IsShowing(parent) then return true end
+        local f = CreateFrame("Frame", nil, parent)
+        f._strata, f.info = "DIALOG", info
+        f:SetPoint("BOTTOM", parent, "TOP", 0, 20)
+        f:SetScript("OnHide", function(self)
+            HelpTip.framePool.activeObjects[self] = nil
+            if self.info.acknowledgeOnHide then WoW.tutorialSeen = true end
+        end)
+        self.framePool.activeObjects[f] = true
+        return true
+    end
+    function q:CheckTutorials()
+        if not self:IsShown() or WoW.tutorialSeen then return end
+        HelpTip:Show(self, { text = "queue changes", targetPoint = 1, acknowledgeOnHide = true }, self)
+    end
+    q:SetScript("OnShow", function(self) self:CheckTutorials() end)
     GameTimeFrame = CreateFrame("Button", "GameTimeFrame", c)
     GameTimeFrame._mouse = true
 
