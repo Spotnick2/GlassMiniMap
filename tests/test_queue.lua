@@ -80,6 +80,27 @@ eq(d._scale, 1.3, "Edit Mode's scale followed")
 eye:Hide()
 eq(d._shown, false, "leaving the queue: hidden with it")
 
+-- Blizzard's one-time tip opens above the eye, which we mirrored to the top:
+-- off screen with its close button (#53). Clamped while it shows, undone when
+-- it hides; another addon's tip elsewhere is left alone.
+WoW.tutorialSeen = nil
+local other = CreateFrame("Frame", nil, UIParent)
+HelpTip:Show(other, { text = "elsewhere" })
+eye:Show()
+local tip
+for f in HelpTip.framePool:EnumerateActive() do if f._parent == eye then tip = f end end
+check(tip ~= nil, "queued: Blizzard shows its tip on the eye")
+eq(tip._clamped, true, "...clamped to the screen, so its close button stays reachable")
+for f in HelpTip.framePool:EnumerateActive() do
+    if f._parent == other then eq(f._clamped, nil, "a tip that isn't the eye's: untouched") end
+end
+eye:Hide()
+eq(tip._clamped, false, "the tip hides with the eye: unclamped (the frame goes back to Blizzard's pool)")
+eq(WoW.tutorialSeen, true, "...and Blizzard acknowledged it")
+eye:Show()
+eq(HelpTip:IsShowing(eye), false, "next queue: no tip, nothing to clamp")
+eye:Hide()
+
 -- Themed like every other surface.
 GMM.Settings.SetTheme("smoked")
 local found = false
