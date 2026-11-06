@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.0.1
+
+Released 2026-11-06.
+
+- **Blizzard's queue tip stays on screen.** The first time you queue, Blizzard shows a tip
+  ("You are queued for an activity...") above the LFG eye. With the eye at the ring's top left
+  and the minimap in the screen's top corner, the tip went off screen with its close button, so it
+  couldn't be closed until the queue ended. It now stays on screen.
+
 ## v1.0.0
 
 Released 2026-11-03.
