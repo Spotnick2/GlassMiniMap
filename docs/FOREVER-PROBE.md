@@ -179,3 +179,20 @@ build from `/gmm version` for the remaining live checks below.
   hung below the cluster onto the quest tracker's header (moved up into the ring's edge); Glass
   MiniMap Bar's start stopped before collecting the minimap buttons (most likely the same secret
   answers, from `IsProtected`/sizes: Spotnick2/GlassMiniMapBar#26 now skips secrets).
+
+1.60.1.70862 (NodeRadar's probe, owner's run #133, 2026-11-08), #56's dev build, NodeRadar's scan
+mode borrowing `Minimap` (moved under the resting cursor, 24 px, alpha 0, `SetIconScale(0.01)`):
+- Before #56 (v1.0.1): the ring, both pills with the − / +, the north tab and the moon disc drew
+  around the cursor during a borrow. The host was anchored to `Minimap`, and the map's alpha 0
+  doesn't reach the container's children. Map moved off screen: our pieces went with it.
+- With #56 (the host on `MinimapContainer` CENTER): the handshake `ScanBegin` returned true in 57 of
+  57 bursts, and no `ScanEnd` threw. A rect comparison during the borrow: no frame of ours moved (the
+  host, the zone and coords pills, the − / +, the discs, the north tab), and NodeRadar's LibDBIcon
+  button on Glass MiniMap Bar's bar stayed home too.
+- Still moving with the map, none of it ours: `QueueStatusButton` (hidden, not queued),
+  `MinimapContainer.PlayerCoords` (Blizzard's, faded by us), and two children of `Minimap` that take
+  its alpha.
+- On foot, 28 bursts every 2 s: the owner didn't notice the map's blinks at all, so the frost
+  overlay isn't needed so far.
+- Not measured yet: the LFG eye shown during a scan (our glass behind it is meant to hide), and
+  mounted riding.

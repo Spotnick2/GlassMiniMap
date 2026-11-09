@@ -276,6 +276,9 @@ end
 -- zoomed in to read never zooms out under the cursor.
 function Footer.AutoZoomTick(dt)
     if not countdown then return end
+    -- Paused, not restarted, while another addon borrows the map (Scan.lua,
+    -- #56): our SetZoom(0) would land in the middle of its reads.
+    if GMM.Scan.Active() then return end
     local delay = GMM.Settings.AutoZoomOut()
     if GMM.Hover.Over() or GMM.Hover.Held() then countdown = delay; return end
     countdown = countdown - dt

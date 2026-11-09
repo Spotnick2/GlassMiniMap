@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- **The minimap's glass stays in place when another addon borrows the map.** NodeRadar's scan mode
+  moves Blizzard's minimap under the mouse for a few frames, invisible. The ring, the zone and
+  coordinates pills and the discs used to go with it, and flashed at the mouse. They now stay where
+  the map belongs.
+- **A public API for those addons** (docs/PUBLIC-API.md): `GlassMiniMap.ScanBegin` and `ScanEnd`
+  pause the auto zoom-out during a scan.
+
 ## v1.0.1
 
 Released 2026-11-06.

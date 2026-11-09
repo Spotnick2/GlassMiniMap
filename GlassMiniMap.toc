@@ -12,6 +12,7 @@
 
 Libs\LibGlass-1.0\LibGlass-1.0.xml
 Compat.lua
+Scan.lua
 Glass.lua
 Theme.lua
 Suite.lua

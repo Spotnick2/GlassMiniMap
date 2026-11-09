@@ -54,6 +54,11 @@ and a taint minefield (`..\References\Docs\PORTING-TBC-TO-FOREVER.md`, "Edit Mod
   (`Fader.lua`, #15), and put back to 1 when the fader is off. Blizzard never sets or reads it;
   Edit Mode only scales it. Its taint in combat is measured by `/fp steps mm extras`.
 - The map's mask stays Blizzard's (round, re-applied by `Camelot\Skin.lua` on `rotateMinimap`).
+- **Nothing of ours is parented or anchored to `Minimap`** (#56): the ring host sits on the
+  container's CENTER, where Blizzard puts the map, and nothing reads the map's size after the build.
+  Another addon may borrow `Minimap` for a few frames (NodeRadar's scan mode); version 1 of our public
+  API ([docs/PUBLIC-API.md](docs/PUBLIC-API.md), `Scan.lua`) promises this. The one exception is the glass
+  behind Blizzard's LFG eye (Blizzard anchors the eye to the map): hidden while a scan is under way.
 - Our own frames stay **unnamed** (minimap-button collectors grab named square children of
   `Minimap`), except `GlassMiniMapTrackingPopup` (UIParent child, for `UISpecialFrames`).
 
@@ -62,6 +67,7 @@ and a taint minefield (`..\References\Docs\PORTING-TBC-TO-FOREVER.md`, "Edit Mod
 | File | What |
 |---|---|
 | `Compat.lua` | `API.*`: failures, events, version, `Fade`, `GameRule`, `ClassColor`, `SetIcon`, Settings registration |
+| `Scan.lua` | the public API (`PUBLIC_API_VERSION` 1, docs/PUBLIC-API.md): `ScanBegin`/`ScanEnd` for an addon that borrows `Minimap`, the 1 s self-release, `Scan.Active()` (pauses the auto zoom-out, hides the eye's glass, keeps the ring's build at rest size) |
 | `Glass.lua` | `GMM.BuildGlass(preset)`: our LibGlass instance (Pearl by default, or clean), built once at `ADDON_LOADED`; `GMM.MEDIA` |
 | `Theme.lua` | clear / smoked / class: the tint in effect (`Theme.Name`: Glass UI's while following its look, else the player's own, else clear) and its numbers (Glass UI's `Body` while following); every surface registers (`Theme.Register(g, kind)`), `Theme.Refresh()` repaints live, `Theme.OnChange` listeners |
 | `Suite.lua` | Glass UI's suite: the once-per-session decision, the build, `LookChanged`, `Body` without its backing, `Report`, `Open` (all `rawget` + `pcall`) |

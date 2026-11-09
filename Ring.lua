@@ -3,7 +3,7 @@
 -- Drawer/Bar.lua).
 --
 -- The ring is ONE LibGlass disc behind the map: a square host the map's size
--- plus RING_WIDTH on every side, centred on Minimap, one level under it. The
+-- plus RING_WIDTH on every side, centred where the map is, one level under it. The
 -- map is opaque and masked round by Blizzard's own mask, so it covers the
 -- disc's centre and only a glass ring shows. Our rim art (Media\ring_rim,
 -- ring_dark, from Tools/make_art.py) replaces the disc's: g.top sits ABOVE the
@@ -13,6 +13,13 @@
 -- the frame Edit Mode scales, so it inherits the minimap's scale and strata
 -- (LOW). The host is sized once; a later scale arrives through the parent and
 -- never needs a SetSize (LibGlass: a disc is resized with SetScale only).
+--
+-- Anchored to the CONTAINER's centre, never to Minimap (#56). Blizzard puts
+-- Minimap at its container's centre (Minimap.xml) and never moves it, so it
+-- is the same spot; but an addon that borrows the map for a few frames
+-- (NodeRadar's scan mode moves it under the cursor) no longer drags our glass
+-- along: measured on 70862, the ring and both pills drew at the cursor. For
+-- the same reason nothing here reads the map's size after the build.
 
 GlassMiniMap = GlassMiniMap or {}
 local GMM = GlassMiniMap
@@ -236,10 +243,15 @@ function Ring.Host() return host end
 function Ring.Glass() return glass end
 function Ring.Container() return container end
 function Ring.Notch() return notch end
+-- From the host's own width (the map's plus RING_WIDTH a side, set once at
+-- the build), never the map's live one: a borrowed, shrunken map put the
+-- north tab and the discs inside the ring (#56).
 function Ring.Radius()
-    local w = (Minimap and Minimap:GetWidth()) or Ring.MAP_SIZE
-    if type(w) ~= "number" or w <= 0 then w = Ring.MAP_SIZE end
-    return w / 2 + Ring.RING_WIDTH / 2
+    local w = host and host:GetWidth()
+    if type(w) ~= "number" or w <= 2 * Ring.RING_WIDTH then
+        return Ring.MAP_SIZE / 2 + Ring.RING_WIDTH / 2
+    end
+    return (w - Ring.RING_WIDTH) / 2
 end
 
 -- A level above the map, for anything that overlaps its edge.
@@ -460,11 +472,13 @@ function Ring.Build()
         API.Fail("ring", "no minimap container on this client")
         return false
     end
-    local w = Minimap:GetWidth()
+    -- The map's size, unless it's borrowed right now (a scan that began before
+    -- our login: Codex, #56): the host keeps this size for the session.
+    local w = (not GMM.Scan.Active()) and Minimap:GetWidth() or Ring.MAP_SIZE
     if type(w) ~= "number" or w <= 0 then w = Ring.MAP_SIZE end
     host = CreateFrame("Frame", nil, container)
     host:SetSize(w + 2 * Ring.RING_WIDTH, w + 2 * Ring.RING_WIDTH)
-    host:SetPoint("CENTER", Minimap, "CENTER", 0, 0)
+    host:SetPoint("CENTER", container, "CENTER", 0, 0)    -- where Minimap is, never on it (#56)
     host:SetFrameLevel(math.max(0, Minimap:GetFrameLevel() - 1))
     glass = GMM.Glass.Disc(host, "disc")
     glass.rim:SetTexture(GMM.MEDIA .. "ring_rim")
