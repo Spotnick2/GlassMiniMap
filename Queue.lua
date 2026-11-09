@@ -132,7 +132,9 @@ function Queue.Sync()
         disc:SetFrameLevel(under)
         if glass and glass.top then glass.top:SetFrameLevel(under) end
     end
-    disc:SetShown(plain(e, "IsShown") == true)
+    -- Hidden while another addon borrows the map (Scan.lua, #56): Blizzard
+    -- anchors the eye to Minimap, and our glass would follow it to the cursor.
+    disc:SetShown(plain(e, "IsShown") == true and not GMM.Scan.Active())
     -- Our OnShow hook runs after Blizzard's, which has just shown the tip.
     API.Try("eye:tip", Queue.ClampTips)
 end
