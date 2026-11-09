@@ -22,9 +22,10 @@ A liquid-glass minimap for **World of Warcraft: Forever**.
 - **Fades until hovered**, if you turn it on: the minimap rests at 60 % opacity (or another) and
   comes to full under the mouse.
 - **Day and night disc**: a sun or a moon, with the server and local time. Click it for the clock.
-- **New-mail disc** at the bottom right of the ring while you have unread mail, with the latest
-  senders on hover.
-- **Instance disc** on the right of the ring in dungeons and raids: the group size, 5 to 40.
+- **New mail** while you have unread mail, with the latest senders on hover: an envelope in the
+  zone pill, or a disc at the bottom right of the ring.
+- **The instance size** in dungeons and raids (5 to 40): in the coordinates pill, or a disc on the
+  right of the ring. Where these two show is one setting (pills by default).
 - **Addon drawer** with [Glass MiniMap Bar](https://www.curseforge.com/wow/addons/glass-minimap-bar) installed: the disc at the bottom left opens its glass
   drawer, with your addons' minimap buttons and Blizzard's AddOns list in one place, in the same
   glass as the minimap.
@@ -50,6 +51,12 @@ controls. Initial choices are Glowing, Sway, Vapor On, 100% glow intensity, and
 Glass MiniMap Bar is optional and stays its own addon (it works with any minimap). With both
 installed, its bar opens from Glass MiniMap's bottom-left disc instead of its own minimap button,
 and its settings (`/gmb`) stay yours.
+
+## Addons that borrow the minimap
+
+Some addons briefly move Blizzard's minimap to read it, for example NodeRadar's scan mode. While
+they do, Glass MiniMap's glass stays where the map belongs instead of following it. Addon authors:
+[docs/PUBLIC-API.md](https://github.com/Spotnick2/GlassMiniMap/blob/main/docs/PUBLIC-API.md).
 
 ## Licence
 
