@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- **No more blink while NodeRadar reads the map.** During NodeRadar's scans the map's spot went
+  empty for a moment, up to 8 times in a row. NodeRadar now fills it with the minimap's own ground,
+  and Glass MiniMap tells it the map is round so it can. If you chose NodeRadar's radar look in its
+  options, Glass MiniMap draws its own radar face instead, in your glass's tint, fading out just
+  after the last scan.
+- **For addon authors:** `GlassMiniMap.ScanStandIn()` says whether Glass MiniMap draws that face,
+  so a borrower that draws its own stand-in doesn't stack a second one. The global
+  `GetMinimapShape` now returns `"ROUND"`, unless another addon declared one first.
+
 ## v1.1.0
 
 Released 2026-11-09.

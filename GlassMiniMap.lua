@@ -384,6 +384,7 @@ boot:SetScript("OnEvent", function(_, event, arg1)
         start("options", GMM.Options.Register)
         start("blizzard", GMM.Blizzard.Start)
         if start("ring", GMM.Ring.Build) and GMM.Ring.Host() then
+            start("scan face", GMM.ScanFace.Build)
             start("zone pill", GMM.Header.Build)
             start("coords pill", GMM.Footer.Build)
             start("lfg eye", GMM.Queue.Build)

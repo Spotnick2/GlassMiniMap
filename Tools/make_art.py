@@ -17,6 +17,8 @@ generator's primitives (SDF, bands, TGA writer) from the LibGlass checkout
   ring_bloom             neutral rim light, tinted by the active theme in game
   ring_fog               broken wisps within the same annulus
   notch_mask / notch_rim the glass tab at 12 o'clock that carries the "N"
+  scan_face / scan_sweep the radar over the map's spot during another addon's
+                         scan (#59): range rings and a crosshair, the sweep
   sun / moon / magnifier icons, white with the shape in alpha (tinted in game)
 
 Conventions (LibGlass's): overlays are one RGB colour with the shape in
@@ -307,8 +309,55 @@ def magnifier():
     write_tga("magnifier", white(np.clip(np.maximum(ring, handle), 0, 1)))
 
 
+# ---------------------------------------------------------------------------
+# The scan face (#59): a radar over the map's spot while another addon
+# borrows the map (256 px, drawn at the map's 198, masked round in game)
+# ---------------------------------------------------------------------------
+
+SCAN = 256
+SWEEP_TRAIL = 70        # degrees of fading trail behind the sweep's leading edge
+
+
+def scan_face():
+    """Faint range rings, a crosshair and the edge: white, shape in alpha."""
+    xs, ys = grid(SCAN)
+    c = SCAN / 2.0
+    dx, dy = xs - c, ys - c
+    r = np.hypot(dx, dy)
+    R = c - 2.0
+    line = lambda d, w, a: np.clip((w - d) / 0.9, 0, 1) * a     # a soft stroke, w px half-width
+    rings = np.maximum.reduce([line(np.abs(r - R * k), 0.8, 0.8) for k in (1 / 3, 2 / 3)])
+    edge = line(np.abs(r - (R - 1)), 1.0, 1.0)
+    cross = np.maximum(line(np.abs(dx), 0.6, 0.6), line(np.abs(dy), 0.6, 0.6))
+    cross *= np.clip((R - 4 - r) / 2, 0, 1)
+    dot = coverage(r - 2.2, 0.7)
+    alpha = np.maximum.reduce([rings, edge, cross, dot])
+    alpha[r > R + 1.5] = 0
+    write_tga("scan_face", white(np.clip(alpha, 0, 1)))
+
+
+def scan_sweep():
+    """The leading edge points up (12 o'clock); the trail fades anticlockwise
+    behind it, since the sweep turns clockwise in game (Rotation -360)."""
+    xs, ys = grid(SCAN)
+    c = SCAN / 2.0
+    dx, dy = xs - c, ys - c
+    r = np.hypot(dx, dy)
+    R = c - 2.0
+    theta = np.degrees(np.arctan2(dx, -dy))     # 0 at the top, clockwise positive
+    behind = -theta                             # degrees behind the leading edge
+    trail = np.where((behind >= 0) & (behind <= SWEEP_TRAIL), (1 - behind / SWEEP_TRAIL) ** 2, 0) * 0.55
+    # The leading edge: a bright line about one pixel wide at any radius.
+    edge_px = np.radians(np.abs(theta)) * r
+    lead = np.where(np.abs(theta) < 90, np.exp(-(edge_px / 1.3) ** 2), 0)
+    radial = np.clip((R - r) / 2, 0, 1) * (0.35 + 0.65 * np.clip(r / R, 0, 1))
+    write_tga("scan_sweep", white(np.clip(np.maximum(trail, lead) * radial, 0, 1)))
+
+
 def main():
     print("Writing Glass MiniMap textures")
+    scan_face()
+    scan_sweep()
     orbs()
     ring()
     write_tga("ring_runes", white(rune_band()))
