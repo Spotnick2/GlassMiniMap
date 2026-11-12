@@ -145,7 +145,9 @@ local function buildRunes()
     runeBloom = runeBloom or CreateFrame("Frame", nil, f)
     runeBloom:SetPoint("TOPLEFT", f, "TOPLEFT", -Ring.EFFECT_PADDING, Ring.EFFECT_PADDING)
     runeBloom:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", Ring.EFFECT_PADDING, -Ring.EFFECT_PADDING)
-    runeBloom:SetFrameLevel(Ring.AboveMap(1))
+    -- Above MinimapBackdrop's level (the map's + 1), where NodeRadar puts its
+    -- stand-in during a scan; with the fog, both ADD, so their order is moot.
+    runeBloom:SetFrameLevel(Ring.AboveMap(2))
     runeBloom:EnableMouse(false)
     runeLight = runeLight or runeBloom:CreateTexture(nil, "ARTWORK")
     runeLight:SetAllPoints(runeBloom)
@@ -494,7 +496,20 @@ function Ring.Build()
     Ring.SyncRotation()
 
     buildSun()
+    Ring.DeclareShape()
     return true
+end
+
+-- The map's shape, by LibDBIcon's convention: a global GetMinimapShape. Ours
+-- is round (Blizzard's mask stays, measured round in both rotation modes: P6,
+-- 70450), and with Blizzard's compass
+-- ring faded nothing else says so: NodeRadar draws the real ground in a look
+-- only on a map whose shape it knows (its SF.Shape). Blizzard defines none on
+-- this client (wow-ui-source forever, the 70888 dump). Declared at our login,
+-- after every addon's file scope, and only if no skin declared one first.
+function Ring.DeclareShape()
+    if rawget(_G, "GetMinimapShape") ~= nil then return end
+    rawset(_G, "GetMinimapShape", function() return "ROUND" end)
 end
 
 Ring._test = { notch = function() return notch end,

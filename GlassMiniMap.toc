@@ -18,6 +18,7 @@ Theme.lua
 Suite.lua
 Blizzard.lua
 Ring.lua
+ScanFace.lua
 Header.lua
 Footer.lua
 Queue.lua

@@ -38,9 +38,12 @@ local count, serial = 0, 0
 -- eye, which Blizzard anchors to Minimap. Hidden while a scan is under way, so
 -- an eye shown mid-scan (a queue pop) never brings our glass to the cursor
 -- (Codex, #56). Our own frame, not protected: safe from any caller.
+-- And the scan face over the map's spot (ScanFace.lua, #59): shown on the
+-- first Begin, held then faded after the last release. Each in its own pcall.
 local function changed()
-    local q = GMM.Queue
+    local q, f = GMM.Queue, GMM.ScanFace
     if q and q.Sync then pcall(q.Sync) end
+    if f and f.Sync then pcall(f.Sync) end
 end
 
 local function validOwner(owner)
@@ -82,6 +85,18 @@ end
 function GlassMiniMap.ScanEnd(owner)
     if not validOwner(owner) then return end
     pcall(release, owner)
+end
+
+-- Does Glass MiniMap draw its own stand-in over the map's spot for a scan
+-- begun now (ScanFace.lua, #59)? Only when the player chose NodeRadar's radar
+-- look; false before our build (PLAYER_LOGIN) or if it failed. Added in 1.2.0
+-- under version 1: a borrower that finds no such function is on 1.1.0, which
+-- draws none.
+function GlassMiniMap.ScanStandIn()
+    local f = GMM.ScanFace
+    if not (f and f.Draws) then return false end
+    local ok, yes = pcall(f.Draws)
+    return ok and yes == true
 end
 
 -- Internal: is any borrow under way?

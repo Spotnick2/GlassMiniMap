@@ -68,11 +68,12 @@ and a taint minefield (`..\References\Docs\PORTING-TBC-TO-FOREVER.md`, "Edit Mod
 |---|---|
 | `Compat.lua` | `API.*`: failures, events, version, `Fade`, `GameRule`, `ClassColor`, `SetIcon`, Settings registration |
 | `Scan.lua` | the public API (`PUBLIC_API_VERSION` 1, docs/PUBLIC-API.md): `ScanBegin`/`ScanEnd` for an addon that borrows `Minimap`, the 1 s self-release, `Scan.Active()` (pauses the auto zoom-out, hides the eye's glass, keeps the ring's build at rest size) |
+| `ScanFace.lua` | the radar over the map's spot during a scan (#59): shown on the first `ScanBegin`, held 0.4 s and faded after the last release, only over a visible map, only when the player chose NodeRadar's radar look (latched per borrow; else NodeRadar draws the real ground); `GlassMiniMap.ScanStandIn` asks it |
 | `Glass.lua` | `GMM.BuildGlass(preset)`: our LibGlass instance (Pearl by default, or clean), built once at `ADDON_LOADED`; `GMM.MEDIA` |
 | `Theme.lua` | clear / smoked / class: the tint in effect (`Theme.Name`: Glass UI's while following its look, else the player's own, else clear) and its numbers (Glass UI's `Body` while following); every surface registers (`Theme.Register(g, kind)`), `Theme.Refresh()` repaints live, `Theme.OnChange` listeners |
 | `Suite.lua` | Glass UI's suite: the once-per-session decision, the build, `LookChanged`, `Body` without its backing, `Report`, `Open` (all `rawget` + `pcall`) |
 | `Blizzard.lua` | fades stock art, opens Blizzard's tracking menu |
-| `Ring.lua` | the ring (one `Glass.Disc` behind the map), the north tab, `Ring.AddDisc`, the day/night disc |
+| `Ring.lua` | the ring (one `Glass.Disc` behind the map), the north tab, `Ring.AddDisc`, the day/night disc; declares `GetMinimapShape` ("ROUND") at login if no addon did |
 | `Header.lua` | zone pill: magnifier, zone name (PvP colours), the new-mail envelope (pills placement), calendar |
 | `Footer.lua` | coordinates pill under the ring (the zone pill's gap), Blizzard's coords CVars, or the instance size there (pills placement); zoom − / + at its ends, or discs on the ring (`zoom`) |
 | `Queue.lua` | Blizzard's LFG eye (`QueueStatusButton`) mirrored to the top left while in its default position (base methods, deferred, out of Edit Mode and combat), with a glass disc behind it |

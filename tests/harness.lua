@@ -87,6 +87,9 @@ end
 function loadAddon(opts)
     opts = opts or {}
     GlassMiniMap, GlassMiniMapDB, GlassMiniMapBar, LibStub, GlassUI = nil, nil, nil, nil, nil
+    -- Ours from the last load (Ring.DeclareShape), and a test's fake NodeRadar.
+    rawset(_G, "GetMinimapShape", nil)
+    rawset(_G, "NodeRadar", nil)
     WoW.reset()
     if opts.gmb then WoW.FakeGlassMiniMapBar(opts.gmb ~= true and opts.gmb or nil) end
     local fakeUI
