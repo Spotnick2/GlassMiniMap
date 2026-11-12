@@ -55,7 +55,9 @@ and its settings (`/gmb`) stay yours.
 ## Addons that borrow the minimap
 
 Some addons briefly move Blizzard's minimap to read it, for example NodeRadar's scan mode. While
-they do, Glass MiniMap's glass stays where the map belongs instead of following it. Addon authors:
+they do, Glass MiniMap's glass stays where the map belongs instead of following it, and the map's
+spot doesn't go blank: NodeRadar fills it with the minimap's own ground. If you choose NodeRadar's
+radar look instead, Glass MiniMap draws a radar face there, in your glass's tint. Addon authors:
 [docs/PUBLIC-API.md](https://github.com/Spotnick2/GlassMiniMap/blob/main/docs/PUBLIC-API.md).
 
 ## Licence
