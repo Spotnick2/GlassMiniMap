@@ -1,0 +1,6 @@
+# WowTestKit for these tests: the commit, and the client build to test against.
+# build: the kit has no data for MEASURED_ON_BUILD (1.60.1.70374, Compat.lua),
+# so the newest build it has data for, 70959.
+sha=3cba24fd68e35758c19671bcedfefa9ad228c60f
+build=70959
+api=2

@@ -168,7 +168,6 @@ WoW.timers = {}
 --------------------------------------------------------------------------------
 local function wait(seconds)
     for _ = 1, math.floor(seconds / 0.05 + 0.5) do
-        WoW.now = WoW.now + 0.05
         WoW.tick(0.05)
     end
 end

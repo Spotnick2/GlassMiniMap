@@ -35,7 +35,7 @@ eq(Minimap.ZoomIn._alpha, 0, "...and after Blizzard fades it in")
 
 -- Blizzard's AddOns button is never ours to touch.
 eq(AddonCompartmentFrame:GetParent(), MinimapCluster, "the AddOns button stays where Blizzard put it")
-eq(AddonCompartmentFrame._alpha, 1, "...as it was")
+eq(AddonCompartmentFrame:GetAlpha(), 1, "...as it was")
 
 -- Our frames live in the container Edit Mode scales.
 eq(GMM.Ring.Host():GetParent(), MinimapCluster.MinimapContainer, "ring parented to the container")

@@ -6,12 +6,11 @@ dofile("tests/harness.lua")
 
 local GMM = loadAddon()
 local host, container = GMM.Ring.Host(), GMM.Blizzard.Container()
-host._cx, host._cy = 600, 400
+placeAt(host, 600, 400)
 local half = host._width / 2
 
 local function wait(seconds)
     for _ = 1, math.floor(seconds / 0.05 + 0.5) do
-        WoW.now = WoW.now + 0.05
         WoW.tick(0.05)
     end
 end
@@ -77,7 +76,7 @@ eq(rawget(GlassMiniMapDB, "fader"), true, "...saved")
 settle()
 near(container:GetAlpha(), 0.6, 1e-9, "fader: the container at 60 % with the mouse away")
 near(queue:GetAlpha(), 0.6, 1e-9, "...the queue backing too (a UIParent child)")
-eq(Minimap._alpha, 1, "...the map's own alpha untouched (it inherits)")
+eq(Minimap:GetAlpha(), 1, "...the map's own alpha untouched (it inherits)")
 onMap(); wait(0.1)
 check(container:GetAlpha() > 0.6, "hovered: fading in")
 wait(GMM.Fader.TIME)

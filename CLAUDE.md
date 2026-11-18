@@ -115,7 +115,7 @@ From `..\wow-ui-source` (branch `forever`, 70338) and the 70374 API dump:
 Lua 5.1 at `C:\Program Files (x86)\Lua\5.1\` (`lua.exe`, `luac.exe`). No build step.
 
 ```powershell
-pwsh tests\run.ps1                                                   # luac -p on the TOC files + probe, then every tests\test_*.lua (needs ..\LibGlass or $env:LIBGLASS)
+pwsh tests\run.ps1                                                   # luac -p on the TOC files + probe, then every tests\test_*.lua on WowTestKit's pin (needs ..\LibGlass or $env:LIBGLASS)
 & 'C:\Program Files (x86)\Lua\5.1\lua.exe' tests\test_boot.lua      # one test, from the repo root
 pwsh Tools\deploy.ps1 -Probe                                         # copy the addon (+ ForeverProbe, MinimapProbe) into AddOns
 python Tools\make_art.py                                             # regenerate Media\*.tga
@@ -129,11 +129,19 @@ python Tools\make_art.py                                             # regenerat
 
 ## Testing
 
-Glass MiniMap Bar's harness, extended: `tests\wow_stubs.lua` (strict globals as an allowlist of
-APIs verified in the dump, event names validated against the dump, every widget method recorded,
-the Forever minimap cluster, `C_Minimap` tracking, a fake Glass MiniMap Bar public API),
-`tests\harness.lua` (`check`, `eq`, `near`, `loadAddon`, `loadForeverProbe`, `loadProbe`),
-`test_methods.lua` (every method called exists on this client), `test_probe.lua` (MinimapProbe on
+The test scaffolding is WowTestKit (`C:\Projects\WoW\WowTestKit`; its README is the reference)
+at the commit and client build `tests\kit.pin` names. `tests\run.ps1` puts that commit in
+`%LOCALAPPDATA%\WowTestKit\<sha>` and hands off to the kit's runner; CI fetches it with
+`tests\fetch_kit.sh`. `tests\kit.lua`, `kit.ps1` and `fetch_kit.sh` are the kit's bootstrap
+copies: never edit them here. A kit need is an issue on the kit, worked around in
+`tests\wow_stubs.lua` with a `-- WowTestKit #N:` comment meanwhile. `tests\run.ps1 -KitDev`
+runs against the `..\WowTestKit` working copy instead of the pin.
+
+On top of the kit: `tests\wow_stubs.lua` (the Forever minimap cluster, `C_Minimap` tracking, the
+zone, map and calendar APIs, a fake Glass MiniMap Bar public API and a fake Glass UI suite),
+`tests\harness.lua` (`near`, `placeAt`, `loadAddon`, `loadForeverProbe`, `loadProbe`; `check`,
+`eq` and `done` are the kit's), `test_methods.lua` (`Kit.checkMethods`: every widget method
+called exists on that type in the pinned build), `test_probe.lua` (MinimapProbe on
 `..\ForeverProbe`: local only, CI skips it with `FOREVERPROBE_OPTIONAL=1` because the host is
 private). **Mutation-test every new test.** Offline tests can't cover taint, rendering or the live
 client's data: that's the probe's procedures and the in-game checklist.

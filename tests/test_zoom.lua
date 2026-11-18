@@ -126,7 +126,7 @@ eq(zoomIn:GetAlpha(), 1, "...shown at first")
 local function wait(seconds)
     for _ = 1, math.floor(seconds / 0.05 + 0.5) do WoW.tick(0.05) end
 end
-host._cx, host._cy = 600, 400
+placeAt(host, 600, 400)
 local function away() WoW.cursor = { -1000, -1000 }; WoW.mouseOver = {} end
 away()
 wait(GMM.Footer.FADE_DELAY - 0.1)
