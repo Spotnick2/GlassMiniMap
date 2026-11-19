@@ -152,7 +152,7 @@ client's data: that's the probe's procedures and the in-game checklist.
   `luac -p` clean and tests green before committing.
 - **The owner merges and closes PRs and launches reviews.**
 - **Plans** get an adversarial review before coding: Codex via the `codex-consult` skill,
-  `gpt-6-astra` at high effort, looping until consensus, without overengineering.
+  `gpt-6.2-astra` at high effort, looping until consensus, without overengineering.
 - Releases: `..\References\Docs\RELEASING.md`. A tag publishes three ways (#34):
   - CurseForge project **1744024** (https://www.curseforge.com/wow/addons/glassminimap) builds
     from the tag webhook through `.pkgmeta`;
