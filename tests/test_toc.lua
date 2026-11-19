@@ -2,9 +2,12 @@
 dofile("tests/wow_stubs.lua")
 dofile("tests/harness.lua")
 
-local toc = io.open("GlassMiniMap.toc"):read("*a")
-check(toc:find("## Interface: 16001", 1, true), "interface 16001 (1.60.1; 11601 is the transposed-digit bug)")
-check(toc:find("## Version: @project-version@", 1, true), "packager version token kept")
+-- WowTestKit's: the interface (16001), the version token, every listed .lua
+-- file exists, every line listed once. The library's XML line is a checkout's
+-- (harness.lua), so its existence is checked by loading it, below.
+Kit.checkToc(TOC)
+
+local toc = io.open(TOC):read("*a")
 check(toc:find("## SavedVariables: GlassMiniMapDB", 1, true), "saved variables declared")
 check(toc:find("## X-Curse-Project-ID: 1744024", 1, true), "CurseForge project ID (1744024)")
 check(toc:find("## X-Wago-ID: 5NRgYe63", 1, true), "Wago project ID (5NRgYe63)")
@@ -13,9 +16,6 @@ eq(toc:match("## OptionalDeps: ([^\r\n]*)"), "GlassMiniMapBar, GlassUI",
     "Glass MiniMap Bar and Glass UI load first when installed (the drawer; the suite's answer at our ADDON_LOADED)")
 check(not toc:find("AddonCompartmentFunc", 1, true), "no compartment entry of our own")
 check(io.open("LICENSE"):read("*a"):find("MIT License", 1, true), "LICENSE is MIT")
-for _, f in ipairs(tocFiles()) do
-    check(io.open(f, "r") ~= nil, "TOC file exists: " .. f)
-end
 eq(tocLines()[1], LIBGLASS_XML, "LibGlass-1.0 loads first")
 eq(tocFiles()[1], "Compat.lua", "Compat is the first addon file")
 eq(tocFiles()[#tocFiles()], "GlassMiniMap.lua", "bootstrap loads last")
@@ -24,11 +24,6 @@ for _, f in ipairs(tocFiles()) do
     local src = io.open(f, "rb"):read("*a")
     local token = src:match("@project%-[%w-]+@") or src:match("@file%-[%w-]+@")
     check(not token, f .. " holds no packager token (found " .. tostring(token) .. ")")
-end
-local seen = {}
-for _, f in ipairs(tocFiles()) do
-    check(not seen[f], "TOC lists each file once: " .. f)
-    seen[f] = true
 end
 
 local GMM = loadAddon()

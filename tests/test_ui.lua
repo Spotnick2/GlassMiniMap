@@ -108,13 +108,13 @@ eq(coords._shown, true, "on again: back")
 
 -- Zoom: one step within the client's levels; the buttons follow.
 local zin, zout = F._test.zoomIn(), F._test.zoomOut()
-eq(zout._enabled, false, "fully out: minus disabled")
+eq(zout:IsEnabled(), false, "fully out: minus disabled")
 zin:Click("LeftButton")
 eq(Minimap._zoom, 1, "plus zooms in")
-eq(zout._enabled, true, "...minus enabled")
+eq(zout:IsEnabled(), true, "...minus enabled")
 Minimap._zoom = 5
 WoW.fire("MINIMAP_UPDATE_ZOOM")
-eq(zin._enabled, false, "fully in (the wheel): plus disabled")
+eq(zin:IsEnabled(), false, "fully in (the wheel): plus disabled")
 check(not F.Zoom(1), "...and does nothing")
 zout:Click("LeftButton")
 eq(Minimap._zoom, 4, "minus zooms out")

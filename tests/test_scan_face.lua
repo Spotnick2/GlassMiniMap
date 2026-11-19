@@ -24,7 +24,6 @@ local function End(o) GlassMiniMap.ScanEnd(o or "NodeRadar") end
 local function frames(seconds, dt)
     dt = dt or 0.05
     for _ = 1, math.floor(seconds / dt + 0.5) do
-        WoW.now = WoW.now + dt
         WoW.tick(dt)
     end
 end
@@ -42,7 +41,7 @@ eq(face._level, Minimap:GetFrameLevel() + 1, "one level above the map")
 check(face._level < GMM.Ring._test.notch()._level, "...under the north tab")
 eq(face:IsMouseEnabled(), false, "mouse off")
 eq(face:IsShown(), false, "hidden at rest")
-eq(sweep._blendMode, "ADD", "the sweep is light")
+eq(sweep._blend, "ADD", "the sweep is light")
 local turn = spin:GetAnimations()
 eq(turn._degrees, -360, "the sweep turns clockwise")
 eq(turn._duration, Face.TURN, "...one turn per TURN seconds")

@@ -1,31 +1,19 @@
--- Every widget method the addon calls must exist on this client.
+-- Every widget method the addon calls exists on that widget type in the
+-- pinned build (WowTestKit's Kit.checkMethods, tests/kit.pin's build).
 --
--- The stub answers any Capitalised method call (a no-op for ones it does not
--- implement), so a call to a method Forever lacks would otherwise pass
--- silently. This checks each recorded "Type:Method" against the API dump's
--- widget-method walk. Keep it exercising every handler the addon installs.
--- It does NOT prove argument contracts, event behaviour or protection rules:
--- that is the in-game pass (docs/FOREVER-PROBE.md).
+-- The core's widgets answer only the methods their type has on that build (or
+-- one the stubs implement), so a call to a method Forever lacks fails where
+-- it's made; a method the stubs implement, called on the wrong type, is what
+-- the check below catches. Keep the exercise reaching every handler the addon
+-- installs. It does NOT prove argument contracts, event behaviour or
+-- protection rules: that is the in-game pass (docs/FOREVER-PROBE.md).
 dofile("tests/wow_stubs.lua")
 dofile("tests/harness.lua")
 
-local f = io.open(WoW.DUMP, "r")
-if not f then
-    io.write("test_methods: SKIPPED (no API dump at " .. WoW.DUMP .. ")\n")
-    os.exit(0)
-end
-local widget, documented = {}, {}
-for line in f:lines() do
-    local wm = line:match("^(%a+:%a+)%s*$")
-    if wm then widget[wm] = true end
-    local fn = line:match("^([%a_]+)%(")
-    if fn then documented[fn] = true end
-end
-f:close()
-
-WoW.methodsCalled = {}
 WoW.version = "dev"
 local GMM = loadAddon({ gmb = true })
+WoW.fireAllRegistered()
+WoW.tick()
 GMM._test.slash("runes on")
 GMM._test.slash("runes status")
 GMM._test.slash("runes style glowing")
@@ -100,7 +88,10 @@ end
 WoW.flushTimers()
 eq(next(GMM.failures), nil, "no failures recorded while exercising everything")
 
--- Following Glass UI's suite (#37): its options, a live tint change.
+-- Following Glass UI's suite (#37): its options, a live tint change. A load
+-- resets the client (WoW.reset), and the core's reset forgets the methods
+-- called so far: keep the first session's for the check.
+local first = WoW.methodsCalled
 local ui
 GMM, ui = loadAddon({ suite = true, gmb = true })
 GMM.Options._test.panel:Show()
@@ -110,13 +101,11 @@ end
 ui.SetTint("smoked")
 for _, cmd in ipairs({ "suite", "material clean", "theme suite", "help" }) do GMM._test.slash(cmd) end
 
-local n = 0
-for name in pairs(WoW.methodsCalled) do
-    n = n + 1
-    local method = name:match(":(%a+)$")
-    check(widget[name] or documented[method], "method exists on Forever: " .. name)
-end
-check(n > 60, "recorded a realistic number of methods (" .. n .. ")")
+for pair in pairs(first) do WoW.methodsCalled[pair] = true end
+
+local recorded = Kit.checkMethods()
+-- The floor: 164 recorded when this was written (on 70959), rounded down.
+check(recorded >= 160, "the exercise reached the pills, discs, menus and options (" .. recorded .. " recorded)")
 eq(next(GMM.failures), nil, "no failures recorded while exercising everything")
 for k, v in pairs(GMM.failures) do io.write("    " .. k .. ": " .. v .. "\n") end
 done("test_methods")

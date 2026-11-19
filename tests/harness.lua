@@ -1,46 +1,18 @@
--- harness.lua: assertions and the addon loader. dofile it after wow_stubs.lua.
+-- harness.lua: the addon loader and a few helpers. dofile it after wow_stubs.lua.
+-- check / eq / done are WowTestKit's (globals, from tests/kit.lua).
 
-local passed, failed = 0, 0
-
-function check(cond, msg)
-    if cond then passed = passed + 1 else
-        failed = failed + 1
-        io.write("  FAIL: " .. tostring(msg) .. "\n")
-    end
-end
-
-function eq(actual, expected, msg)
-    check(actual == expected, string.format("%s: expected %s, got %s", msg, tostring(expected), tostring(actual)))
-end
+TOC = "GlassMiniMap.toc"
 
 function near(actual, expected, msg)
     check(type(actual) == "number" and math.abs(actual - expected) < 1e-6,
         string.format("%s: expected %s, got %s", msg, tostring(expected), tostring(actual)))
 end
 
-function done(name)
-    io.write(string.format("%s: %d passed, %d failed\n", name, passed, failed))
-    os.exit(failed == 0 and 0 or 1)
-end
-
 -- Every file line of the TOC, in load order, as written.
-function tocLines()
-    local lines = {}
-    for line in io.lines("GlassMiniMap.toc") do
-        line = line:gsub("\r", "")
-        if line ~= "" and not line:match("^#") then lines[#lines + 1] = line end
-    end
-    return lines
-end
+function tocLines() return Kit.tocLines(TOC) end
 
 -- Lua files listed in the TOC, in load order.
-function tocFiles()
-    local files = {}
-    for _, line in ipairs(tocLines()) do
-        if line:match("%.lua$") then files[#files + 1] = (line:gsub("\\", "/")) end
-    end
-    return files
-end
+function tocFiles() return Kit.tocFiles(TOC) end
 
 -- The embedded LibGlass-1.0 comes from a checkout, not from Libs\ (gitignored,
 -- filled by the packager): $LIBGLASS, else ../LibGlass. No checkout fails the
@@ -155,4 +127,11 @@ function loadProbe(opts)
     end
     MinimapProbeDB = opts.db
     WoW.fire("ADDON_LOADED", "MinimapProbe")
+end
+
+-- Put w's centre at (x, y) on the screen, as the client's layout reports it:
+-- the core's GetCenter is the midpoint of the edges (w._left ... w._top).
+function placeAt(w, x, y)
+    local hw, hh = (w._width or 0) / 2, (w._height or 0) / 2
+    w._left, w._right, w._bottom, w._top = x - hw, x + hw, y - hh, y + hh
 end

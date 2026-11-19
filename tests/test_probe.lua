@@ -15,7 +15,7 @@ rawset(_G, "Screenshot", function() WoW.shots = (WoW.shots or 0) + 1 end)
 -- Clean, the material the wash numbers below were measured with (r7, #22);
 -- Pearl's are checked at the end.
 local GMM = loadAddon({ db = { material = "clean" } })
-Minimap._cx, Minimap._cy, Minimap._effScale = 500, 400, 1
+placeAt(Minimap, 500, 400); Minimap._escale = 1
 local FP = loadForeverProbe()
 loadProbe()
 local S = FP.Steps
@@ -464,7 +464,7 @@ eq(record("zoomring").status, "done", "zoomring: done")
 -- extras (#13, #14, #15)
 --------------------------------------------------------------------------------
 local hostE = GMM.Ring.Host()
-hostE._cx, hostE._cy = 500, 400
+placeAt(hostE, 500, 400)
 local function away() WoW.cursor = { -1000, -1000 }; WoW.mouseOver = {} end
 local function onMap() WoW.cursor = { 500, 400 } end
 GMM.Settings.SetAutoZoomOut(12)                        -- the owner's own, put back at the end
@@ -593,10 +593,10 @@ WoW.cvars.rotateMinimap = false
 S.Run(); settle()
 eq(result("checklist", 4).check, "PASS", "fixed")
 S.Answer(true)
-hostE._effScale = 0.8
+hostE._escale = 0.8
 S.Run(); settle()
 eq(result("checklist", 6).check, "FAIL", "the ring at another scale than the container: FAIL")
-hostE._effScale = nil
+hostE._escale = nil
 S.Back()
 S.Run(); settle()
 eq(result("checklist", 6).check, "PASS", "small: the ring at the container's scale")
